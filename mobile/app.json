@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "APPEMP Mobile",
-    "slug": "appemp-mobile",
+    "slug": "appemp",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -26,6 +26,12 @@
     },
     "web": {
       "bundler": "metro"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "7e9272ca-e31d-4584-8a83-0371c33a99bc"
+      }
+    },
+    "owner": "aafs1981s-organization"
   }
 }
