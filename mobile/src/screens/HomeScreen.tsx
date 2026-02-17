@@ -485,6 +485,10 @@ export default function HomeScreen() {
     navigation.navigate('Usuarios');
   };
 
+  const abrirSobreApp = () => {
+    setMostrarSobreApp(true);
+  };
+
   const irParaNovoPedido = () => {
     setMenuAberto(false);
     setMostrarSobreApp(false);
@@ -675,6 +679,18 @@ export default function HomeScreen() {
                       <Text style={styles.menuLinkIcon}>👥</Text>
                     </View>
                     <Text style={styles.menuLinkText}>Usuários</Text>
+                    <Text style={styles.menuLinkChevron}>{'▸'}</Text>
+                  </Pressable>
+                ) : null}
+                {user?.perfil !== 'motorista' ? (
+                  <Pressable
+                    style={[styles.menuLink, mostrarSobreApp && styles.menuLinkActive]}
+                    onPress={abrirSobreApp}
+                  >
+                    <View style={styles.menuLinkIconWrap}>
+                      <Text style={styles.menuLinkIcon}>ℹ️</Text>
+                    </View>
+                    <Text style={styles.menuLinkText}>Sobre App</Text>
                     <Text style={styles.menuLinkChevron}>{'▸'}</Text>
                   </Pressable>
                 ) : null}

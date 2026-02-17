@@ -104,7 +104,7 @@ export default function LoginScreen() {
                 <Image source={LOGO} style={styles.logo} resizeMode="contain" />
               </View>
               <View style={styles.brandTitleWrap}>
-                <Text style={styles.brandTitle}>APPEMP [Sta Clara]</Text>
+                <Text style={styles.brandTitle}>APPEMP</Text>
               </View>
             </View>
             <Text style={styles.brandSubtitle}>
