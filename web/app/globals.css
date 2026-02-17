@@ -1,0 +1,306 @@
+@import "tailwindcss";
+
+:root {
+  --background: #e4e8f0;
+  --foreground: #0f172a;
+  --surface: #ffffff;
+  --surface-soft: #f8fafc;
+  --stroke: #cbd5e1;
+  --input-bg: #e5ebf3;
+  --input-text: #0f172a;
+  --muted: #475569;
+  --primary: #1d4ed8;
+  --primary-strong: #1e40af;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  min-height: 100vh;
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.38), rgba(30, 64, 175, 0.24), rgba(15, 23, 42, 0.36)),
+    linear-gradient(120deg, rgba(236, 246, 255, 0.22), rgba(220, 236, 255, 0.2), rgba(208, 228, 252, 0.22)),
+    radial-gradient(1100px 520px at 6% -20%, rgba(37, 99, 235, 0.28), transparent 62%),
+    radial-gradient(980px 500px at 102% -12%, rgba(14, 165, 233, 0.24), transparent 60%),
+    url('/telas/fundo_login_claro.png'),
+    var(--background);
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat, no-repeat;
+  background-position: center, center, 6% -20%, 102% -12%, center, center;
+  background-size: auto, auto, auto, auto, 145px auto, auto;
+  color: var(--foreground);
+  font-family: var(--font-sans), "Segoe UI", sans-serif;
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: 1.5rem 0 2.5rem;
+}
+
+.app-container {
+  width: min(1140px, 100% - 2rem);
+  margin: 0 auto;
+}
+
+.surface {
+  background: linear-gradient(180deg, #ffffff 0%, #fcfdff 100%);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 0.85rem;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 10px 25px rgba(15, 23, 42, 0.07);
+}
+
+.surface-strong {
+  border-width: 2px;
+  border-style: solid;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.08),
+    0 10px 22px rgba(15, 23, 42, 0.12);
+}
+
+.top-title {
+  font-size: clamp(1.8rem, 2.6vw, 2.2rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+}
+
+input,
+select,
+textarea {
+  background-color: var(--input-bg);
+  color: var(--input-text);
+  border-color: #94a3b8;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--primary);
+  box-shadow:
+    0 0 0 2px rgba(37, 99, 235, 0.22),
+    0 4px 14px rgba(30, 64, 175, 0.16);
+  outline: none;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #334155;
+}
+
+input[type="date"] {
+  color: var(--input-text);
+}
+
+input[type="date"]::-webkit-datetime-edit {
+  color: var(--input-text);
+}
+
+input[type="date"]:required:invalid::-webkit-datetime-edit {
+  color: #475569;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.95;
+  cursor: pointer;
+}
+
+.ui-input,
+.ui-select {
+  width: 100%;
+  height: 2.65rem;
+  padding: 0.55rem 0.78rem;
+  border: 1px solid var(--stroke);
+  border-radius: 0.5rem;
+  color: var(--input-text);
+  background-color: var(--input-bg);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.ui-input::placeholder {
+  color: #475569;
+}
+
+.ui-input:focus,
+.ui-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow:
+    0 0 0 2px rgba(37, 99, 235, 0.18),
+    0 2px 8px rgba(30, 64, 175, 0.12);
+}
+
+.ui-input-inline,
+.ui-select-inline {
+  min-height: 2.15rem;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--stroke);
+  border-radius: 0.375rem;
+  color: #0f172a;
+  background-color: #f1f5f9;
+}
+
+.ui-input-inline::placeholder {
+  color: #475569;
+}
+
+.ui-input-inline:focus,
+.ui-select-inline:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-warning,
+.btn-accent,
+.btn-success,
+.btn-pagination {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.btn-primary {
+  padding: 0.56rem 0.98rem;
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  border-color: #1e40af;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.24);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%);
+}
+
+.btn-primary:disabled,
+.btn-success:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  padding: 0.56rem 0.98rem;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.btn-secondary:hover {
+  background: #e2e8f0;
+}
+
+.btn-warning {
+  padding: 0.56rem 0.98rem;
+  background-color: #fef3c7;
+  border-color: #f59e0b;
+  color: #78350f;
+}
+
+.btn-warning:hover {
+  background-color: #fde68a;
+}
+
+.btn-accent {
+  padding: 0.56rem 0.98rem;
+  background-color: #dbeafe;
+  border-color: #93c5fd;
+  color: #1e3a8a;
+}
+
+.btn-accent:hover {
+  background-color: #bfdbfe;
+}
+
+.btn-success {
+  padding: 0.25rem 0.75rem;
+  background-color: #16a34a;
+  border-color: #15803d;
+  color: #ffffff;
+}
+
+.btn-success:hover {
+  background-color: #15803d;
+}
+
+.btn-pagination {
+  padding: 0.5rem 0.95rem;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  font-size: 0.875rem;
+  color: #0f172a;
+}
+
+.btn-pagination:disabled {
+  background-color: #e2e8f0;
+  color: #64748b;
+}
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.97rem;
+  font-weight: 700;
+  color: #1e3a8a;
+  text-decoration: none;
+  padding: 0.1rem 0;
+  border-bottom: 2px solid transparent;
+  transition: color 0.16s ease, border-color 0.16s ease;
+}
+
+.nav-link:hover {
+  color: #1d4ed8;
+  border-bottom-color: #93c5fd;
+}
+
+.nav-link-danger {
+  color: #9f1239;
+}
+
+.nav-link-danger:hover {
+  color: #be123c;
+  border-bottom-color: #fda4af;
+}
+
+.nav-icon-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.9rem;
+  height: 3.9rem;
+  border-radius: 0.95rem;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #1e40af;
+  transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+
+.nav-icon-link:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.nav-icon-link-danger {
+  color: #be123c;
+  border-color: #fecdd3;
+  background: #fff1f2;
+}
+
+.nav-icon-link-danger:hover {
+  color: #9f1239;
+  border-color: #fda4af;
+  background: #ffe4e6;
+}
