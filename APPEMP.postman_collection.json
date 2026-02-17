@@ -1,0 +1,905 @@
+{
+  "info": {
+    "_postman_id": "b2e1b2f0-0000-0000-0000-000000000001",
+    "name": "APPEMP Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+              "const data = pm.response.json();",
+              "pm.collectionVariables.set('auth_token', data.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{auth_user}}\",\n  \"password\": \"{{auth_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Auth - Me",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/auth/me",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "me"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Auth - Trocar Senha",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"senha_atual\": \"{{auth_password}}\",\n  \"nova_senha\": \"{{auth_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/change-password",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "change-password"
+          ]
+        }
+      },
+      "description": "Use somente para validar endpoint sem trocar senha efetiva (mesmo valor)."
+    },
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Rotas - Listar",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/rotas",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "rotas"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Rotas - Criar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Frango Assado\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/rotas",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "rotas"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Clientes - Listar",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/clientes",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "clientes"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Clientes - Criar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"codigo_cliente\": \"CL0010\",\n  \"nome\": \"Vaca Preta 2\",\n  \"rota_id\": 1\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/clientes",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "clientes"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Produtos - Listar",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/produtos",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "produtos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Produtos - Criar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"codigo_produto\": \"PR16\",\n  \"nome\": \"Queijadinha Crespa(15)\",\n  \"embalagem\": \"PCT\",\n  \"preco_base\": 11.5\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/produtos",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "produtos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Pedidos - Listar",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/pedidos",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "pedidos"
+          ]
+        },
+        "description": "Lista todos os pedidos. Filtros opcionais: ?data=2026-02-10&rota_id=1&cliente_id=1&status=EM_ESPERA"
+      }
+    },
+    {
+      "name": "Pedidos - Listar com Filtros",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/pedidos?data=2026-02-10&status=EM_ESPERA",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "pedidos"
+          ],
+          "query": [
+            {
+              "key": "data",
+              "value": "2026-02-10"
+            },
+            {
+              "key": "status",
+              "value": "EM_ESPERA"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Pedidos - Criar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cliente_id\": 17,\n  \"rota_id\": 1,\n  \"data\": \"2026-02-10\",\n  \"status\": \"EM_ESPERA\",\n  \"itens\": [\n    {\n      \"produto_id\": 1,\n      \"quantidade\": 25,\n      \"embalagem\": \"BD\",\n      \"valor_unitario\": 18.2,\n      \"comissao\": 155\n    },\n    {\n      \"produto_id\": 3,\n      \"quantidade\": 18,\n      \"embalagem\": \"DP\",\n      \"valor_unitario\": 2.8,\n      \"comissao\": 8.64\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/pedidos",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "pedidos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Pedidos - Atualizar Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"CONFERIR\",\n  \"valor_efetivado\": 505.40\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/pedidos/:id/status",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "pedidos",
+            ":id",
+            "status"
+          ],
+          "variable": [
+            {
+              "key": "id",
+              "value": "4"
+            }
+          ]
+        },
+        "description": "Atualiza o status de um pedido. Status permitidos: EM_ESPERA, CONFERIR, EFETIVADO, CANCELADO"
+      }
+    },
+    {
+      "name": "Pedidos - Atualizar Completo",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"rota_id\": 1,\n  \"data\": \"2026-02-10\",\n  \"status\": \"CONFERIR\",\n  \"itens\": [\n    {\n      \"produto_id\": 1,\n      \"quantidade\": 30,\n      \"embalagem\": \"BD\",\n      \"valor_unitario\": 18.2,\n      \"comissao\": 155\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/pedidos/:id",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "pedidos",
+            ":id"
+          ],
+          "variable": [
+            {
+              "key": "id",
+              "value": "4"
+            }
+          ]
+        },
+        "description": "Atualiza um pedido completo, incluindo itens. Se itens forem fornecidos, substitui todos os itens existentes."
+      }
+    },
+    {
+      "name": "Trocas - Listar de um Pedido",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/pedidos/:id/trocas",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "pedidos",
+            ":id",
+            "trocas"
+          ],
+          "variable": [
+            {
+              "key": "id",
+              "value": "4"
+            }
+          ]
+        },
+        "description": "Lista todas as trocas de um pedido específico"
+      }
+    },
+    {
+      "name": "Trocas - Criar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"pedido_id\": 4,\n  \"item_pedido_id\": 6,\n  \"produto_id\": 3,\n  \"quantidade\": 5,\n  \"valor_troca\": 14.00,\n  \"motivo\": \"Produto com defeito\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/trocas",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "trocas"
+          ]
+        },
+        "description": "Cria uma nova troca vinculada a um pedido"
+      }
+    },
+    {
+      "name": "E2E - Pedidos",
+      "item": [
+        {
+          "name": "E2E - Criar Rota",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('e2e_ts')) {",
+                  "  const ts = Date.now().toString();",
+                  "  pm.collectionVariables.set('e2e_ts', ts);",
+                  "  pm.collectionVariables.set('e2e_date', '2026-02-10');",
+                  "  pm.collectionVariables.set('e2e_rota_nome', `Rota E2E ${ts}`);",
+                  "  pm.collectionVariables.set('e2e_cliente_codigo', `CLT${ts}`);",
+                  "  pm.collectionVariables.set('e2e_cliente_nome', `Cliente E2E ${ts}`);",
+                  "  pm.collectionVariables.set('e2e_produto_codigo', `PRD${ts}`);",
+                  "  pm.collectionVariables.set('e2e_produto_nome', `Produto E2E ${ts}`);",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('e2e_rota_id', data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"{{e2e_rota_nome}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rotas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rotas"
+              ]
+            }
+          }
+        },
+        {
+          "name": "E2E - Criar Cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('e2e_cliente_id', data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo_cliente\": \"{{e2e_cliente_codigo}}\",\n  \"nome\": \"{{e2e_cliente_nome}}\",\n  \"rota_id\": {{e2e_rota_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/clientes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "clientes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "E2E - Criar Produto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('e2e_produto_id', data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo_produto\": \"{{e2e_produto_codigo}}\",\n  \"nome\": \"{{e2e_produto_nome}}\",\n  \"embalagem\": \"UN\",\n  \"preco_base\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/produtos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "produtos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "E2E - Criar Pedido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.test('Pedido criado em espera', function () {",
+                  "  pm.expect(data.status).to.eql('EM_ESPERA');",
+                  "});",
+                  "pm.collectionVariables.set('e2e_pedido_id', data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cliente_id\": {{e2e_cliente_id}},\n  \"rota_id\": {{e2e_rota_id}},\n  \"data\": \"{{e2e_date}}\",\n  \"status\": \"EM_ESPERA\",\n  \"itens\": [\n    {\n      \"produto_id\": {{e2e_produto_id}},\n      \"quantidade\": 3,\n      \"embalagem\": \"UN\",\n      \"valor_unitario\": 15.5\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/pedidos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pedidos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "E2E - Editar Pedido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.test('Pedido em conferir', function () {",
+                  "  pm.expect(data.status).to.eql('CONFERIR');",
+                  "});",
+                  "pm.test('Valor total atualizado', function () {",
+                  "  pm.expect(Number(data.valor_total)).to.eql(80);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CONFERIR\",\n  \"itens\": [\n    {\n      \"produto_id\": {{e2e_produto_id}},\n      \"quantidade\": 4,\n      \"embalagem\": \"UN\",\n      \"valor_unitario\": 20\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/pedidos/{{e2e_pedido_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pedidos",
+                "{{e2e_pedido_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "E2E - Atualizar Status EFETIVADO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.test('Status efetivado', function () {",
+                  "  pm.expect(data.status).to.eql('EFETIVADO');",
+                  "});",
+                  "pm.test('Valor efetivado 80', function () {",
+                  "  pm.expect(Number(data.valor_efetivado)).to.eql(80);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"EFETIVADO\",\n  \"valor_efetivado\": 80\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/pedidos/{{e2e_pedido_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pedidos",
+                "{{e2e_pedido_id}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "E2E - Validar Filtro EFETIVADO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "const pedidoId = Number(pm.collectionVariables.get('e2e_pedido_id'));",
+                  "pm.test('Pedido aparece no filtro EFETIVADO', function () {",
+                  "  pm.expect(data.some(p => Number(p.id) === pedidoId)).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/pedidos?status=EFETIVADO",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pedidos"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "EFETIVADO"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "E2E - Validar Filtro ok",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "const pedidoId = Number(pm.collectionVariables.get('e2e_pedido_id'));",
+                  "pm.test('Pedido aparece no filtro ok', function () {",
+                  "  pm.expect(data.some(p => Number(p.id) === pedidoId)).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/pedidos?status=ok",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pedidos"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "ok"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Usuarios - Listar",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/usuarios",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "usuarios"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Usuarios - Criar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Usuário Teste\",\n  \"login\": \"user_teste\",\n  \"senha\": \"123456\",\n  \"perfil\": \"vendedor\",\n  \"ativo\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "usuarios"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Usuarios - Atualizar",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Usuário Teste Atualizado\",\n  \"ativo\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/:id",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "usuarios",
+            ":id"
+          ],
+          "variable": [
+            {
+              "key": "id",
+              "value": "1"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "auth_token",
+      "value": ""
+    },
+    {
+      "key": "auth_user",
+      "value": "admin"
+    },
+    {
+      "key": "auth_password",
+      "value": "admin123"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  }
+}
