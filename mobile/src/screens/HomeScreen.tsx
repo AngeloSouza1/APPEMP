@@ -638,7 +638,7 @@ export default function HomeScreen() {
     </View>
   );
 
-  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 18;
+  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 16 : 22;
 
   return (
     <View style={styles.container}>
@@ -824,7 +824,6 @@ export default function HomeScreen() {
               {
                 paddingBottom: ajuste.modulesListPaddingBottom,
                 rowGap: ajuste.modulesListRowGap,
-                flexGrow: 1,
               },
             ]}
             columnWrapperStyle={[styles.moduleRow, { columnGap: ajuste.moduleRowGap }]}
@@ -1324,7 +1323,7 @@ const styles = StyleSheet.create({
     rowGap: 5,
   },
   modulesFooter: {
-    marginTop: 'auto',
+    marginTop: 2,
   },
   moduleRow: {
     columnGap: 6,
