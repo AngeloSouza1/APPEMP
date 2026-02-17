@@ -18,14 +18,12 @@ app.use(cors({
     if (process.env.NODE_ENV !== 'production') {
       callback(null, true);
     } else {
-      // Em produção, usar lista específica
-      const allowedOrigins = [
-        'http://localhost:3001',
-        'http://localhost:3000',
-        'http://127.0.0.1:3001',
-        'http://127.0.0.1:3000',
-      ];
-      if (origin && allowedOrigins.includes(origin)) {
+      // Em produção, usar lista da env CORS_ORIGIN (separada por vírgula)
+      const allowedOrigins = (process.env.CORS_ORIGIN || '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+      if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
