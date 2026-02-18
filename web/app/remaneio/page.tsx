@@ -313,6 +313,25 @@ export default function RemaneioPage() {
     }
   };
 
+  const efetivarPedido = async (pedidoId: number) => {
+    setErro(null);
+    setSucesso(null);
+    setProcessando(true);
+    try {
+      await pedidosApi.atualizarStatus(pedidoId, {
+        status: 'EFETIVADO',
+      });
+      setOrdemSelecaoRemaneio((prev) => prev.filter((id) => id !== pedidoId));
+      setSucesso(`Pedido #${pedidoId} atualizado para Efetivado.`);
+      await carregarDados();
+    } catch (error: any) {
+      const mensagemApi = error?.response?.data?.error as string | undefined;
+      setErro(mensagemApi || 'Não foi possível efetivar o pedido.');
+    } finally {
+      setProcessando(false);
+    }
+  };
+
   useEffect(() => {
     if ((step === 'remaneio' || step === 'dashboard') && !hasPedidosNoRemaneio) {
       setStep('selecao');
@@ -587,15 +606,25 @@ export default function RemaneioPage() {
                         <td className="px-3 py-2 text-right font-bold text-slate-900">
                           {formatarMoeda(Number(pedido.valor_total || 0))}
                         </td>
-                        <td className="px-3 py-2 text-right">
-                          <button
-                            type="button"
-                            className="btn-secondary px-3 py-1.5 text-xs"
-                            onClick={() => retirarDoRemaneio(pedido.id)}
-                            disabled={processando}
-                          >
-                            Retirar
-                          </button>
+                        <td className="px-3 py-2">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              className="btn-primary px-3 py-1.5 text-xs"
+                              onClick={() => efetivarPedido(pedido.id)}
+                              disabled={processando}
+                            >
+                              Efetivar
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-secondary px-3 py-1.5 text-xs"
+                              onClick={() => retirarDoRemaneio(pedido.id)}
+                              disabled={processando}
+                            >
+                              Retirar
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

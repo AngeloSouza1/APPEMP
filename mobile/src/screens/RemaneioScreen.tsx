@@ -269,6 +269,26 @@ export default function RemaneioScreen() {
     }
   };
 
+  const efetivarPedido = async (pedidoId: number) => {
+    setErro(null);
+    setSucesso(null);
+    setProcessando(true);
+    try {
+      await pedidosApi.atualizarStatus(pedidoId, {
+        status: 'EFETIVADO',
+      });
+      await marcarRelatoriosComoDesatualizados();
+      setStepSelecaoBloqueado(false);
+      setOrdemSelecaoRemaneio((prev) => prev.filter((id) => id !== pedidoId));
+      setSucesso(`Pedido #${pedidoId} atualizado para Efetivado.`);
+      await carregarDados();
+    } catch {
+      setErro('Não foi possível efetivar o pedido.');
+    } finally {
+      setProcessando(false);
+    }
+  };
+
   if (!podeAcessarRemaneio) {
     return (
       <View style={styles.container}>
@@ -575,13 +595,22 @@ export default function RemaneioScreen() {
                 <Text style={styles.cardMeta}>{item.rota_nome || 'Sem rota'} • {formatarData(item.data)}</Text>
                 <View style={styles.remaneioActionsRow}>
                   <Text style={styles.cardValue}>{formatarMoeda(Number(item.valor_total || 0))}</Text>
-                  <Pressable
-                    style={[styles.smallSecondaryButton, processando && styles.disabledButton]}
-                    onPress={() => retirarDoRemaneio(item.id)}
-                    disabled={processando}
-                  >
-                    <Text style={styles.smallSecondaryButtonText}>Retirar</Text>
-                  </Pressable>
+                  <View style={styles.remaneioButtonsWrap}>
+                    <Pressable
+                      style={[styles.smallPrimaryButton, processando && styles.disabledButton]}
+                      onPress={() => efetivarPedido(item.id)}
+                      disabled={processando}
+                    >
+                      <Text style={styles.smallPrimaryButtonText}>Efetivar</Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.smallSecondaryButton, processando && styles.disabledButton]}
+                      onPress={() => retirarDoRemaneio(item.id)}
+                      disabled={processando}
+                    >
+                      <Text style={styles.smallSecondaryButtonText}>Retirar</Text>
+                    </Pressable>
+                  </View>
                 </View>
               </View>
             )}
@@ -1156,6 +1185,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
+  },
+  remaneioButtonsWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  smallPrimaryButton: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#1d4ed8',
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  smallPrimaryButtonText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   smallSecondaryButton: {
     borderRadius: 8,
