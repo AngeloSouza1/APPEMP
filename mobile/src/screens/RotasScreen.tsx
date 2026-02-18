@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
     height: 36,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 25.2,
     fontWeight: '800',
     color: '#0f172a',
   },
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
   headerIconText: {
     color: '#1e3a8a',
     fontWeight: '800',
-    fontSize: 15,
+    fontSize: 15.75,
     lineHeight: 16,
   },
   content: {
@@ -661,13 +661,13 @@ const styles = StyleSheet.create({
   headerAddIcon: {
     color: '#ffffff',
     fontWeight: '900',
-    fontSize: 14,
+    fontSize: 14.7,
     lineHeight: 14,
   },
   headerAddButtonText: {
     color: '#ffffff',
     fontWeight: '800',
-    fontSize: 13,
+    fontSize: 13.65,
   },
   filtersCard: {
     backgroundColor: 'rgba(255,255,255,0.92)',
@@ -691,17 +691,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: '#eff6ff',
     color: '#0f172a',
-    fontSize: 13,
+    fontSize: 13.65,
   },
   formLabel: {
     color: '#334155',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 12.6,
   },
   totalText: {
     color: '#475569',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 12.6,
     textAlign: 'right',
   },
   errorCard: {
@@ -715,7 +715,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#b91c1c',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '600',
   },
   retryButton: {
@@ -731,7 +731,7 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 12.6,
   },
   centered: {
     flex: 1,
@@ -794,10 +794,10 @@ const styles = StyleSheet.create({
   clientAvatarText: {
     color: '#1e3a8a',
     fontWeight: '800',
-    fontSize: 16,
+    fontSize: 16.8,
   },
   client: {
-    fontSize: 17,
+    fontSize: 17.85,
     fontWeight: '800',
     color: '#0f172a',
     flex: 1,
@@ -824,7 +824,7 @@ const styles = StyleSheet.create({
     borderColor: '#a5f3fc',
   },
   metaPillText: {
-    fontSize: 11,
+    fontSize: 11.55,
     fontWeight: '700',
   },
   metaPillBlueText: {
@@ -859,7 +859,7 @@ const styles = StyleSheet.create({
   editLinkText: {
     color: '#1d4ed8',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 12.6,
   },
   modalOverlay: {
     flex: 1,
@@ -898,12 +898,12 @@ const styles = StyleSheet.create({
   modalTitle: {
     color: '#0f172a',
     fontWeight: '800',
-    fontSize: 16,
+    fontSize: 16.8,
   },
   modalSubtitle: {
     marginTop: 2,
     color: '#334155',
-    fontSize: 13,
+    fontSize: 13.65,
     fontWeight: '600',
   },
   closeButton: {
@@ -921,7 +921,7 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     color: '#1d4ed8',
-    fontSize: 22,
+    fontSize: 23.1,
     lineHeight: 22,
     fontWeight: '700',
   },
@@ -968,14 +968,14 @@ const styles = StyleSheet.create({
   },
   modalInfoLabel: {
     color: '#64748b',
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   modalInfoValue: {
     color: '#0f172a',
-    fontSize: 13,
+    fontSize: 13.65,
     fontWeight: '700',
   },
   formBody: {
@@ -1009,7 +1009,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: '#334155',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
   },
   primaryButton: {
@@ -1033,7 +1033,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
   },
   destructiveGhostButton: {
@@ -1049,7 +1049,7 @@ const styles = StyleSheet.create({
   },
   destructiveGhostButtonText: {
     color: '#b91c1c',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
   },
   confirmBox: {
@@ -1063,11 +1063,11 @@ const styles = StyleSheet.create({
   confirmTitle: {
     color: '#7f1d1d',
     fontWeight: '800',
-    fontSize: 14,
+    fontSize: 14.7,
   },
   confirmText: {
     color: '#991b1b',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '600',
   },
 });

@@ -885,7 +885,7 @@ const styles = StyleSheet.create({
     height: 36,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 25.2,
     fontWeight: '800',
     color: '#0f172a',
   },
@@ -906,7 +906,7 @@ const styles = StyleSheet.create({
   headerIconText: {
     color: '#1e3a8a',
     fontWeight: '800',
-    fontSize: 15,
+    fontSize: 15.75,
     lineHeight: 16,
   },
   headerAddButtonStandalone: {
@@ -930,13 +930,13 @@ const styles = StyleSheet.create({
   headerAddIcon: {
     color: '#ffffff',
     fontWeight: '900',
-    fontSize: 14,
+    fontSize: 14.7,
     lineHeight: 14,
   },
   headerAddButtonText: {
     color: '#ffffff',
     fontWeight: '800',
-    fontSize: 13,
+    fontSize: 13.65,
   },
   content: {
     flex: 1,
@@ -965,7 +965,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: '#eff6ff',
     color: '#0f172a',
-    fontSize: 13,
+    fontSize: 13.65,
   },
   selectorTrigger: {
     borderWidth: 1,
@@ -992,18 +992,18 @@ const styles = StyleSheet.create({
   },
   selectorTitle: {
     color: '#0f172a',
-    fontSize: 13,
+    fontSize: 13.65,
     fontWeight: '700',
   },
   selectorSubtitle: {
     marginTop: 1,
     color: '#64748b',
-    fontSize: 11,
+    fontSize: 11.55,
     fontWeight: '500',
   },
   selectorChevron: {
     color: '#1d4ed8',
-    fontSize: 16,
+    fontSize: 16.8,
     fontWeight: '800',
   },
   selectorListScroll: {
@@ -1032,7 +1032,7 @@ const styles = StyleSheet.create({
   },
   selectorRowTitle: {
     color: '#0f172a',
-    fontSize: 13,
+    fontSize: 13.65,
     fontWeight: '700',
   },
   selectorRowTitleSelected: {
@@ -1040,18 +1040,18 @@ const styles = StyleSheet.create({
   },
   selectorRowSubtitle: {
     color: '#64748b',
-    fontSize: 11,
+    fontSize: 11.55,
     fontWeight: '500',
   },
   formLabel: {
     color: '#334155',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 12.6,
   },
   totalText: {
     color: '#475569',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 12.6,
     textAlign: 'right',
   },
   filterSelectedRow: {
@@ -1063,7 +1063,7 @@ const styles = StyleSheet.create({
   filterSelectedText: {
     flex: 1,
     color: '#1e40af',
-    fontSize: 11,
+    fontSize: 11.55,
     fontWeight: '700',
   },
   filterClearLink: {
@@ -1072,7 +1072,7 @@ const styles = StyleSheet.create({
   },
   filterClearLinkText: {
     color: '#dc2626',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
   },
   errorCard: {
@@ -1086,7 +1086,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#b91c1c',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '600',
   },
   retryButton: {
@@ -1102,7 +1102,7 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 12.6,
   },
   centered: {
     flex: 1,
@@ -1146,20 +1146,20 @@ const styles = StyleSheet.create({
   },
   cardSectionLabel: {
     color: '#64748b',
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.7,
     marginBottom: 2,
   },
   cardTitle: {
-    fontSize: 14,
+    fontSize: 14.7,
     fontWeight: '800',
     color: '#0f172a',
   },
   cardGroupCount: {
     color: '#475569',
-    fontSize: 11,
+    fontSize: 11.55,
     fontWeight: '700',
   },
   groupItemsWrap: {
@@ -1199,7 +1199,7 @@ const styles = StyleSheet.create({
   },
   cardSubtitle: {
     color: '#334155',
-    fontSize: 13,
+    fontSize: 13.65,
     fontWeight: '700',
   },
   valueBox: {
@@ -1213,7 +1213,7 @@ const styles = StyleSheet.create({
   },
   valueLabel: {
     color: '#475569',
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -1221,7 +1221,7 @@ const styles = StyleSheet.create({
   valueText: {
     marginTop: 1,
     color: '#0f172a',
-    fontSize: 15,
+    fontSize: 15.75,
     fontWeight: '800',
   },
   cardActionsRow: {
@@ -1243,12 +1243,12 @@ const styles = StyleSheet.create({
   cardActionEditText: {
     color: '#1d4ed8',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 12.6,
   },
   cardActionDeleteText: {
     color: '#b91c1c',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 12.6,
   },
   modalOverlay: {
     flex: 1,
@@ -1276,12 +1276,12 @@ const styles = StyleSheet.create({
   modalTitle: {
     color: '#0f172a',
     fontWeight: '800',
-    fontSize: 16,
+    fontSize: 16.8,
   },
   modalSubtitle: {
     marginTop: 2,
     color: '#334155',
-    fontSize: 13,
+    fontSize: 13.65,
     fontWeight: '600',
   },
   closeButton: {
@@ -1299,7 +1299,7 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     color: '#1d4ed8',
-    fontSize: 22,
+    fontSize: 23.1,
     lineHeight: 22,
     fontWeight: '700',
   },
@@ -1334,7 +1334,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: '#334155',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
   },
   primaryButton: {
@@ -1358,7 +1358,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
   },
   destructiveGhostButton: {
@@ -1374,7 +1374,7 @@ const styles = StyleSheet.create({
   },
   destructiveGhostButtonText: {
     color: '#b91c1c',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
   },
   confirmBox: {
@@ -1388,11 +1388,11 @@ const styles = StyleSheet.create({
   confirmTitle: {
     color: '#7f1d1d',
     fontWeight: '800',
-    fontSize: 14,
+    fontSize: 14.7,
   },
   confirmText: {
     color: '#991b1b',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '600',
   },
 });

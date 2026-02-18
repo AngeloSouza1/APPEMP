@@ -719,7 +719,7 @@ const styles = StyleSheet.create({
   centeredText: {
     color: '#64748b',
     fontWeight: '600',
-    fontSize: 12,
+    fontSize: 12.6,
   },
   errorText: {
     color: '#b91c1c',
@@ -739,7 +739,7 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 12.6,
   },
   secondaryButton: {
     borderRadius: 9,
@@ -752,7 +752,7 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: '#1f2937',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 12.6,
   },
   headerCard: {
     backgroundColor: 'rgba(255,255,255,0.9)',
@@ -769,14 +769,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 21,
+    fontSize: 22.05,
     fontWeight: '800',
     color: '#0f172a',
   },
   headerSubtitle: {
     marginTop: 2,
     color: '#475569',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '600',
   },
   headerIconButton: {
@@ -797,7 +797,7 @@ const styles = StyleSheet.create({
   headerIconText: {
     color: '#1e3a8a',
     fontWeight: '800',
-    fontSize: 15,
+    fontSize: 15.75,
     lineHeight: 16,
   },
   formCard: {
@@ -810,14 +810,14 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     color: '#334155',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
     marginTop: 2,
   },
   fieldHint: {
     marginTop: -4,
     color: '#64748b',
-    fontSize: 11,
+    fontSize: 11.55,
   },
   input: {
     borderWidth: 1,
@@ -827,7 +827,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: '#eff6ff',
     color: '#0f172a',
-    fontSize: 13,
+    fontSize: 13.65,
   },
   dateTrigger: {
     borderRadius: 10,
@@ -842,12 +842,12 @@ const styles = StyleSheet.create({
   },
   dateFieldText: {
     color: '#0f172a',
-    fontSize: 13,
+    fontSize: 13.65,
     fontWeight: '700',
   },
   dateFieldIcon: {
     color: '#1d4ed8',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
   },
   routeInfoCard: {
@@ -862,14 +862,14 @@ const styles = StyleSheet.create({
   },
   routeInfoLabel: {
     color: '#475569',
-    fontSize: 11,
+    fontSize: 11.55,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
   routeDisplayText: {
     color: '#1e3a8a',
-    fontSize: 15,
+    fontSize: 15.75,
     fontWeight: '800',
   },
   optionsWrap: {
@@ -891,7 +891,7 @@ const styles = StyleSheet.create({
   },
   optionChipText: {
     color: '#334155',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '600',
   },
   optionChipTextActive: {
@@ -905,23 +905,23 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: '#0f172a',
-    fontSize: 15,
+    fontSize: 15.75,
     fontWeight: '800',
   },
   sectionSubtitle: {
     color: '#64748b',
-    fontSize: 12,
+    fontSize: 12.6,
     marginTop: -3,
     marginBottom: 2,
   },
   sectionValue: {
     color: '#1d4ed8',
     fontWeight: '800',
-    fontSize: 17,
+    fontSize: 17.85,
   },
   emptyText: {
     color: '#64748b',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '600',
   },
   itemCard: {
@@ -951,7 +951,7 @@ const styles = StyleSheet.create({
   },
   itemTotalValue: {
     color: '#1d4ed8',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '800',
   },
   itemDetailsWrap: {
@@ -977,12 +977,12 @@ const styles = StyleSheet.create({
   itemActionEditText: {
     color: '#1d4ed8',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 12.6,
   },
   itemActionDeleteText: {
     color: '#b91c1c',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 12.6,
   },
   itemDataRow: {
     flexDirection: 'row',
@@ -991,19 +991,19 @@ const styles = StyleSheet.create({
   },
   itemDataLabel: {
     color: '#475569',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '600',
   },
   itemDataValue: {
     color: '#0f172a',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
     textAlign: 'right',
     flex: 1,
   },
   itemDataValueStrong: {
     color: '#1e40af',
-    fontSize: 13,
+    fontSize: 13.65,
     fontWeight: '800',
     textAlign: 'right',
     flex: 1,
@@ -1017,12 +1017,12 @@ const styles = StyleSheet.create({
   itemName: {
     flex: 1,
     color: '#0f172a',
-    fontSize: 13,
+    fontSize: 13.65,
     fontWeight: '700',
   },
   itemMeta: {
     color: '#64748b',
-    fontSize: 11,
+    fontSize: 11.55,
   },
   removeItemBtn: {
     paddingHorizontal: 6,
@@ -1031,7 +1031,7 @@ const styles = StyleSheet.create({
   removeItemText: {
     color: '#b91c1c',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 12.6,
   },
   itemFieldsRow: {
     flexDirection: 'row',
@@ -1047,7 +1047,7 @@ const styles = StyleSheet.create({
   },
   itemFieldLabel: {
     color: '#334155',
-    fontSize: 11,
+    fontSize: 11.55,
     fontWeight: '700',
   },
   addItemToggle: {
@@ -1067,12 +1067,12 @@ const styles = StyleSheet.create({
   },
   addItemToggleText: {
     color: '#1d4ed8',
-    fontSize: 13,
+    fontSize: 13.65,
     fontWeight: '700',
   },
   addItemToggleIcon: {
     color: '#1d4ed8',
-    fontSize: 14,
+    fontSize: 14.7,
     fontWeight: '800',
   },
   clientSelectorTrigger: {
@@ -1097,13 +1097,13 @@ const styles = StyleSheet.create({
   },
   clientSelectorTitle: {
     color: '#0f172a',
-    fontSize: 14,
+    fontSize: 14.7,
     fontWeight: '800',
   },
   clientSelectorSubtitle: {
     marginTop: 1,
     color: '#475569',
-    fontSize: 11,
+    fontSize: 11.55,
     fontWeight: '600',
   },
   selectorTrigger: {
@@ -1124,13 +1124,13 @@ const styles = StyleSheet.create({
   selectorTriggerText: {
     flex: 1,
     color: '#1d4ed8',
-    fontSize: 13,
+    fontSize: 13.65,
     fontWeight: '700',
   },
   listMetaText: {
     marginTop: -2,
     color: '#64748b',
-    fontSize: 11,
+    fontSize: 11.55,
     fontWeight: '600',
   },
   productListWrap: {
@@ -1155,7 +1155,7 @@ const styles = StyleSheet.create({
   },
   searchMetaText: {
     color: '#64748b',
-    fontSize: 11,
+    fontSize: 11.55,
     fontWeight: '600',
   },
   productRow: {
@@ -1194,7 +1194,7 @@ const styles = StyleSheet.create({
   productSelectAvatarText: {
     color: '#1e3a8a',
     fontWeight: '800',
-    fontSize: 13,
+    fontSize: 13.65,
   },
   productRowSelected: {
     borderColor: '#60a5fa',
@@ -1210,21 +1210,21 @@ const styles = StyleSheet.create({
   productName: {
     color: '#0f172a',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 12.6,
   },
   productMeta: {
     color: '#64748b',
-    fontSize: 11,
+    fontSize: 11.55,
   },
   productAddText: {
     color: '#1d4ed8',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 12.6,
   },
   productInOrderText: {
     color: '#0f766e',
     fontWeight: '700',
-    fontSize: 11,
+    fontSize: 11.55,
     marginRight: 8,
   },
   selectedComposer: {
@@ -1238,7 +1238,7 @@ const styles = StyleSheet.create({
   },
   selectedComposerTitle: {
     color: '#1e3a8a',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '800',
   },
   composerActions: {
@@ -1260,7 +1260,7 @@ const styles = StyleSheet.create({
   },
   cancelMiniBtnText: {
     color: '#334155',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
   },
   confirmMiniBtn: {
@@ -1274,7 +1274,7 @@ const styles = StyleSheet.create({
   },
   confirmMiniBtnText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
   },
   actionsRow: {

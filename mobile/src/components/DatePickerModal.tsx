@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   title: {
     color: '#0f172a',
     fontWeight: '800',
-    fontSize: 16,
+    fontSize: 16.8,
   },
   monthNav: {
     flexDirection: 'row',
@@ -186,13 +186,13 @@ const styles = StyleSheet.create({
   navBtnText: {
     color: '#1d4ed8',
     fontWeight: '800',
-    fontSize: 16,
+    fontSize: 16.8,
     lineHeight: 18,
   },
   monthLabel: {
     color: '#0f172a',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 14.7,
   },
   weekRow: {
     flexDirection: 'row',
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#64748b',
     fontWeight: '700',
-    fontSize: 11,
+    fontSize: 11.55,
   },
   grid: {
     flexDirection: 'row',
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   },
   dayText: {
     color: '#0f172a',
-    fontSize: 13,
+    fontSize: 13.65,
     fontWeight: '600',
   },
   dayTextSelected: {
@@ -244,6 +244,6 @@ const styles = StyleSheet.create({
   closeBtnText: {
     color: '#334155',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 12.6,
   },
 });

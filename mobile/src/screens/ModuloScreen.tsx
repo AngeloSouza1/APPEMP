@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   title: {
-    fontSize: 24,
+    fontSize: 25.2,
     fontWeight: '800',
     color: '#0f172a',
   },

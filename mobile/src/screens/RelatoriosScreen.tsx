@@ -1022,7 +1022,7 @@ const styles = StyleSheet.create({
     height: 34,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 29.4,
     fontWeight: '800',
     color: '#0f172a',
   },
@@ -1039,7 +1039,7 @@ const styles = StyleSheet.create({
   headerBackText: {
     color: '#1e3a8a',
     fontWeight: '800',
-    fontSize: 15,
+    fontSize: 15.75,
   },
   pressed: {
     opacity: 0.82,
@@ -1065,12 +1065,12 @@ const styles = StyleSheet.create({
   },
   filterTitle: {
     color: '#0f172a',
-    fontSize: 14,
+    fontSize: 14.7,
     fontWeight: '800',
   },
   syncBadge: {
     color: '#1e3a8a',
-    fontSize: 11,
+    fontSize: 11.55,
     fontWeight: '800',
     backgroundColor: '#eff6ff',
     borderColor: '#bfdbfe',
@@ -1081,7 +1081,7 @@ const styles = StyleSheet.create({
   },
   filterHint: {
     color: '#64748b',
-    fontSize: 11,
+    fontSize: 11.55,
     fontWeight: '600',
   },
   filterRow: {
@@ -1099,13 +1099,13 @@ const styles = StyleSheet.create({
   },
   dateLabel: {
     color: '#64748b',
-    fontSize: 11,
+    fontSize: 11.55,
     fontWeight: '700',
   },
   dateValue: {
     color: '#0f172a',
     marginTop: 2,
-    fontSize: 13,
+    fontSize: 13.65,
     fontWeight: '700',
   },
   statusRow: {
@@ -1128,7 +1128,7 @@ const styles = StyleSheet.create({
   statusChipText: {
     color: '#334155',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 12.6,
   },
   statusChipTextActive: {
     color: '#1e3a8a',
@@ -1159,13 +1159,13 @@ const styles = StyleSheet.create({
   },
   checkboxTick: {
     color: '#1d4ed8',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '900',
     lineHeight: 13,
   },
   checkboxLabel: {
     color: '#334155',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '600',
   },
   btnGhost: {
@@ -1179,7 +1179,7 @@ const styles = StyleSheet.create({
   },
   btnGhostText: {
     color: '#334155',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
   },
   btnPrimary: {
@@ -1194,7 +1194,7 @@ const styles = StyleSheet.create({
   },
   btnPrimaryText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '800',
   },
   tabsCard: {
@@ -1213,12 +1213,12 @@ const styles = StyleSheet.create({
   },
   tabsTitle: {
     color: '#334155',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
   },
   tabsCount: {
     color: '#1e3a8a',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '800',
   },
   quickInfoCard: {
@@ -1232,12 +1232,12 @@ const styles = StyleSheet.create({
   },
   quickInfoTitle: {
     color: '#0f172a',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '800',
   },
   quickInfoText: {
     color: '#475569',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '600',
   },
   tabsWrap: {
@@ -1267,12 +1267,12 @@ const styles = StyleSheet.create({
   },
   tabIconText: {
     color: '#475569',
-    fontSize: 9,
+    fontSize: 9.45,
     fontWeight: '800',
   },
   tabText: {
     color: '#334155',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
   },
   tabTextActive: {
@@ -1294,12 +1294,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: '#0f172a',
-    fontSize: 15,
+    fontSize: 15.75,
     fontWeight: '800',
   },
   sectionMeta: {
     color: '#475569',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
   },
   itemCard: {
@@ -1318,17 +1318,17 @@ const styles = StyleSheet.create({
   itemTitle: {
     flex: 1,
     color: '#0f172a',
-    fontSize: 13,
+    fontSize: 13.65,
     fontWeight: '800',
   },
   itemValue: {
     color: '#1d4ed8',
-    fontSize: 13,
+    fontSize: 13.65,
     fontWeight: '800',
   },
   itemMeta: {
     color: '#475569',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '600',
   },
   itemMetaValueStrong: {
@@ -1337,13 +1337,13 @@ const styles = StyleSheet.create({
   },
   itemMetaStrong: {
     color: '#0f172a',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '800',
   },
   expandHint: {
     marginTop: 4,
     color: '#1d4ed8',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
   },
   expandBox: {
@@ -1355,13 +1355,13 @@ const styles = StyleSheet.create({
   },
   expandTitle: {
     color: '#0f172a',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '800',
     marginTop: 2,
   },
   expandText: {
     color: '#334155',
-    fontSize: 11,
+    fontSize: 11.55,
     fontWeight: '600',
   },
   expandTextStrong: {
@@ -1386,7 +1386,7 @@ const styles = StyleSheet.create({
   },
   expandProdutoText: {
     color: '#1e293b',
-    fontSize: 11,
+    fontSize: 11.55,
     fontWeight: '600',
   },
   expandPedidoTop: {
@@ -1402,12 +1402,12 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   statusBadgeText: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '800',
   },
   errorText: {
     color: '#b91c1c',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
   },
   errorCard: {
@@ -1429,7 +1429,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: '#64748b',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '600',
     textAlign: 'center',
   },

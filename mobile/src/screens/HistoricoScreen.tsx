@@ -620,8 +620,8 @@ const styles = StyleSheet.create({
   },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', columnGap: 10, flex: 1 },
   headerIcon: { width: 34, height: 34 },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: '#0f172a' },
-  headerSubtitle: { fontSize: 11, fontWeight: '600', color: '#64748b' },
+  headerTitle: { fontSize: 25.2, fontWeight: '800', color: '#0f172a' },
+  headerSubtitle: { fontSize: 11.55, fontWeight: '600', color: '#64748b' },
   headerBackButton: {
     minWidth: 82,
     height: 38,
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerBackText: { color: '#1e3a8a', fontWeight: '800', fontSize: 15 },
+  headerBackText: { color: '#1e3a8a', fontWeight: '800', fontSize: 15.75 },
   content: { paddingHorizontal: 12, gap: 10 },
   errorCard: {
     borderRadius: 10,
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
-  errorText: { color: '#b91c1c', fontSize: 12, fontWeight: '700' },
+  errorText: { color: '#b91c1c', fontSize: 12.6, fontWeight: '700' },
   filterCard: {
     borderRadius: 12,
     borderWidth: 1,
@@ -671,8 +671,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 1,
   },
-  inputLabel: { color: '#64748b', fontSize: 11, fontWeight: '700' },
-  inputValue: { color: '#0f172a', fontSize: 13, fontWeight: '700' },
+  inputLabel: { color: '#64748b', fontSize: 11.55, fontWeight: '700' },
+  inputValue: { color: '#0f172a', fontSize: 13.65, fontWeight: '700' },
   statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   statusChip: {
     borderRadius: 999,
@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   statusChipActive: { borderColor: '#93c5fd', backgroundColor: '#dbeafe' },
-  statusChipText: { color: '#475569', fontSize: 11, fontWeight: '700' },
+  statusChipText: { color: '#475569', fontSize: 11.55, fontWeight: '700' },
   statusChipTextActive: { color: '#1e40af' },
   checkboxRow: {
     flexDirection: 'row',
@@ -706,13 +706,13 @@ const styles = StyleSheet.create({
   },
   checkboxTick: {
     color: '#1d4ed8',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '800',
     lineHeight: 14,
   },
   checkboxLabel: {
     color: '#334155',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
   },
   filterActions: { flexDirection: 'row', columnGap: 8 },
@@ -724,7 +724,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 10,
   },
-  btnPrimaryText: { color: '#ffffff', fontWeight: '800', fontSize: 13 },
+  btnPrimaryText: { color: '#ffffff', fontWeight: '800', fontSize: 13.65 },
   btnGhost: {
     width: 92,
     borderRadius: 10,
@@ -735,7 +735,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 10,
   },
-  btnGhostText: { color: '#334155', fontWeight: '700', fontSize: 13 },
+  btnGhostText: { color: '#334155', fontWeight: '700', fontSize: 13.65 },
   kpiRow: { gap: 8 },
   kpiCard: {
     borderRadius: 11,
@@ -747,8 +747,8 @@ const styles = StyleSheet.create({
   },
   kpiGreen: { borderColor: '#a7f3d0', backgroundColor: '#ecfdf5' },
   kpiBlue: { borderColor: '#bfdbfe', backgroundColor: '#eff6ff' },
-  kpiLabel: { color: '#475569', fontSize: 11, fontWeight: '700' },
-  kpiValue: { color: '#0f172a', fontSize: 16, fontWeight: '900', marginTop: 2 },
+  kpiLabel: { color: '#475569', fontSize: 11.55, fontWeight: '700' },
+  kpiValue: { color: '#0f172a', fontSize: 16.8, fontWeight: '900', marginTop: 2 },
   sectionCard: {
     borderRadius: 12,
     borderWidth: 1,
@@ -762,8 +762,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  sectionTitle: { color: '#0f172a', fontSize: 14, fontWeight: '800' },
-  sectionMeta: { color: '#64748b', fontSize: 11, fontWeight: '700' },
+  sectionTitle: { color: '#0f172a', fontSize: 14.7, fontWeight: '800' },
+  sectionMeta: { color: '#64748b', fontSize: 11.55, fontWeight: '700' },
   expandAllRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -772,7 +772,7 @@ const styles = StyleSheet.create({
   },
   expandAllLabel: {
     color: '#334155',
-    fontSize: 12,
+    fontSize: 12.6,
     fontWeight: '700',
   },
   dateGroup: {
@@ -789,7 +789,7 @@ const styles = StyleSheet.create({
   },
   dateGroupTitle: {
     color: '#1e40af',
-    fontSize: 13,
+    fontSize: 13.65,
     fontWeight: '800',
     backgroundColor: '#eff6ff',
     borderColor: '#bfdbfe',
@@ -801,7 +801,7 @@ const styles = StyleSheet.create({
   },
   dateGroupMeta: {
     color: '#475569',
-    fontSize: 11,
+    fontSize: 11.55,
     fontWeight: '700',
     flex: 1,
     textAlign: 'right',
@@ -809,7 +809,7 @@ const styles = StyleSheet.create({
   },
   dateGroupToggle: {
     color: '#334155',
-    fontSize: 13,
+    fontSize: 13.65,
     fontWeight: '800',
   },
   itemCard: {
@@ -821,8 +821,8 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   itemTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', columnGap: 8 },
-  itemSub: { color: '#64748b', fontSize: 11, fontWeight: '600' },
-  itemClient: { color: '#0f172a', fontSize: 13, fontWeight: '700', flex: 1 },
+  itemSub: { color: '#64748b', fontSize: 11.55, fontWeight: '600' },
+  itemClient: { color: '#0f172a', fontSize: 13.65, fontWeight: '700', flex: 1 },
   itensResumoBox: {
     borderRadius: 8,
     borderWidth: 1,
@@ -834,7 +834,7 @@ const styles = StyleSheet.create({
   },
   itensResumoTitulo: {
     color: '#334155',
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '800',
     textTransform: 'uppercase',
   },
@@ -847,17 +847,17 @@ const styles = StyleSheet.create({
   itemDescricaoNome: {
     flex: 1,
     color: '#1e293b',
-    fontSize: 11,
+    fontSize: 11.55,
     fontWeight: '700',
   },
   itemDescricaoMeta: {
     color: '#475569',
-    fontSize: 11,
+    fontSize: 11.55,
     fontWeight: '700',
   },
   itensResumoExtra: {
     color: '#64748b',
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '700',
   },
   vendaTotalBox: {
@@ -869,13 +869,13 @@ const styles = StyleSheet.create({
   },
   vendaTotalLabel: {
     color: '#64748b',
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '700',
     textTransform: 'uppercase',
   },
   vendaTotalValue: {
     color: '#1e40af',
-    fontSize: 14,
+    fontSize: 14.7,
     fontWeight: '900',
     marginTop: 1,
     textAlign: 'right',
@@ -886,7 +886,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  statusBadgeText: { fontSize: 10, fontWeight: '800' },
+  statusBadgeText: { fontSize: 10.5, fontWeight: '800' },
   emptyCard: {
     borderRadius: 12,
     borderWidth: 1,
@@ -896,7 +896,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyText: { color: '#64748b', fontSize: 12, fontWeight: '600', textAlign: 'center' },
+  emptyText: { color: '#64748b', fontSize: 12.6, fontWeight: '600', textAlign: 'center' },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(15,23,42,0.45)',
@@ -915,7 +915,7 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 10,
   },
-  modalTitle: { color: '#0f172a', fontWeight: '800', fontSize: 16 },
+  modalTitle: { color: '#0f172a', fontWeight: '800', fontSize: 16.8 },
   modalList: { maxHeight: 340 },
   modalItem: {
     borderRadius: 9,
@@ -926,7 +926,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     marginBottom: 6,
   },
-  modalItemText: { color: '#1e293b', fontSize: 12, fontWeight: '600' },
+  modalItemText: { color: '#1e293b', fontSize: 12.6, fontWeight: '600' },
   modalCloseBtn: {
     alignSelf: 'flex-end',
     borderRadius: 8,
@@ -936,5 +936,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  modalCloseBtnText: { color: '#334155', fontWeight: '700', fontSize: 12 },
+  modalCloseBtnText: { color: '#334155', fontWeight: '700', fontSize: 12.6 },
 });
