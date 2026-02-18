@@ -1351,6 +1351,13 @@ const styles = StyleSheet.create({
   moduleCardPressed: {
     opacity: 0.86,
     transform: [{ scale: 0.985 }],
+    borderColor: '#2563eb',
+    borderWidth: 1.6,
+    shadowColor: '#2563eb',
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
   moduleCardHighlight: {
     shadowColor: '#b45309',
@@ -1595,6 +1602,13 @@ const styles = StyleSheet.create({
   deliveryItemPressed: {
     opacity: 0.88,
     transform: [{ scale: 0.987 }],
+    borderColor: '#2563eb',
+    borderWidth: 1.6,
+    shadowColor: '#2563eb',
+    shadowOpacity: 0.16,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
   deliveryOrderBadge: {
     position: 'absolute',
