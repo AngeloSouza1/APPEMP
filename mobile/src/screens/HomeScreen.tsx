@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { clientesApi, pedidosApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -230,6 +231,7 @@ const MODULOS: Modulo[] = [
 export default function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user, logout } = useAuth();
+  const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const moduleColumns = 2;
   const [menuAberto, setMenuAberto] = useState(false);
@@ -603,7 +605,11 @@ export default function HomeScreen() {
     <View
       style={[
         styles.footerCard,
-        { paddingVertical: ajuste.footerPaddingVertical, marginTop: ajuste.footerMarginTop },
+        {
+          paddingTop: ajuste.footerPaddingVertical,
+          paddingBottom: ajuste.footerPaddingVertical + Math.max(insets.bottom, 6),
+          marginTop: ajuste.footerMarginTop,
+        },
       ]}
     >
       <View style={styles.footerActionsRow}>
@@ -638,7 +644,10 @@ export default function HomeScreen() {
     </View>
   );
 
-  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 16 : 22;
+  const topSafeOffset = Math.max(
+    Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20,
+    insets.top + 10
+  );
 
   return (
     <View style={styles.container}>

@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { produtosApi, relatoriosApi, RelatorioProducaoItem } from '../api/services';
 import { RootStackParamList } from '../navigation/RootNavigator';
 
@@ -24,6 +25,7 @@ const formatarNumero = (valor: number) =>
 
 export default function ProducaoDashboardScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [carregandoTransicao, setCarregandoTransicao] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -68,7 +70,10 @@ export default function ProducaoDashboardScreen() {
     [resultado]
   );
 
-  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 18;
+  const topSafeOffset = Math.max(
+    Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 18,
+    insets.top + 6
+  );
   const contentTopOffset = topSafeOffset + 98;
 
   return (
@@ -93,7 +98,12 @@ export default function ProducaoDashboardScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: contentTopOffset }]}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: contentTopOffset, paddingBottom: 108 + Math.max(insets.bottom, 8) },
+        ]}
+      >
         {erro ? (
           <View style={styles.errorCard}>
             <Text style={styles.errorText}>{erro}</Text>
@@ -144,8 +154,8 @@ export default function ProducaoDashboardScreen() {
           </View>
         ) : null}
       </ScrollView>
-      <View style={styles.footerDock}>
-        <View style={styles.footerCard}>
+      <View style={[styles.footerDock, { bottom: Math.max(insets.bottom, 8) }]}>
+        <View style={[styles.footerCard, { paddingBottom: 8 + Math.max(insets.bottom, 4) }]}>
           <View style={styles.footerActionsRow}>
             {[
               {

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { relatoriosApi, RelatorioRotaDetalhadoItem } from '../api/services';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { formatarData, formatarMoeda } from '../utils/format';
@@ -134,6 +135,7 @@ const agruparRotas = (rows: RelatorioRotaDetalhadoItem[]): RotaResumoEntrega[] =
 
 export default function EntregasDashboardScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [rotasDetalhado, setRotasDetalhado] = useState<RelatorioRotaDetalhadoItem[]>([]);
@@ -161,7 +163,10 @@ export default function EntregasDashboardScreen() {
   const totalPedidos = rotasAgrupadas.reduce((acc, item) => acc + item.total_pedidos, 0);
   const valorTotal = rotasAgrupadas.reduce((acc, item) => acc + item.valor_total, 0);
 
-  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 18;
+  const topSafeOffset = Math.max(
+    Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 18,
+    insets.top + 6
+  );
   const contentTopOffset = topSafeOffset + 98;
 
   return (
@@ -186,7 +191,12 @@ export default function EntregasDashboardScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: contentTopOffset, paddingBottom: 108 }]}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: contentTopOffset, paddingBottom: 108 + Math.max(insets.bottom, 8) },
+        ]}
+      >
         {erro ? (
           <View style={styles.errorCard}>
             <Text style={styles.errorText}>{erro}</Text>
@@ -289,8 +299,8 @@ export default function EntregasDashboardScreen() {
         ) : null}
       </ScrollView>
 
-      <View style={styles.footerDock}>
-        <View style={styles.footerCard}>
+      <View style={[styles.footerDock, { bottom: Math.max(insets.bottom, 8) }]}>
+        <View style={[styles.footerCard, { paddingBottom: 8 + Math.max(insets.bottom, 4) }]}>
           <View style={styles.footerActionsRow}>
             {[
               {

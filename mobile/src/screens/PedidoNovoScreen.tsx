@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DatePickerModal from '../components/DatePickerModal';
 import {
   clienteProdutosApi,
@@ -58,6 +59,7 @@ const parseDecimal = (value: string) => {
 };
 
 export default function PedidoNovoScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const [clientes, setClientes] = useState<ClienteResumo[]>([]);
   const [rotas, setRotas] = useState<RotaResumo[]>([]);
   const [produtos, setProdutos] = useState<ProdutoResumo[]>([]);
@@ -139,7 +141,10 @@ export default function PedidoNovoScreen({ navigation }: Props) {
     carregarPrecosCliente();
   }, [clienteId]);
 
-  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 18;
+  const topSafeOffset = Math.max(
+    Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 18,
+    insets.top + 6
+  );
 
   const clientesFiltrados = useMemo(() => {
     const termo = buscaCliente.trim().toLowerCase();
@@ -389,7 +394,12 @@ export default function PedidoNovoScreen({ navigation }: Props) {
       <View style={styles.backgroundGlowCyan} />
       <View style={styles.backgroundGlowSoft} />
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: topSafeOffset }]}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: topSafeOffset, paddingBottom: 108 + Math.max(insets.bottom, 8) },
+        ]}
+      >
         <View style={styles.headerCard}>
           <View style={styles.headerInfo}>
             <Text style={styles.headerTitle}>Novo Pedido</Text>
@@ -708,8 +718,8 @@ export default function PedidoNovoScreen({ navigation }: Props) {
           </Pressable>
         </View>
       </ScrollView>
-      <View style={styles.footerDock}>
-        <View style={styles.footerCard}>
+      <View style={[styles.footerDock, { bottom: Math.max(insets.bottom, 8) }]}>
+        <View style={[styles.footerCard, { paddingBottom: 8 + Math.max(insets.bottom, 4) }]}>
           <View style={styles.footerActionsRow}>
             {[
               {
