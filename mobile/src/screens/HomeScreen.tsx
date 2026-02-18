@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import Constants from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { clientesApi, pedidosApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
@@ -560,7 +561,7 @@ export default function HomeScreen() {
   };
 
   const ambiente = process.env.EXPO_PUBLIC_APP_ENV || 'Produção';
-  const versao = 'v0.1.1';
+  const versao = `v${Constants.expoConfig?.version || '0.0.0'}`;
   const build = `${new Date().getFullYear()}.${String(new Date().getMonth() + 1).padStart(2, '0')}.${String(
     new Date().getDate()
   ).padStart(2, '0')}`;
