@@ -560,7 +560,7 @@ export default function HomeScreen() {
   };
 
   const ambiente = process.env.EXPO_PUBLIC_APP_ENV || 'Produção';
-  const versao = 'v0.1.0';
+  const versao = 'v0.1.1';
   const build = `${new Date().getFullYear()}.${String(new Date().getMonth() + 1).padStart(2, '0')}.${String(
     new Date().getDate()
   ).padStart(2, '0')}`;
