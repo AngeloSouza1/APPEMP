@@ -16,6 +16,14 @@ import {
 import FeedbackModal from '@/components/FeedbackModal';
 
 type SubRelatorio = 'producao' | 'rotas' | 'produtos-rota' | 'top-clientes' | 'trocas';
+type StatusFiltro = 'EM_ESPERA' | 'CONFERIR' | 'EFETIVADO' | 'CANCELADO';
+
+const STATUS_OPTIONS: Array<{ value: StatusFiltro; label: string }> = [
+  { value: 'EM_ESPERA', label: 'Em Espera' },
+  { value: 'CONFERIR', label: 'Conferir' },
+  { value: 'EFETIVADO', label: 'Efetivado' },
+  { value: 'CANCELADO', label: 'Cancelado' },
+];
 
 const formatarMoeda = (valor: number) =>
   new Intl.NumberFormat('pt-BR', {
@@ -44,42 +52,105 @@ export default function RelatoriosPage() {
   const [rotasExpandidas, setRotasExpandidas] = useState<Record<string, boolean>>({});
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
-  const [statusFiltro, setStatusFiltro] = useState<'EM_ESPERA' | 'CONFERIR' | 'EFETIVADO' | 'CANCELADO'>('EM_ESPERA');
+  const [statusFiltros, setStatusFiltros] = useState<StatusFiltro[]>(['EM_ESPERA']);
   const [filtroPeriodoAplicado, setFiltroPeriodoAplicado] = useState<{
     dataInicio?: string;
     dataFim?: string;
-    status?: string;
+    statusFiltros?: StatusFiltro[];
   }>({});
 
-  const carregarBase = useCallback(async (periodo?: { dataInicio?: string; dataFim?: string; status?: string }) => {
+  const carregarBase = useCallback(async (periodo?: { dataInicio?: string; dataFim?: string; statusFiltros?: StatusFiltro[] }) => {
     setLoading(true);
     setErro(null);
     try {
-      const filtros = {
+      const filtrosBase = {
         data_inicio: periodo?.dataInicio,
         data_fim: periodo?.dataFim,
-        status: periodo?.status || 'EM_ESPERA',
       };
-      const [rotasResp, producaoResp, relatorioRotasResp, produtosPorRotaResp] = await Promise.all([
-        rotasApi.listar(),
-        relatoriosApi.producao(filtros),
-        relatoriosApi.rotasDetalhado(filtros),
-        relatoriosApi.produtosPorRota({
-          rota_id: rotaSelecionada ? Number(rotaSelecionada) : undefined,
-          ...filtros,
-        }),
-      ]);
-      const [topClientesResp, trocasResp] = await Promise.all([
-        relatoriosApi.topClientes(filtros),
-        relatoriosApi.trocas(filtros),
-      ]);
+      const statusSelecionados = periodo?.statusFiltros && periodo.statusFiltros.length > 0
+        ? periodo.statusFiltros
+        : (['EM_ESPERA'] as StatusFiltro[]);
+
+      const rotasRespPromise = rotasApi.listar();
+      const resultadosPorStatus = await Promise.all(
+        statusSelecionados.map(async (status) => {
+          const filtros = { ...filtrosBase, status };
+          const [producaoResp, relatorioRotasResp, produtosPorRotaResp, topClientesResp, trocasResp] = await Promise.all([
+            relatoriosApi.producao(filtros),
+            relatoriosApi.rotasDetalhado(filtros),
+            relatoriosApi.produtosPorRota({
+              rota_id: rotaSelecionada ? Number(rotaSelecionada) : undefined,
+              ...filtros,
+            }),
+            relatoriosApi.topClientes(filtros),
+            relatoriosApi.trocas(filtros),
+          ]);
+          return {
+            producao: producaoResp.data,
+            rotas: relatorioRotasResp.data,
+            produtosPorRota: produtosPorRotaResp.data,
+            topClientes: topClientesResp.data,
+            trocas: trocasResp.data,
+          };
+        })
+      );
+
+      const rotasResp = await rotasRespPromise;
+
+      const producaoMap = new Map<string, RelatorioProducaoItem>();
+      resultadosPorStatus.flatMap((item) => item.producao).forEach((row) => {
+        const key = `${row.produto_id}|${row.embalagem || ''}`;
+        const atual = producaoMap.get(key);
+        if (atual) {
+          atual.quantidade_total += Number(row.quantidade_total || 0);
+        } else {
+          producaoMap.set(key, { ...row, quantidade_total: Number(row.quantidade_total || 0) });
+        }
+      });
+
+      const relatorioRotasMap = new Map<string, RelatorioRotaDetalhadoItem>();
+      resultadosPorStatus.flatMap((item) => item.rotas).forEach((row) => {
+        const key = `${row.pedido_id}|${row.cliente_id}|${row.produto_id ?? 'sem-produto'}|${row.pedido_status}`;
+        if (!relatorioRotasMap.has(key)) relatorioRotasMap.set(key, row);
+      });
+
+      const produtosPorRotaMap = new Map<string, RelatorioProdutosPorRotaItem>();
+      resultadosPorStatus.flatMap((item) => item.produtosPorRota).forEach((row) => {
+        const key = `${row.rota_id ?? 'sem-rota'}|${row.produto_id}|${row.embalagem || ''}`;
+        const atual = produtosPorRotaMap.get(key);
+        if (atual) {
+          atual.quantidade_total += Number(row.quantidade_total || 0);
+        } else {
+          produtosPorRotaMap.set(key, { ...row, quantidade_total: Number(row.quantidade_total || 0) });
+        }
+      });
+
+      const topClientesMap = new Map<number, RelatorioTopClienteItem>();
+      resultadosPorStatus.flatMap((item) => item.topClientes).forEach((row) => {
+        const atual = topClientesMap.get(row.cliente_id);
+        if (atual) {
+          atual.total_pedidos += Number(row.total_pedidos || 0);
+          atual.valor_total_vendas += Number(row.valor_total_vendas || 0);
+        } else {
+          topClientesMap.set(row.cliente_id, {
+            ...row,
+            total_pedidos: Number(row.total_pedidos || 0),
+            valor_total_vendas: Number(row.valor_total_vendas || 0),
+          });
+        }
+      });
+
+      const trocasMap = new Map<number, RelatorioTrocaItem>();
+      resultadosPorStatus.flatMap((item) => item.trocas).forEach((row) => {
+        if (!trocasMap.has(row.troca_id)) trocasMap.set(row.troca_id, row);
+      });
 
       setRotas(rotasResp.data);
-      setProducao(producaoResp.data);
-      setRelatorioRotas(relatorioRotasResp.data);
-      setProdutosPorRota(produtosPorRotaResp.data);
-      setTopClientes(topClientesResp.data);
-      setTrocas(trocasResp.data);
+      setProducao([...producaoMap.values()]);
+      setRelatorioRotas([...relatorioRotasMap.values()]);
+      setProdutosPorRota([...produtosPorRotaMap.values()]);
+      setTopClientes([...topClientesMap.values()]);
+      setTrocas([...trocasMap.values()]);
     } catch (error) {
       console.error('Erro ao carregar relatórios:', error);
       setErro('Não foi possível carregar os relatórios.');
@@ -97,13 +168,32 @@ export default function RelatoriosPage() {
     const carregarProdutosPorRota = async () => {
       setLoadingProdutosRota(true);
       try {
-        const response = await relatoriosApi.produtosPorRota({
-          rota_id: rotaSelecionada ? Number(rotaSelecionada) : undefined,
-          data_inicio: filtroPeriodoAplicado.dataInicio,
-          data_fim: filtroPeriodoAplicado.dataFim,
-          status: filtroPeriodoAplicado.status || 'EM_ESPERA',
+        const statusSelecionados = filtroPeriodoAplicado.statusFiltros && filtroPeriodoAplicado.statusFiltros.length > 0
+          ? filtroPeriodoAplicado.statusFiltros
+          : (['EM_ESPERA'] as StatusFiltro[]);
+
+        const resultados = await Promise.all(
+          statusSelecionados.map((status) =>
+            relatoriosApi.produtosPorRota({
+              rota_id: rotaSelecionada ? Number(rotaSelecionada) : undefined,
+              data_inicio: filtroPeriodoAplicado.dataInicio,
+              data_fim: filtroPeriodoAplicado.dataFim,
+              status,
+            })
+          )
+        );
+
+        const produtosPorRotaMap = new Map<string, RelatorioProdutosPorRotaItem>();
+        resultados.flatMap((response) => response.data).forEach((row) => {
+          const key = `${row.rota_id ?? 'sem-rota'}|${row.produto_id}|${row.embalagem || ''}`;
+          const atual = produtosPorRotaMap.get(key);
+          if (atual) {
+            atual.quantidade_total += Number(row.quantidade_total || 0);
+          } else {
+            produtosPorRotaMap.set(key, { ...row, quantidade_total: Number(row.quantidade_total || 0) });
+          }
         });
-        setProdutosPorRota(response.data);
+        setProdutosPorRota([...produtosPorRotaMap.values()]);
       } catch (error) {
         console.error('Erro ao carregar produtos por rota:', error);
         setErro('Não foi possível carregar o relatório de produtos por rota.');
@@ -113,7 +203,16 @@ export default function RelatoriosPage() {
     };
 
     carregarProdutosPorRota();
-  }, [filtroPeriodoAplicado.dataFim, filtroPeriodoAplicado.dataInicio, filtroPeriodoAplicado.status, rotaSelecionada]);
+  }, [filtroPeriodoAplicado.dataFim, filtroPeriodoAplicado.dataInicio, filtroPeriodoAplicado.statusFiltros, rotaSelecionada]);
+
+  const toggleStatusFiltro = (status: StatusFiltro) => {
+    setStatusFiltros((anterior) => {
+      const existe = anterior.includes(status);
+      if (existe && anterior.length === 1) return anterior;
+      if (existe) return anterior.filter((item) => item !== status);
+      return [...anterior, status];
+    });
+  };
 
   const aplicarFiltroPeriodo = async () => {
     setErro(null);
@@ -128,7 +227,7 @@ export default function RelatoriosPage() {
     const periodo = {
       dataInicio: dataInicio || undefined,
       dataFim: dataFim || undefined,
-      status: statusFiltro,
+      statusFiltros,
     };
     setFiltroPeriodoAplicado(periodo);
     await carregarBase(periodo);
@@ -137,7 +236,7 @@ export default function RelatoriosPage() {
   const limparFiltroPeriodo = async () => {
     setDataInicio('');
     setDataFim('');
-    setStatusFiltro('EM_ESPERA');
+    setStatusFiltros(['EM_ESPERA']);
     setFiltroPeriodoAplicado({});
     setErro(null);
     setProducao([]);
@@ -429,18 +528,25 @@ export default function RelatoriosPage() {
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-semibold text-slate-800">Status</label>
-                  <select
-                    className="ui-select"
-                    value={statusFiltro}
-                    onChange={(event) =>
-                      setStatusFiltro(event.target.value as 'EM_ESPERA' | 'CONFERIR' | 'EFETIVADO' | 'CANCELADO')
-                    }
-                  >
-                    <option value="EM_ESPERA">Em Espera</option>
-                    <option value="CONFERIR">Conferir</option>
-                    <option value="EFETIVADO">Efetivado</option>
-                    <option value="CANCELADO">Cancelado</option>
-                  </select>
+                  <div className="flex flex-wrap gap-2 rounded-lg border border-slate-300 bg-white p-2">
+                    {STATUS_OPTIONS.map((status) => {
+                      const ativo = statusFiltros.includes(status.value);
+                      return (
+                        <button
+                          key={status.value}
+                          type="button"
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                            ativo
+                              ? 'border-blue-400 bg-blue-100 text-blue-800'
+                              : 'border-slate-300 bg-slate-100 text-slate-700 hover:border-blue-300 hover:bg-blue-50'
+                          }`}
+                          onClick={() => toggleStatusFiltro(status.value)}
+                        >
+                          {status.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <button type="button" className="btn-primary h-11" onClick={aplicarFiltroPeriodo}>
                   Aplicar período

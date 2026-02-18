@@ -37,6 +37,7 @@ const STATUS_OPTIONS: Array<{ value: StatusFiltro; label: string }> = [
   { value: 'EFETIVADO', label: 'Efetivado' },
   { value: 'CANCELADO', label: 'Cancelado' },
 ];
+const STATUS_VALUES = STATUS_OPTIONS.map((item) => item.value);
 
 const STATUS_THEME: Record<string, { bg: string; border: string; text: string; label: string }> = {
   EM_ESPERA: { bg: '#fff7ed', border: '#fed7aa', text: '#9a3412', label: 'Em espera' },
@@ -200,7 +201,7 @@ export default function RelatoriosScreen() {
 
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
-  const [statusFiltro, setStatusFiltro] = useState<StatusFiltro>('EM_ESPERA');
+  const [statusFiltros, setStatusFiltros] = useState<StatusFiltro[]>(['EM_ESPERA']);
   const [showDateInicio, setShowDateInicio] = useState(false);
   const [showDateFim, setShowDateFim] = useState(false);
   const [lembrarPeriodo, setLembrarPeriodo] = useState(false);
@@ -227,11 +228,16 @@ export default function RelatoriosScreen() {
             dataInicio?: string;
             dataFim?: string;
             statusFiltro?: StatusFiltro;
+            statusFiltros?: StatusFiltro[];
             lembrar?: boolean;
           };
           if (parsed.dataInicio) setDataInicio(parsed.dataInicio);
           if (parsed.dataFim) setDataFim(parsed.dataFim);
-          if (parsed.statusFiltro) setStatusFiltro(parsed.statusFiltro);
+          if (Array.isArray(parsed.statusFiltros) && parsed.statusFiltros.length > 0) {
+            setStatusFiltros(parsed.statusFiltros.filter((item): item is StatusFiltro => STATUS_VALUES.includes(item)));
+          } else if (parsed.statusFiltro) {
+            setStatusFiltros([parsed.statusFiltro]);
+          }
           setLembrarPeriodo(Boolean(parsed.lembrar));
         }
 
@@ -312,13 +318,13 @@ export default function RelatoriosScreen() {
     }
     await AsyncStorage.setItem(
       RELATORIOS_FILTRO_STORAGE_KEY,
-      JSON.stringify({
-        dataInicio,
-        dataFim,
-        statusFiltro,
-        lembrar: true,
-      })
-    );
+        JSON.stringify({
+          dataInicio,
+          dataFim,
+          statusFiltros,
+          lembrar: true,
+        })
+      );
     if (filtroAplicado) {
       salvarEstadoRelatorios().catch(() => {
         // Ignora falha de persistencia local.
@@ -331,8 +337,62 @@ export default function RelatoriosScreen() {
     lembrarPeriodo,
     removerPersistenciaRelatorios,
     salvarEstadoRelatorios,
-    statusFiltro,
+    statusFiltros,
   ]);
+
+  const agregarProducao = (rows: RelatorioProducaoItem[]) => {
+    const mapa = new Map<string, RelatorioProducaoItem>();
+    rows.forEach((item) => {
+      const key = `${item.produto_id}|${item.embalagem || ''}`;
+      const atual = mapa.get(key);
+      if (atual) {
+        atual.quantidade_total += Number(item.quantidade_total || 0);
+      } else {
+        mapa.set(key, { ...item, quantidade_total: Number(item.quantidade_total || 0) });
+      }
+    });
+    return [...mapa.values()];
+  };
+
+  const agregarProdutosPorRota = (rows: RelatorioProdutosPorRotaItem[]) => {
+    const mapa = new Map<string, RelatorioProdutosPorRotaItem>();
+    rows.forEach((item) => {
+      const key = `${item.rota_id ?? 'sem-rota'}|${item.produto_id}|${item.embalagem || ''}`;
+      const atual = mapa.get(key);
+      if (atual) {
+        atual.quantidade_total += Number(item.quantidade_total || 0);
+      } else {
+        mapa.set(key, { ...item, quantidade_total: Number(item.quantidade_total || 0) });
+      }
+    });
+    return [...mapa.values()];
+  };
+
+  const agregarTopClientes = (rows: RelatorioTopClienteItem[]) => {
+    const mapa = new Map<number, RelatorioTopClienteItem>();
+    rows.forEach((item) => {
+      const atual = mapa.get(item.cliente_id);
+      if (atual) {
+        atual.total_pedidos += Number(item.total_pedidos || 0);
+        atual.valor_total_vendas += Number(item.valor_total_vendas || 0);
+      } else {
+        mapa.set(item.cliente_id, {
+          ...item,
+          total_pedidos: Number(item.total_pedidos || 0),
+          valor_total_vendas: Number(item.valor_total_vendas || 0),
+        });
+      }
+    });
+    return [...mapa.values()];
+  };
+
+  const agregarTrocas = (rows: RelatorioTrocaItem[]) => {
+    const mapa = new Map<number, RelatorioTrocaItem>();
+    rows.forEach((item) => {
+      if (!mapa.has(item.troca_id)) mapa.set(item.troca_id, item);
+    });
+    return [...mapa.values()];
+  };
 
   const carregarBase = useCallback(async () => {
     const inicioIso = parseBrToIso(dataInicio);
@@ -351,25 +411,43 @@ export default function RelatoriosScreen() {
     setErro(null);
 
     try {
-      const filtros = {
+      const filtrosBase = {
         data_inicio: inicioIso,
         data_fim: fimIso,
-        status: statusFiltro,
       };
+      const statusAplicados = statusFiltros.length > 0 ? statusFiltros : STATUS_VALUES;
 
-      const [producaoResp, rotasResp, produtosResp, topResp, trocasResp] = await Promise.all([
-        relatoriosApi.producao(filtros),
-        relatoriosApi.rotasDetalhado(filtros),
-        relatoriosApi.produtosPorRota(filtros),
-        relatoriosApi.topClientes(filtros),
-        relatoriosApi.trocas(filtros),
-      ]);
+      const resultadosPorStatus = await Promise.all(
+        statusAplicados.map(async (status) => {
+          const filtros = { ...filtrosBase, status };
+          const [producaoResp, rotasResp, produtosResp, topResp, trocasResp] = await Promise.all([
+            relatoriosApi.producao(filtros),
+            relatoriosApi.rotasDetalhado(filtros),
+            relatoriosApi.produtosPorRota(filtros),
+            relatoriosApi.topClientes(filtros),
+            relatoriosApi.trocas(filtros),
+          ]);
+          return {
+            producao: producaoResp.data,
+            rotas: rotasResp.data,
+            produtos: produtosResp.data,
+            top: topResp.data,
+            trocas: trocasResp.data,
+          };
+        })
+      );
 
-      setProducao(producaoResp.data);
-      setRotasDetalhado(rotasResp.data);
-      setProdutosPorRota(produtosResp.data);
-      setTopClientes(topResp.data);
-      setTrocas(trocasResp.data);
+      const producaoMerged = agregarProducao(resultadosPorStatus.flatMap((item) => item.producao));
+      const rotasMerged = resultadosPorStatus.flatMap((item) => item.rotas);
+      const produtosMerged = agregarProdutosPorRota(resultadosPorStatus.flatMap((item) => item.produtos));
+      const topMerged = agregarTopClientes(resultadosPorStatus.flatMap((item) => item.top));
+      const trocasMerged = agregarTrocas(resultadosPorStatus.flatMap((item) => item.trocas));
+
+      setProducao(producaoMerged);
+      setRotasDetalhado(rotasMerged);
+      setProdutosPorRota(produtosMerged);
+      setTopClientes(topMerged);
+      setTrocas(trocasMerged);
       setRotaExpandidaId(null);
       setFiltroAplicado(true);
       const dataAtualizacao = new Date();
@@ -381,7 +459,7 @@ export default function RelatoriosScreen() {
             JSON.stringify({
               dataInicio,
               dataFim,
-              statusFiltro,
+              statusFiltros,
               lembrar: true,
             })
           ),
@@ -392,11 +470,11 @@ export default function RelatoriosScreen() {
               filtroAplicado: true,
               subRelatorio,
               ultimaAtualizacao: dataAtualizacao.toISOString(),
-              producao: producaoResp.data,
-              rotasDetalhado: rotasResp.data,
-              produtosPorRota: produtosResp.data,
-              topClientes: topResp.data,
-              trocas: trocasResp.data,
+              producao: producaoMerged,
+              rotasDetalhado: rotasMerged,
+              produtosPorRota: produtosMerged,
+              topClientes: topMerged,
+              trocas: trocasMerged,
             })
           ),
         ]);
@@ -408,12 +486,12 @@ export default function RelatoriosScreen() {
     } finally {
       setLoading(false);
     }
-  }, [dataInicio, dataFim, lembrarPeriodo, removerPersistenciaRelatorios, statusFiltro, subRelatorio]);
+  }, [dataInicio, dataFim, lembrarPeriodo, removerPersistenciaRelatorios, statusFiltros, subRelatorio]);
 
   const limparFiltro = () => {
     setDataInicio('');
     setDataFim('');
-    setStatusFiltro('EM_ESPERA');
+    setStatusFiltros(['EM_ESPERA']);
     setErro(null);
     setFiltroAplicado(false);
     setProducao([]);
@@ -515,6 +593,9 @@ export default function RelatoriosScreen() {
     [subRelatorio]
   );
   const resumoFiltros = `${dataInicio || '--/--/----'} até ${dataFim || '--/--/----'}`;
+  const statusSelecionadosLabel = (statusFiltros.length > 0 ? statusFiltros : STATUS_VALUES)
+    .map((status) => STATUS_OPTIONS.find((item) => item.value === status)?.label || status)
+    .join(', ');
 
   const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 18;
   const contentTopOffset = topSafeOffset + 78;
@@ -571,10 +652,19 @@ export default function RelatoriosScreen() {
             {STATUS_OPTIONS.map((status) => (
               <Pressable
                 key={status.value}
-                style={[styles.statusChip, statusFiltro === status.value && styles.statusChipActive]}
-                onPress={() => setStatusFiltro(status.value)}
+                style={[styles.statusChip, statusFiltros.includes(status.value) && styles.statusChipActive]}
+                onPress={() =>
+                  setStatusFiltros((prev) => {
+                    const existe = prev.includes(status.value);
+                    if (existe && prev.length === 1) return prev;
+                    if (existe) return prev.filter((item) => item !== status.value);
+                    return [...prev, status.value];
+                  })
+                }
               >
-                <Text style={[styles.statusChipText, statusFiltro === status.value && styles.statusChipTextActive]}>
+                <Text
+                  style={[styles.statusChipText, statusFiltros.includes(status.value) && styles.statusChipTextActive]}
+                >
                   {status.label}
                 </Text>
               </Pressable>
@@ -654,7 +744,7 @@ export default function RelatoriosScreen() {
             <Text style={styles.quickInfoTitle}>Consulta Atual</Text>
             <Text style={styles.quickInfoText}>{resumoFiltros}</Text>
             <Text style={styles.quickInfoText}>
-              Status: {STATUS_OPTIONS.find((s) => s.value === statusFiltro)?.label}
+              Status: {statusSelecionadosLabel}
             </Text>
           </View>
         ) : null}
