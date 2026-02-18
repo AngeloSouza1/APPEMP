@@ -755,7 +755,7 @@ export default function HomeScreen() {
                   {resumoMotorista.pedidosOrdenados.map((pedido, index) => (
                     <Pressable
                       key={`pedido-${pedido.id}`}
-                      style={styles.deliveryItem}
+                      style={({ pressed }) => [styles.deliveryItem, pressed && styles.deliveryItemPressed]}
                       onPress={() => navigation.navigate('PedidoDetalhe', { id: pedido.id })}
                     >
                       <View style={styles.deliveryOrderBadge}>
@@ -850,7 +850,7 @@ export default function HomeScreen() {
                     : null;
               return (
               <Pressable
-                style={[
+                style={({ pressed }) => [
                   styles.moduleCard,
                   isRemaneio && styles.moduleCardHighlight,
                   isRelatorios && styles.moduleCardHighlightReports,
@@ -861,6 +861,7 @@ export default function HomeScreen() {
                     marginBottom: ajuste.moduleCardMarginBottom,
                     minHeight: ajuste.moduleCardMinHeight,
                   },
+                  pressed && styles.moduleCardPressed,
                 ]}
                 onPress={() => abrirModulo(item)}
               >
@@ -1347,6 +1348,10 @@ const styles = StyleSheet.create({
     minHeight: 118,
     position: 'relative',
   },
+  moduleCardPressed: {
+    opacity: 0.86,
+    transform: [{ scale: 0.985 }],
+  },
   moduleCardHighlight: {
     shadowColor: '#b45309',
     shadowOpacity: 0.12,
@@ -1586,6 +1591,10 @@ const styles = StyleSheet.create({
     padding: 10,
     paddingTop: 18,
     gap: 4,
+  },
+  deliveryItemPressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.987 }],
   },
   deliveryOrderBadge: {
     position: 'absolute',
