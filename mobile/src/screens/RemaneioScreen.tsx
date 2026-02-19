@@ -87,11 +87,12 @@ export default function RemaneioScreen() {
     user?.perfil === 'admin' || user?.perfil === 'backoffice' || user?.perfil === 'motorista';
 
   const aplicarOrdemLocalRemaneio = useCallback(
-    (lista: Pedido[]) => {
-      if (ordemLocalRemaneio.length === 0) return lista;
+    (lista: Pedido[], ordemPreferencial?: number[]) => {
+      const ordemBase = ordemPreferencial && ordemPreferencial.length > 0 ? ordemPreferencial : ordemLocalRemaneio;
+      if (ordemBase.length === 0) return lista;
       const porId = new Map(lista.map((pedido) => [pedido.id, pedido]));
       const usados = new Set<number>();
-      const ordenados = ordemLocalRemaneio
+      const ordenados = ordemBase
         .map((id) => porId.get(id))
         .filter((pedido): pedido is Pedido => {
           if (!pedido) return false;
@@ -105,7 +106,7 @@ export default function RemaneioScreen() {
   );
 
   const carregarDados = useCallback(
-    async (isRefresh = false) => {
+    async (isRefresh = false, ordemPreferencial?: number[]) => {
       if (!podeAcessarRemaneio) {
         setLoading(false);
         return;
@@ -134,7 +135,8 @@ export default function RemaneioScreen() {
 
         const listaSelecao = selecaoResp.data.data;
         const listaRemaneio = aplicarOrdemLocalRemaneio(
-          ordenarPedidosRemaneio(remaneioResp.data.data)
+          ordenarPedidosRemaneio(remaneioResp.data.data),
+          ordemPreferencial
         );
 
         setRotas(rotasResp.data);
@@ -349,9 +351,11 @@ export default function RemaneioScreen() {
     setSucesso(null);
     setProcessando(true);
     try {
-      await pedidosApi.atualizarOrdemRemaneio(listaNova.map((pedido) => pedido.id));
+      const ordemNova = listaNova.map((pedido) => pedido.id);
+      await pedidosApi.atualizarOrdemRemaneio(ordemNova);
       setSucesso('Ordem do remaneio atualizada.');
       setPedidosRemaneio(ordenarPedidosRemaneio(listaNova));
+      await carregarDados(true, ordemNova);
     } catch {
       setPedidosRemaneio(listaNova);
       setOrdemLocalRemaneio(listaNova.map((pedido) => pedido.id));
