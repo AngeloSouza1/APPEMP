@@ -36,7 +36,10 @@ export default function ProducaoDashboardScreen() {
     setLoading(true);
     setErro(null);
     try {
-      const [response, produtosResp] = await Promise.all([relatoriosApi.producao(), produtosApi.listar()]);
+      const [response, produtosResp] = await Promise.all([
+        relatoriosApi.producao({ status: 'EM_ESPERA' }),
+        produtosApi.listar(),
+      ]);
       setResultado(response.data);
       const imagensMap = produtosResp.data.reduce<Record<number, string>>((acc, produto) => {
         if (produto.id && produto.imagem_url) {

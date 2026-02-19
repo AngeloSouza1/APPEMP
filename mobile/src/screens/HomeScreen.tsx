@@ -786,9 +786,7 @@ export default function HomeScreen() {
                           <Text style={styles.deliveryClient}>{pedido.cliente_nome}</Text>
                         </View>
                       </View>
-                      <Text style={styles.deliveryMeta}>
-                        {formatarData(pedido.data)} • <Text style={styles.deliveryMetaValue}>{formatarMoeda(pedido.valor_total)}</Text>
-                      </Text>
+                      <Text style={styles.deliveryMeta}>{formatarData(pedido.data)}</Text>
                       <View style={styles.itemsList}>
                         {pedido.itens?.slice(0, 3).map((item, idx) => (
                           <View key={`${pedido.id}-${item.produto_id}-${idx}`} style={styles.itemRow}>

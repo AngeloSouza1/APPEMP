@@ -302,10 +302,10 @@ export default function PedidoDetalheScreen({ route, navigation }: Props) {
         </View>
 
         <View style={styles.heroCard}>
-          <Text style={styles.heroValue}>{formatarMoeda(pedido.valor_total)}</Text>
+          {user?.perfil !== 'motorista' ? <Text style={styles.heroValue}>{formatarMoeda(pedido.valor_total)}</Text> : null}
           <Text style={styles.heroMetaTitle}>Pedido: #{pedido.id}</Text>
           <Text style={styles.heroMetaDate}>{formatarData(pedido.data)}</Text>
-          <Text style={styles.heroLabel}>Valor total do pedido</Text>
+          {user?.perfil !== 'motorista' ? <Text style={styles.heroLabel}>Valor total do pedido</Text> : null}
 
           <View style={styles.kpiRow}>
             <View style={styles.kpiCard}>
@@ -339,7 +339,7 @@ export default function PedidoDetalheScreen({ route, navigation }: Props) {
                       <Text style={styles.itemMeta}>Unit.: {formatarMoeda(Number(item.valor_unitario || 0))}</Text>
                     ) : null}
                   </View>
-                  <Text style={styles.itemValue}>{formatarMoeda(valorItem)}</Text>
+                  {user?.perfil !== 'motorista' ? <Text style={styles.itemValue}>{formatarMoeda(valorItem)}</Text> : null}
                 </View>
               );
             })
