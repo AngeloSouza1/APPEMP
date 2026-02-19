@@ -1092,20 +1092,20 @@ const styles = StyleSheet.create({
   avatarText: {
     color: '#1e3a8a',
     fontWeight: '800',
-    fontSize: 19.95,
+    fontSize: 21.95,
   },
   headerInfo: {
     flex: 1,
   },
   headerEyebrow: {
     color: '#1d4ed8',
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
   headerTitle: {
-    fontSize: 18.9,
+    fontSize: 20.79,
     fontWeight: '700',
     color: '#0f172a',
     marginTop: 1,
@@ -1113,7 +1113,7 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     color: '#334155',
     marginTop: 1,
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
   menuWrap: {
     position: 'relative',
@@ -1175,18 +1175,18 @@ const styles = StyleSheet.create({
   },
   menuLinkDangerIcon: {
     color: '#be123c',
-    fontSize: 13.65,
+    fontSize: 15.02,
     fontWeight: '800',
   },
   menuLinkDangerText: {
     color: '#9f1239',
     fontWeight: '700',
-    fontSize: 12.6,
+    fontSize: 13.86,
     flex: 1,
   },
   menuLinkDangerChevron: {
     color: '#be123c',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '800',
   },
   menuLink: {
@@ -1214,17 +1214,17 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   menuLinkIcon: {
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
   menuLinkText: {
     color: '#1e293b',
     fontWeight: '700',
-    fontSize: 12.6,
+    fontSize: 13.86,
     flex: 1,
   },
   menuLinkChevron: {
     color: '#64748b',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '800',
   },
   aboutModalCard: {
@@ -1244,7 +1244,7 @@ const styles = StyleSheet.create({
   },
   aboutModalTitle: {
     color: '#0f172a',
-    fontSize: 16.8,
+    fontSize: 18.48,
     fontWeight: '800',
   },
   aboutModalClose: {
@@ -1259,7 +1259,7 @@ const styles = StyleSheet.create({
   },
   aboutModalCloseText: {
     color: '#334155',
-    fontSize: 18.9,
+    fontSize: 20.79,
     fontWeight: '700',
     lineHeight: 20,
   },
@@ -1284,7 +1284,7 @@ const styles = StyleSheet.create({
   },
   menuAboutText: {
     color: '#64748b',
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '600',
   },
   menuAboutValue: {
@@ -1310,13 +1310,13 @@ const styles = StyleSheet.create({
   },
   modulesHeroTitle: {
     color: '#eff6ff',
-    fontSize: 16.8,
+    fontSize: 18.48,
     fontWeight: '800',
   },
   modulesHeroText: {
     color: '#dbeafe',
     marginTop: 3,
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
   modulesHeader: {
     marginBottom: 6,
@@ -1326,7 +1326,7 @@ const styles = StyleSheet.create({
   },
   modulesCount: {
     color: '#475569',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '600',
   },
   modulesList: {
@@ -1406,7 +1406,7 @@ const styles = StyleSheet.create({
   },
   moduleTitle: {
     flex: 1,
-    fontSize: 15.75,
+    fontSize: 17.33,
     fontWeight: '800',
     lineHeight: 19,
   },
@@ -1429,7 +1429,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#dbeafe',
   },
   moduleNotifBadgeText: {
-    fontSize: 10.5,
+    fontSize: 11.55,
     fontWeight: '800',
   },
   moduleNotifBadgeTextNew: {
@@ -1439,11 +1439,11 @@ const styles = StyleSheet.create({
     color: '#1d4ed8',
   },
   moduleDesc: {
-    fontSize: 12.6,
+    fontSize: 13.86,
     lineHeight: 16,
   },
   sectionTitle: {
-    fontSize: 18.9,
+    fontSize: 20.79,
     fontWeight: '700',
     color: '#0f172a',
   },
@@ -1494,13 +1494,13 @@ const styles = StyleSheet.create({
   kpiLabel: {
     color: '#475569',
     fontWeight: '600',
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
   kpiValue: {
     marginTop: 2,
     color: '#0f172a',
     fontWeight: '800',
-    fontSize: 23.1,
+    fontSize: 25.41,
   },
   footerCard: {
     borderRadius: 12,
@@ -1624,7 +1624,7 @@ const styles = StyleSheet.create({
   },
   deliveryOrderBadgeText: {
     color: '#1d4ed8',
-    fontSize: 16.8,
+    fontSize: 18.48,
     fontWeight: '900',
   },
   deliveryTrocaBadge: {
@@ -1641,7 +1641,7 @@ const styles = StyleSheet.create({
   },
   deliveryTrocaBadgeText: {
     color: '#be123c',
-    fontSize: 10.5,
+    fontSize: 11.55,
     fontWeight: '900',
   },
   deliveryHeader: {
@@ -1679,13 +1679,13 @@ const styles = StyleSheet.create({
   deliveryClientAvatarFallbackText: {
     color: '#334155',
     fontWeight: '800',
-    fontSize: 13.65,
+    fontSize: 15.02,
   },
   deliveryClient: {
     flex: 1,
     color: '#0f172a',
     fontWeight: '700',
-    fontSize: 18.9,
+    fontSize: 20.79,
     lineHeight: 22,
   },
   deliveryId: {
@@ -1694,7 +1694,7 @@ const styles = StyleSheet.create({
   },
   deliveryMeta: {
     color: '#475569',
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
   deliveryMetaValue: {
     fontWeight: '800',
@@ -1715,17 +1715,17 @@ const styles = StyleSheet.create({
   },
   itemName: {
     color: '#1e293b',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '700',
   },
   itemQty: {
     color: '#475569',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '600',
   },
   itemMore: {
     color: '#64748b',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '700',
   },
   locationLinkWrap: {
@@ -1742,12 +1742,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   locationLinkIcon: {
-    fontSize: 12.6,
+    fontSize: 13.86,
     lineHeight: 14,
   },
   locationLinkText: {
     color: '#1d4ed8',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '700',
   },
   loadingOverlay: {
@@ -1773,6 +1773,6 @@ const styles = StyleSheet.create({
   loadingText: {
     color: '#1e3a8a',
     fontWeight: '700',
-    fontSize: 13.65,
+    fontSize: 15.02,
   },
 });

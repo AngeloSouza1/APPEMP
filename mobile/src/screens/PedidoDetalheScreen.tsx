@@ -587,7 +587,7 @@ const styles = StyleSheet.create({
   centeredText: {
     color: '#64748b',
     fontWeight: '600',
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
   errorText: {
     color: '#b91c1c',
@@ -617,7 +617,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   headerTitle: {
-    fontSize: 23.1,
+    fontSize: 25.41,
     fontWeight: '800',
     color: '#0f172a',
   },
@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
   headerIconText: {
     color: '#1e3a8a',
     fontWeight: '800',
-    fontSize: 15.75,
+    fontSize: 17.33,
     lineHeight: 16,
   },
   statusBadge: {
@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   statusBadgeText: {
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '800',
   },
   heroCard: {
@@ -663,25 +663,25 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   heroValue: {
-    fontSize: 27.3,
+    fontSize: 30.03,
     fontWeight: '800',
     color: '#0f172a',
   },
   heroLabel: {
     color: '#475569',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '600',
   },
   heroMetaTitle: {
     marginTop: -2,
     color: '#1e3a8a',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '700',
   },
   heroMetaDate: {
     marginTop: -2,
     color: '#475569',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '600',
   },
   kpiRow: {
@@ -699,13 +699,13 @@ const styles = StyleSheet.create({
   },
   kpiLabel: {
     color: '#64748b',
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '700',
   },
   kpiValue: {
     marginTop: 3,
     color: '#1e3a8a',
-    fontSize: 21,
+    fontSize: 23.1,
     fontWeight: '800',
   },
   itemsCard: {
@@ -717,7 +717,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionTitle: {
-    fontSize: 16.8,
+    fontSize: 18.48,
     fontWeight: '800',
     color: '#0f172a',
   },
@@ -733,7 +733,7 @@ const styles = StyleSheet.create({
   sectionSubtitle: {
     marginTop: 2,
     color: '#64748b',
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '600',
   },
   toggleTrocaButton: {
@@ -760,17 +760,17 @@ const styles = StyleSheet.create({
   toggleTrocaButtonText: {
     color: '#4338ca',
     fontWeight: '700',
-    fontSize: 13.65,
+    fontSize: 15.02,
   },
   toggleTrocaHint: {
     color: '#6366f1',
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '600',
   },
   toggleTrocaChevron: {
     color: '#4338ca',
     fontWeight: '800',
-    fontSize: 14.7,
+    fontSize: 16.17,
   },
   addTrocaCard: {
     borderRadius: 12,
@@ -788,7 +788,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: '#eff6ff',
     color: '#0f172a',
-    fontSize: 13.65,
+    fontSize: 15.02,
   },
   itemFieldsRow: {
     flexDirection: 'row',
@@ -804,7 +804,7 @@ const styles = StyleSheet.create({
   },
   itemFieldLabel: {
     color: '#334155',
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '700',
   },
   optionRow: {
@@ -825,7 +825,7 @@ const styles = StyleSheet.create({
   },
   optionChipText: {
     color: '#475569',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '700',
   },
   optionChipTextActive: {
@@ -856,19 +856,19 @@ const styles = StyleSheet.create({
   },
   clientSelectorTitle: {
     color: '#0f172a',
-    fontSize: 14.7,
+    fontSize: 16.17,
     fontWeight: '800',
   },
   clientSelectorSubtitle: {
     marginTop: 1,
     color: '#475569',
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '600',
   },
   listMetaText: {
     marginTop: -2,
     color: '#64748b',
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '600',
   },
   clientListScroll: {
@@ -908,7 +908,7 @@ const styles = StyleSheet.create({
   productSelectAvatarText: {
     color: '#1e3a8a',
     fontWeight: '800',
-    fontSize: 13.65,
+    fontSize: 15.02,
   },
   productRowInfo: {
     flex: 1,
@@ -917,11 +917,11 @@ const styles = StyleSheet.create({
   productName: {
     color: '#0f172a',
     fontWeight: '700',
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
   productMeta: {
     color: '#64748b',
-    fontSize: 11.55,
+    fontSize: 12.71,
   },
   addTrocaButton: {
     marginTop: 2,
@@ -936,11 +936,11 @@ const styles = StyleSheet.create({
   addTrocaButtonText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
   emptyText: {
     color: '#64748b',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '600',
   },
   emptyTrocaCard: {
@@ -966,17 +966,17 @@ const styles = StyleSheet.create({
   itemName: {
     color: '#0f172a',
     fontWeight: '700',
-    fontSize: 13.65,
+    fontSize: 15.02,
   },
   itemMeta: {
     color: '#475569',
     marginTop: 2,
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
   itemValue: {
     color: '#0f172a',
     fontWeight: '800',
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
   trocaActionsCol: {
     alignItems: 'flex-end',
@@ -995,7 +995,7 @@ const styles = StyleSheet.create({
   },
   deleteTrocaButtonText: {
     color: '#b91c1c',
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '700',
   },
   secondaryButton: {
@@ -1009,7 +1009,7 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: '#1f2937',
     fontWeight: '700',
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
   retryButton: {
     backgroundColor: '#2563eb',
@@ -1020,6 +1020,6 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
 });

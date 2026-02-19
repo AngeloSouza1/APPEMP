@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   brandTitle: {
-    fontSize: 27.3,
+    fontSize: 30.03,
     lineHeight: 28,
     fontWeight: '900',
     color: '#0f172a',
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   previewAvatarText: {
-    fontSize: 21,
+    fontSize: 23.1,
     fontWeight: '900',
     color: '#0f172a',
   },
@@ -347,14 +347,14 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   previewKicker: {
-    fontSize: 10.5,
+    fontSize: 11.55,
     letterSpacing: 1.2,
     color: '#475569',
     fontWeight: '700',
   },
   previewName: {
     marginTop: 2,
-    fontSize: 16.8,
+    fontSize: 18.48,
     fontWeight: '800',
     color: '#0f172a',
   },
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
   fieldError: {
     marginTop: -6,
     color: '#be123c',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '600',
   },
   rememberRow: {
@@ -406,13 +406,13 @@ const styles = StyleSheet.create({
   },
   checkboxMark: {
     color: '#ffffff',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '900',
     lineHeight: 14,
   },
   rememberText: {
     color: '#334155',
-    fontSize: 13.65,
+    fontSize: 15.02,
     fontWeight: '600',
   },
   button: {

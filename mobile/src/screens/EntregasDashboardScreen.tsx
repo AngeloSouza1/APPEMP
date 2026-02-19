@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
   },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', columnGap: 10, flex: 1 },
   headerIcon: { width: 34, height: 34 },
-  headerTitle: { fontSize: 23.1, fontWeight: '800', color: '#0f172a' },
+  headerTitle: { fontSize: 25.41, fontWeight: '800', color: '#0f172a' },
   headerBackButton: {
     minWidth: 82,
     height: 38,
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerBackText: { color: '#1e3a8a', fontWeight: '800', fontSize: 15.75 },
+  headerBackText: { color: '#1e3a8a', fontWeight: '800', fontSize: 17.33 },
   pressed: { opacity: 0.82 },
   content: { paddingHorizontal: 12, gap: 10 },
   errorCard: {
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 8,
   },
-  errorText: { color: '#b91c1c', fontSize: 12.6, fontWeight: '700' },
+  errorText: { color: '#b91c1c', fontSize: 13.86, fontWeight: '700' },
   retryButton: {
     alignSelf: 'flex-start',
     borderRadius: 8,
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
-  retryButtonText: { color: '#ffffff', fontWeight: '700', fontSize: 12.6 },
+  retryButtonText: { color: '#ffffff', fontWeight: '700', fontSize: 13.86 },
   emptyCard: {
     borderRadius: 12,
     borderWidth: 1,
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: '#64748b',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -465,8 +465,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#eff6ff',
     padding: 10,
   },
-  kpiLabel: { color: '#475569', fontSize: 12.6, fontWeight: '700' },
-  kpiValue: { color: '#1e3a8a', fontSize: 15.75, fontWeight: '900', marginTop: 2 },
+  kpiLabel: { color: '#475569', fontSize: 13.86, fontWeight: '700' },
+  kpiValue: { color: '#1e3a8a', fontSize: 17.33, fontWeight: '900', marginTop: 2 },
   sectionCard: {
     borderRadius: 12,
     borderWidth: 1,
@@ -481,8 +481,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     columnGap: 10,
   },
-  sectionTitle: { color: '#0f172a', fontSize: 15.75, fontWeight: '800' },
-  sectionMeta: { color: '#475569', fontSize: 12.6, fontWeight: '700' },
+  sectionTitle: { color: '#0f172a', fontSize: 17.33, fontWeight: '800' },
+  sectionMeta: { color: '#475569', fontSize: 13.86, fontWeight: '700' },
   itemCard: {
     borderRadius: 10,
     borderWidth: 1,
@@ -492,13 +492,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   itemTop: { flexDirection: 'row', justifyContent: 'space-between', columnGap: 8 },
-  itemTitle: { flex: 1, color: '#0f172a', fontSize: 15.75, fontWeight: '900' },
-  itemValue: { color: '#1d4ed8', fontSize: 15.75, fontWeight: '900' },
-  itemMeta: { color: '#475569', fontSize: 12.6, fontWeight: '600' },
+  itemTitle: { flex: 1, color: '#0f172a', fontSize: 17.33, fontWeight: '900' },
+  itemValue: { color: '#1d4ed8', fontSize: 17.33, fontWeight: '900' },
+  itemMeta: { color: '#475569', fontSize: 13.86, fontWeight: '600' },
   expandHint: {
     marginTop: 4,
     color: '#1d4ed8',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '700',
   },
   expandBox: {
@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
   },
   expandText: {
     color: '#334155',
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '600',
   },
   expandTextStrong: {
@@ -534,24 +534,24 @@ const styles = StyleSheet.create({
   },
   pedidoTitle: {
     color: '#0f172a',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '800',
     flex: 1,
   },
   pedidoStatus: {
     color: '#1d4ed8',
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '700',
     textTransform: 'capitalize',
   },
   pedidoMeta: {
     color: '#475569',
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '600',
   },
   pedidoTotal: {
     color: '#0f172a',
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '800',
   },
   pedidoItensBox: {
@@ -571,22 +571,22 @@ const styles = StyleSheet.create({
   },
   pedidoItemNome: {
     color: '#0f172a',
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '700',
   },
   pedidoItemQtd: {
     color: '#64748b',
-    fontSize: 10.5,
+    fontSize: 11.55,
     fontWeight: '600',
   },
   pedidoItemValor: {
     color: '#1e40af',
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '800',
   },
   pedidoItemVazio: {
     color: '#64748b',
-    fontSize: 10.5,
+    fontSize: 11.55,
     fontWeight: '600',
     marginTop: 2,
   },
@@ -629,7 +629,7 @@ const styles = StyleSheet.create({
     color: '#1e3a8a',
     fontWeight: '700',
     textAlign: 'center',
-    fontSize: 11.55,
+    fontSize: 12.71,
   },
   footerActionTextActive: {
     color: '#1e40af',

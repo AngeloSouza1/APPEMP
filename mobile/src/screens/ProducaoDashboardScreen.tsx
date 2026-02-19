@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', columnGap: 10, flex: 1 },
   headerIcon: { width: 34, height: 34 },
-  headerTitle: { fontSize: 25.2, fontWeight: '800', color: '#0f172a' },
+  headerTitle: { fontSize: 27.72, fontWeight: '800', color: '#0f172a' },
   headerBackButton: {
     minWidth: 82,
     height: 38,
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerBackText: { color: '#1e3a8a', fontWeight: '800', fontSize: 15.75 },
+  headerBackText: { color: '#1e3a8a', fontWeight: '800', fontSize: 17.33 },
   pressed: { opacity: 0.82 },
   content: { paddingHorizontal: 12, paddingBottom: 108, gap: 10 },
   errorCard: {
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 8,
   },
-  errorText: { color: '#b91c1c', fontSize: 12.6, fontWeight: '700' },
+  errorText: { color: '#b91c1c', fontSize: 13.86, fontWeight: '700' },
   retryButton: {
     alignSelf: 'flex-start',
     borderRadius: 8,
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: '#ffffff',
     fontWeight: '700',
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
   emptyCard: {
     borderRadius: 12,
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: '#64748b',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -334,8 +334,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     columnGap: 10,
   },
-  sectionTitle: { color: '#0f172a', fontSize: 15.75, fontWeight: '800' },
-  sectionMeta: { color: '#475569', fontSize: 12.6, fontWeight: '700' },
+  sectionTitle: { color: '#0f172a', fontSize: 17.33, fontWeight: '800' },
+  sectionMeta: { color: '#475569', fontSize: 13.86, fontWeight: '700' },
   itemCard: {
     borderRadius: 10,
     borderWidth: 1,
@@ -369,9 +369,9 @@ const styles = StyleSheet.create({
     height: 26,
     opacity: 0.95,
   },
-  itemTitle: { flex: 1, color: '#0f172a', fontSize: 14.7, fontWeight: '900' },
-  itemValue: { color: '#1d4ed8', fontSize: 17.85, fontWeight: '900' },
-  itemMeta: { color: '#475569', fontSize: 12.6, fontWeight: '600' },
+  itemTitle: { flex: 1, color: '#0f172a', fontSize: 16.17, fontWeight: '900' },
+  itemValue: { color: '#1d4ed8', fontSize: 19.64, fontWeight: '900' },
+  itemMeta: { color: '#475569', fontSize: 13.86, fontWeight: '600' },
   footerDock: {
     position: 'absolute',
     left: 12,
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     color: '#1e3a8a',
     fontWeight: '700',
     textAlign: 'center',
-    fontSize: 11.55,
+    fontSize: 12.71,
   },
   footerActionTextActive: {
     color: '#1e40af',
@@ -450,6 +450,6 @@ const styles = StyleSheet.create({
   loadingText: {
     color: '#1e3a8a',
     fontWeight: '700',
-    fontSize: 13.65,
+    fontSize: 15.02,
   },
 });

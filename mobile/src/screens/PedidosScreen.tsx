@@ -856,13 +856,13 @@ const styles = StyleSheet.create({
   headerAddIcon: {
     color: '#ffffff',
     fontWeight: '900',
-    fontSize: 14.7,
+    fontSize: 16.17,
     lineHeight: 14,
   },
   headerAddButtonText: {
     color: '#ffffff',
     fontWeight: '800',
-    fontSize: 13.65,
+    fontSize: 15.02,
   },
   headerIconButtonPressed: {
     opacity: 0.82,
@@ -870,7 +870,7 @@ const styles = StyleSheet.create({
   headerIconText: {
     color: '#1e3a8a',
     fontWeight: '800',
-    fontSize: 15.75,
+    fontSize: 17.33,
     lineHeight: 16,
   },
   headerInfo: {
@@ -886,7 +886,7 @@ const styles = StyleSheet.create({
     height: 36,
   },
   headerTitle: {
-    fontSize: 25.2,
+    fontSize: 27.72,
     fontWeight: '800',
     color: '#0f172a',
   },
@@ -911,19 +911,19 @@ const styles = StyleSheet.create({
   kpiLabel: {
     color: '#475569',
     fontWeight: '600',
-    fontSize: 11.55,
+    fontSize: 12.71,
   },
   kpiValue: {
     marginTop: 3,
     color: '#0f172a',
     fontWeight: '800',
-    fontSize: 22.05,
+    fontSize: 24.26,
   },
   kpiValueSmall: {
     marginTop: 4,
     color: '#0f172a',
     fontWeight: '800',
-    fontSize: 15.75,
+    fontSize: 17.33,
   },
   filtersCard: {
     backgroundColor: 'rgba(255,255,255,0.92)',
@@ -957,16 +957,16 @@ const styles = StyleSheet.create({
   filtersTitle: {
     color: '#0f172a',
     fontWeight: '800',
-    fontSize: 14.7,
+    fontSize: 16.17,
   },
   filtersSubtitle: {
     marginTop: 1,
     color: '#64748b',
-    fontSize: 11.55,
+    fontSize: 12.71,
   },
   filtersChevron: {
     color: '#1d4ed8',
-    fontSize: 16.8,
+    fontSize: 18.48,
     fontWeight: '800',
     marginLeft: 8,
   },
@@ -978,7 +978,7 @@ const styles = StyleSheet.create({
   },
   filterLabel: {
     color: '#334155',
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '700',
   },
   filterSelectorTrigger: {
@@ -1003,13 +1003,13 @@ const styles = StyleSheet.create({
   },
   filterSelectorTitle: {
     color: '#0f172a',
-    fontSize: 13.65,
+    fontSize: 15.02,
     fontWeight: '700',
   },
   filterSelectorSubtitle: {
     marginTop: 1,
     color: '#64748b',
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '500',
   },
   selectorTriggerPressed: {
@@ -1023,7 +1023,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: '#eff6ff',
     color: '#0f172a',
-    fontSize: 13.65,
+    fontSize: 15.02,
   },
   inputPressable: {
     minHeight: 42,
@@ -1034,7 +1034,7 @@ const styles = StyleSheet.create({
   },
   inputPressableText: {
     color: '#0f172a',
-    fontSize: 13.65,
+    fontSize: 15.02,
   },
   inputPressablePlaceholder: {
     color: '#64748b',
@@ -1074,7 +1074,7 @@ const styles = StyleSheet.create({
   },
   selectorRowTitle: {
     color: '#0f172a',
-    fontSize: 13.65,
+    fontSize: 15.02,
     fontWeight: '700',
   },
   selectorRowTitleSelected: {
@@ -1082,7 +1082,7 @@ const styles = StyleSheet.create({
   },
   selectorRowSubtitle: {
     color: '#64748b',
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '500',
   },
   chip: {
@@ -1099,7 +1099,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     color: '#334155',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '600',
   },
   chipTextActive: {
@@ -1121,7 +1121,7 @@ const styles = StyleSheet.create({
   clearButtonText: {
     color: '#334155',
     fontWeight: '700',
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
   clearButtonPressed: {
     opacity: 0.85,
@@ -1138,13 +1138,13 @@ const styles = StyleSheet.create({
   totalRegistrosText: {
     marginBottom: 8,
     color: '#475569',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '700',
     textAlign: 'right',
   },
   errorText: {
     color: '#b91c1c',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '600',
   },
   retryButton: {
@@ -1157,14 +1157,14 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
   retryButtonPressed: {
     opacity: 0.84,
   },
   emptyText: {
     color: '#64748b',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '600',
     textAlign: 'center',
     paddingVertical: 8,
@@ -1230,10 +1230,10 @@ const styles = StyleSheet.create({
   clientAvatarText: {
     color: '#1e3a8a',
     fontWeight: '800',
-    fontSize: 16.8,
+    fontSize: 18.48,
   },
   client: {
-    fontSize: 17.85,
+    fontSize: 19.64,
     fontWeight: '800',
     color: '#0f172a',
     flex: 1,
@@ -1250,7 +1250,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statusBadgeText: {
-    fontSize: 11.55,
+    fontSize: 12.71,
     fontWeight: '800',
   },
   trocaBadge: {
@@ -1263,31 +1263,31 @@ const styles = StyleSheet.create({
   },
   trocaBadgeText: {
     color: '#6d28d9',
-    fontSize: 10.5,
+    fontSize: 11.55,
     fontWeight: '800',
   },
   metaStrong: {
     marginTop: 8,
-    fontSize: 16.8,
+    fontSize: 18.48,
     fontWeight: '800',
     color: '#111827',
   },
   metaTitle: {
     marginTop: 3,
     color: '#1e3a8a',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '700',
   },
   metaDate: {
     marginTop: 2,
     color: '#475569',
-    fontSize: 12.6,
+    fontSize: 13.86,
     fontWeight: '600',
   },
   meta: {
     marginTop: 3,
     color: '#475569',
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
   cardBottomRow: {
     marginTop: 2,
@@ -1314,22 +1314,22 @@ const styles = StyleSheet.create({
   cardActionEditText: {
     color: '#1d4ed8',
     fontWeight: '700',
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
   cardActionTrocaText: {
     color: '#6d28d9',
     fontWeight: '700',
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
   cardActionDeleteText: {
     color: '#b91c1c',
     fontWeight: '700',
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
   cardChevron: {
     color: '#64748b',
     fontWeight: '800',
-    fontSize: 13.65,
+    fontSize: 15.02,
   },
   pagination: {
     flexDirection: 'row',
@@ -1359,7 +1359,7 @@ const styles = StyleSheet.create({
   pageBtnText: {
     color: '#1d4ed8',
     fontWeight: '700',
-    fontSize: 12.6,
+    fontSize: 13.86,
   },
   pageBtnTextDisabled: {
     color: '#94a3b8',
@@ -1369,7 +1369,7 @@ const styles = StyleSheet.create({
   },
   pageInfo: {
     color: '#475569',
-    fontSize: 12.6,
+    fontSize: 13.86,
     flex: 1,
     textAlign: 'center',
     fontWeight: '700',
