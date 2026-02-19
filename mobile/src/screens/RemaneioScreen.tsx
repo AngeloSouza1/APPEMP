@@ -39,6 +39,16 @@ const parseDataFiltro = (value: string) => {
   return undefined;
 };
 
+const ordenarPedidosRemaneio = (lista: Pedido[]) =>
+  [...lista].sort((a, b) => {
+    const ordemA = a.ordem_remaneio ?? Number.MAX_SAFE_INTEGER;
+    const ordemB = b.ordem_remaneio ?? Number.MAX_SAFE_INTEGER;
+    if (ordemA !== ordemB) return ordemA - ordemB;
+    const diffData = new Date(b.data).getTime() - new Date(a.data).getTime();
+    if (diffData !== 0) return diffData;
+    return b.id - a.id;
+  });
+
 export default function RemaneioScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
@@ -64,6 +74,7 @@ export default function RemaneioScreen() {
   const [mostrarRotas, setMostrarRotas] = useState(false);
   const [buscaRota, setBuscaRota] = useState('');
   const [idsSelecionados, setIdsSelecionados] = useState<number[]>([]);
+  const [ordemLocalRemaneio, setOrdemLocalRemaneio] = useState<number[]>([]);
   const [stepSelecaoBloqueado, setStepSelecaoBloqueado] = useState(false);
 
   const topSafeOffset = Math.max(
@@ -74,6 +85,24 @@ export default function RemaneioScreen() {
 
   const podeAcessarRemaneio =
     user?.perfil === 'admin' || user?.perfil === 'backoffice' || user?.perfil === 'motorista';
+
+  const aplicarOrdemLocalRemaneio = useCallback(
+    (lista: Pedido[]) => {
+      if (ordemLocalRemaneio.length === 0) return lista;
+      const porId = new Map(lista.map((pedido) => [pedido.id, pedido]));
+      const usados = new Set<number>();
+      const ordenados = ordemLocalRemaneio
+        .map((id) => porId.get(id))
+        .filter((pedido): pedido is Pedido => {
+          if (!pedido) return false;
+          usados.add(pedido.id);
+          return true;
+        });
+      const restantes = lista.filter((pedido) => !usados.has(pedido.id));
+      return [...ordenados, ...restantes];
+    },
+    [ordemLocalRemaneio]
+  );
 
   const carregarDados = useCallback(
     async (isRefresh = false) => {
@@ -104,7 +133,9 @@ export default function RemaneioScreen() {
         ]);
 
         const listaSelecao = selecaoResp.data.data;
-        const listaRemaneio = remaneioResp.data.data;
+        const listaRemaneio = aplicarOrdemLocalRemaneio(
+          ordenarPedidosRemaneio(remaneioResp.data.data)
+        );
 
         setRotas(rotasResp.data);
         setPedidosSelecao(listaSelecao);
@@ -116,7 +147,7 @@ export default function RemaneioScreen() {
         setRefreshing(false);
       }
     },
-    [filtrosAplicados, podeAcessarRemaneio]
+    [aplicarOrdemLocalRemaneio, filtrosAplicados, podeAcessarRemaneio]
   );
 
   useFocusEffect(
@@ -160,7 +191,7 @@ export default function RemaneioScreen() {
     [idsSelecionados, pedidosSelecao]
   );
 
-  const pedidosDashboard = useMemo(() => [...pedidosRemaneio], [pedidosRemaneio]);
+  const pedidosDashboard = useMemo(() => ordenarPedidosRemaneio(pedidosRemaneio), [pedidosRemaneio]);
 
   const resumoDashboard = useMemo(() => {
     const totalPedidos = pedidosDashboard.length;
@@ -313,16 +344,18 @@ export default function RemaneioScreen() {
     listaNova.splice(indiceDestino, 0, movido);
 
     setPedidosRemaneio(listaNova);
+    setOrdemLocalRemaneio(listaNova.map((pedido) => pedido.id));
     setErro(null);
     setSucesso(null);
     setProcessando(true);
     try {
       await pedidosApi.atualizarOrdemRemaneio(listaNova.map((pedido) => pedido.id));
       setSucesso('Ordem do remaneio atualizada.');
-      await carregarDados();
+      setPedidosRemaneio(ordenarPedidosRemaneio(listaNova));
     } catch {
-      setPedidosRemaneio(listaAnterior);
-      setErro('Não foi possível atualizar a ordem do remaneio.');
+      setPedidosRemaneio(listaNova);
+      setOrdemLocalRemaneio(listaNova.map((pedido) => pedido.id));
+      setErro('Ordem atualizada localmente. Não foi possível sincronizar com o servidor.');
     } finally {
       setProcessando(false);
     }
