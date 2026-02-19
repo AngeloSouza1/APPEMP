@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', columnGap: 10, flex: 1 },
   headerIcon: { width: 34, height: 34 },
-  headerTitle: { fontSize: 27.72, fontWeight: '800', color: '#0f172a' },
+  headerTitle: { fontSize: 25.5, fontWeight: '800', color: '#0f172a' },
   headerBackButton: {
     minWidth: 82,
     height: 38,
