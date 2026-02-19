@@ -826,6 +826,10 @@ export default function HomeScreen() {
             data={modulosVisiveis}
             numColumns={moduleColumns}
             scrollEnabled={false}
+            bounces={false}
+            alwaysBounceVertical={false}
+            overScrollMode="never"
+            showsVerticalScrollIndicator={false}
             keyExtractor={(item) => item.key}
             contentContainerStyle={[
               styles.modulesList,
