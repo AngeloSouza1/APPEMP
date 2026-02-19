@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     fontWeight: '900',
     color: '#0f172a',
-    marginTop: 4,
+    marginTop: 9,
     letterSpacing: 0.2,
     includeFontPadding: false,
     textShadowColor: 'rgba(37,99,235,0.22)',
