@@ -64,7 +64,6 @@ export default function RemaneioScreen() {
   const [mostrarRotas, setMostrarRotas] = useState(false);
   const [buscaRota, setBuscaRota] = useState('');
   const [idsSelecionados, setIdsSelecionados] = useState<number[]>([]);
-  const [ordemSelecaoRemaneio, setOrdemSelecaoRemaneio] = useState<number[]>([]);
   const [stepSelecaoBloqueado, setStepSelecaoBloqueado] = useState(false);
 
   const topSafeOffset = Math.max(
@@ -161,27 +160,7 @@ export default function RemaneioScreen() {
     [idsSelecionados, pedidosSelecao]
   );
 
-  const pedidosDashboard = useMemo(() => {
-    const pedidosPorData = [...pedidosRemaneio].sort((a, b) => {
-      const diffData = new Date(b.data).getTime() - new Date(a.data).getTime();
-      if (diffData !== 0) return diffData;
-      return b.id - a.id;
-    });
-
-    if (ordemSelecaoRemaneio.length === 0) return pedidosPorData;
-
-    const porId = new Map(pedidosRemaneio.map((pedido) => [pedido.id, pedido]));
-    const idsOrdenados = new Set<number>();
-    const porSelecao = ordemSelecaoRemaneio
-      .map((id) => porId.get(id))
-      .filter((pedido): pedido is Pedido => {
-        if (!pedido) return false;
-        idsOrdenados.add(pedido.id);
-        return true;
-      });
-    const restantes = pedidosPorData.filter((pedido) => !idsOrdenados.has(pedido.id));
-    return [...porSelecao, ...restantes];
-  }, [ordemSelecaoRemaneio, pedidosRemaneio]);
+  const pedidosDashboard = useMemo(() => [...pedidosRemaneio], [pedidosRemaneio]);
 
   const resumoDashboard = useMemo(() => {
     const totalPedidos = pedidosDashboard.length;
@@ -241,9 +220,9 @@ export default function RemaneioScreen() {
           })
         )
       );
+      await pedidosApi.atualizarOrdemRemaneio(idsSelecionados);
       await marcarRelatoriosComoDesatualizados();
       setStepSelecaoBloqueado(true);
-      setOrdemSelecaoRemaneio(idsSelecionados);
       setIdsSelecionados([]);
       setSucesso(`${pedidosAlvo.length} pedido(s) enviado(s) para entrega.`);
       await carregarDados();
@@ -265,7 +244,6 @@ export default function RemaneioScreen() {
       });
       await marcarRelatoriosComoDesatualizados();
       setStepSelecaoBloqueado(false);
-      setOrdemSelecaoRemaneio((prev) => prev.filter((id) => id !== pedidoId));
       setSucesso(`Pedido #${pedidoId} retirado do remaneio.`);
       await carregarDados();
     } catch {
@@ -285,7 +263,6 @@ export default function RemaneioScreen() {
       });
       await marcarRelatoriosComoDesatualizados();
       setStepSelecaoBloqueado(false);
-      setOrdemSelecaoRemaneio((prev) => prev.filter((id) => id !== pedidoId));
       setSucesso(`Pedido #${pedidoId} atualizado para Efetivado.`);
       await carregarDados();
     } catch {
@@ -322,6 +299,33 @@ export default function RemaneioScreen() {
         },
       ]
     );
+  };
+
+  const moverPedidoRemaneio = async (pedidoId: number, direcao: 'up' | 'down') => {
+    const indiceAtual = pedidosRemaneio.findIndex((pedido) => pedido.id === pedidoId);
+    if (indiceAtual < 0) return;
+    const indiceDestino = direcao === 'up' ? indiceAtual - 1 : indiceAtual + 1;
+    if (indiceDestino < 0 || indiceDestino >= pedidosRemaneio.length) return;
+
+    const listaAnterior = [...pedidosRemaneio];
+    const listaNova = [...pedidosRemaneio];
+    const [movido] = listaNova.splice(indiceAtual, 1);
+    listaNova.splice(indiceDestino, 0, movido);
+
+    setPedidosRemaneio(listaNova);
+    setErro(null);
+    setSucesso(null);
+    setProcessando(true);
+    try {
+      await pedidosApi.atualizarOrdemRemaneio(listaNova.map((pedido) => pedido.id));
+      setSucesso('Ordem do remaneio atualizada.');
+      await carregarDados();
+    } catch {
+      setPedidosRemaneio(listaAnterior);
+      setErro('Não foi possível atualizar a ordem do remaneio.');
+    } finally {
+      setProcessando(false);
+    }
   };
 
   if (!podeAcessarRemaneio) {
@@ -614,7 +618,7 @@ export default function RemaneioScreen() {
               </View>
             }
             ListEmptyComponent={<Text style={styles.empty}>Nenhum pedido no remaneio para os filtros aplicados.</Text>}
-            renderItem={({ item }) => (
+            renderItem={({ item, index }) => (
               <View style={styles.card}>
                 <View style={styles.cardTopRow}>
                   <Text style={styles.cardTitle} numberOfLines={1}>
@@ -631,6 +635,25 @@ export default function RemaneioScreen() {
                 <View style={styles.remaneioActionsRow}>
                   <Text style={styles.cardValue}>{formatarMoeda(Number(item.valor_total || 0))}</Text>
                   <View style={styles.remaneioButtonsWrap}>
+                    <View style={styles.orderButtonsWrap}>
+                      <Pressable
+                        style={[styles.orderButton, (processando || index === 0) && styles.disabledButton]}
+                        onPress={() => moverPedidoRemaneio(item.id, 'up')}
+                        disabled={processando || index === 0}
+                      >
+                        <Text style={styles.orderButtonText}>↑</Text>
+                      </Pressable>
+                      <Pressable
+                        style={[
+                          styles.orderButton,
+                          (processando || index === pedidosRemaneio.length - 1) && styles.disabledButton,
+                        ]}
+                        onPress={() => moverPedidoRemaneio(item.id, 'down')}
+                        disabled={processando || index === pedidosRemaneio.length - 1}
+                      >
+                        <Text style={styles.orderButtonText}>↓</Text>
+                      </Pressable>
+                    </View>
                     <Pressable
                       style={[styles.smallPrimaryButton, processando && styles.disabledButton]}
                       onPress={() => confirmarEfetivacao(item.id)}
@@ -1225,6 +1248,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  orderButtonsWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginRight: 2,
+  },
+  orderButton: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#93c5fd',
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    minWidth: 34,
+    alignItems: 'center',
+  },
+  orderButtonText: {
+    color: '#1d4ed8',
+    fontSize: 12.71,
+    fontWeight: '800',
+    lineHeight: 14,
   },
   smallPrimaryButton: {
     borderRadius: 8,

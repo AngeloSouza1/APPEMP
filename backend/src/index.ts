@@ -159,6 +159,7 @@ const ensureImageColumns = async () => {
   await pool.query("ALTER TABLE produtos ADD COLUMN IF NOT EXISTS imagem_url TEXT");
   await pool.query("ALTER TABLE rotas ADD COLUMN IF NOT EXISTS imagem_url TEXT");
   await pool.query("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS imagem_url TEXT");
+  await pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS ordem_remaneio INTEGER");
 };
 
 app.get("/health", (_req, res) => {
@@ -1188,6 +1189,7 @@ app.get("/pedidos", async (req, res) => {
         p.chave_pedido,
         p.data,
         p.status,
+        p.ordem_remaneio,
         p.valor_total,
         p.valor_efetivado,
         EXISTS (SELECT 1 FROM trocas t WHERE t.pedido_id = p.id) AS tem_trocas,
@@ -1241,7 +1243,11 @@ app.get("/pedidos", async (req, res) => {
       paramIndex++;
     }
 
-    query += ` ORDER BY p.data DESC, p.id DESC`;
+    query += ` ORDER BY
+      CASE WHEN p.status = 'CONFERIR' AND p.ordem_remaneio IS NOT NULL THEN 0 ELSE 1 END,
+      p.ordem_remaneio ASC NULLS LAST,
+      p.data DESC,
+      p.id DESC`;
 
     const result = await pool.query(query, params);
     const pedidos = result.rows;
@@ -1289,6 +1295,7 @@ app.get("/pedidos/:id", async (req, res, next) => {
         p.chave_pedido,
         p.data,
         p.status,
+        p.ordem_remaneio,
         p.valor_total,
         p.valor_efetivado,
         EXISTS (SELECT 1 FROM trocas t WHERE t.pedido_id = p.id) AS tem_trocas,
@@ -1411,6 +1418,7 @@ app.get("/pedidos/paginado", async (req, res) => {
         p.chave_pedido,
         p.data,
         p.status,
+        p.ordem_remaneio,
         p.valor_total,
         p.valor_efetivado,
         EXISTS (SELECT 1 FROM trocas t WHERE t.pedido_id = p.id) AS tem_trocas,
@@ -1430,7 +1438,11 @@ app.get("/pedidos/paginado", async (req, res) => {
       INNER JOIN clientes c ON p.cliente_id = c.id
       LEFT JOIN rotas r ON p.rota_id = r.id
       ${whereClause}
-      ORDER BY p.data DESC, p.id DESC
+      ORDER BY
+        CASE WHEN p.status = 'CONFERIR' AND p.ordem_remaneio IS NOT NULL THEN 0 ELSE 1 END,
+        p.ordem_remaneio ASC NULLS LAST,
+        p.data DESC,
+        p.id DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
       [...params, limitNum, offset]
     );
@@ -1469,6 +1481,78 @@ app.get("/pedidos/paginado", async (req, res) => {
     res.status(500).json({ error: "Erro ao buscar pedidos paginados" });
   }
 });
+
+app.patch(
+  "/pedidos/remaneio/ordem",
+  autenticarToken,
+  requireRoles("admin", "backoffice", "motorista"),
+  async (req: AuthenticatedRequest, res) => {
+    const pedidoIdsRaw: unknown[] | null = Array.isArray(req.body?.pedido_ids) ? req.body.pedido_ids : null;
+    if (!pedidoIdsRaw || pedidoIdsRaw.length === 0) {
+      return res.status(400).json({ error: "pedido_ids é obrigatório e deve ter ao menos 1 item." });
+    }
+
+    const pedidoIds = [
+      ...new Set(
+        pedidoIdsRaw
+          .map((id: unknown) => Number(id))
+          .filter((id: number): id is number => Number.isInteger(id) && id > 0)
+      ),
+    ];
+    if (pedidoIds.length === 0) {
+      return res.status(400).json({ error: "pedido_ids inválido." });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      const conferindoResult = await client.query(
+        `SELECT id
+         FROM pedidos
+         WHERE status = 'CONFERIR'
+         ORDER BY ordem_remaneio ASC NULLS LAST, data DESC, id DESC`
+      );
+
+      const idsConferindo: number[] = conferindoResult.rows.map((row) => Number(row.id));
+      const idsConferindoSet = new Set<number>(idsConferindo);
+      const idsInvalidos = pedidoIds.filter((id) => !idsConferindoSet.has(id));
+      if (idsInvalidos.length > 0) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          error: "Um ou mais pedidos não estão no status Conferir.",
+          invalidos: idsInvalidos,
+        });
+      }
+
+      const idsRestantes = idsConferindo.filter((id) => !pedidoIds.includes(id));
+      const ordemFinal = [...pedidoIds, ...idsRestantes];
+
+      await client.query(
+        `WITH nova_ordem AS (
+           SELECT * FROM UNNEST($1::int[]) WITH ORDINALITY AS t(id, posicao)
+         )
+         UPDATE pedidos p
+         SET ordem_remaneio = no.posicao::int,
+             atualizado_por = $2,
+             atualizado_em = NOW()
+         FROM nova_ordem no
+         WHERE p.id = no.id
+           AND p.status = 'CONFERIR'`,
+        [ordemFinal, req.user?.id || null]
+      );
+
+      await client.query("COMMIT");
+      return res.json({ ok: true, total: ordemFinal.length });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      console.error("Erro ao reordenar remaneio:", error);
+      return res.status(500).json({ error: "Erro ao reordenar remaneio." });
+    } finally {
+      client.release();
+    }
+  }
+);
 
 // Cria um novo pedido com itens
 app.post("/pedidos", async (req: AuthenticatedRequest, res) => {
@@ -1661,6 +1745,17 @@ app.patch("/pedidos/:id/status", async (req: AuthenticatedRequest, res) => {
     params.push(req.user?.id || null);
     let paramIndex = 3;
 
+    if (statusNormalizado === "CONFERIR") {
+      updateFields.push(
+        `ordem_remaneio = COALESCE(
+          ordem_remaneio,
+          (SELECT COALESCE(MAX(ordem_remaneio), 0) + 1 FROM pedidos WHERE status = 'CONFERIR')
+        )`
+      );
+    } else {
+      updateFields.push("ordem_remaneio = NULL");
+    }
+
     if (valor_efetivado !== undefined) {
       updateFields.push(`valor_efetivado = $${paramIndex}`);
       params.push(valor_efetivado);
@@ -1673,7 +1768,7 @@ app.patch("/pedidos/:id/status", async (req: AuthenticatedRequest, res) => {
       `UPDATE pedidos 
        SET ${updateFields.join(", ")}, atualizado_em = NOW()
        WHERE id = $${paramIndex}
-       RETURNING id, chave_pedido, data, status, valor_total, valor_efetivado`,
+       RETURNING id, chave_pedido, data, status, ordem_remaneio, valor_total, valor_efetivado`,
       params
     );
 

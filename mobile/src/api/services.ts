@@ -180,6 +180,8 @@ export const pedidosApi = {
     api.put<Pedido>(`/pedidos/${id}`, data),
   atualizarStatus: (id: number, data: { status: string; valor_efetivado?: number }) =>
     api.patch(`/pedidos/${id}/status`, data),
+  atualizarOrdemRemaneio: (pedido_ids: number[]) =>
+    api.patch('/pedidos/remaneio/ordem', { pedido_ids }),
 };
 
 export const clientesApi = {

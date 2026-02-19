@@ -15,6 +15,7 @@ export interface Pedido {
   chave_pedido: string;
   data: string;
   status: string;
+  ordem_remaneio?: number | null;
   valor_total: number;
   valor_efetivado?: number;
   cliente_id: number;
