@@ -164,8 +164,8 @@ export default function EntregasDashboardScreen() {
   const valorTotal = rotasAgrupadas.reduce((acc, item) => acc + item.valor_total, 0);
 
   const topSafeOffset = Math.max(
-    Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 18,
-    insets.top + 6
+    Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20,
+    insets.top + 10
   );
   const contentTopOffset = topSafeOffset + 98;
 

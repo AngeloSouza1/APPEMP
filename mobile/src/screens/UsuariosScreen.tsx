@@ -56,7 +56,7 @@ export default function UsuariosScreen() {
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
 
   const isAdmin = user?.perfil === 'admin';
-  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 18;
+  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20;
   const contentTopOffset = topSafeOffset + 140;
 
   const carregarUsuarios = useCallback(async (isRefresh = false) => {

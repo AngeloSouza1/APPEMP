@@ -280,7 +280,7 @@ export default function HistoricoScreen() {
   const clienteSelecionado =
     clientes.find((item) => String(item.id) === clienteId)?.nome || 'Todos os clientes';
 
-  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 18;
+  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20;
   const contentTopOffset = topSafeOffset + 96;
 
   useEffect(() => {

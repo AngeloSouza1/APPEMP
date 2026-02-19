@@ -297,7 +297,7 @@ export default function PedidosScreen() {
     );
   };
 
-  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 18;
+  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20;
 
   return (
     <View style={styles.container}>

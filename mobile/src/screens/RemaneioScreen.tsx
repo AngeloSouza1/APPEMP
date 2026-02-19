@@ -64,7 +64,7 @@ export default function RemaneioScreen() {
   const [ordemSelecaoRemaneio, setOrdemSelecaoRemaneio] = useState<number[]>([]);
   const [stepSelecaoBloqueado, setStepSelecaoBloqueado] = useState(false);
 
-  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 18;
+  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20;
   const contentTopOffset = topSafeOffset + 98;
 
   const podeAcessarRemaneio =

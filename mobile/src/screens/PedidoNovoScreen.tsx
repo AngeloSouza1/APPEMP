@@ -142,8 +142,8 @@ export default function PedidoNovoScreen({ navigation }: Props) {
   }, [clienteId]);
 
   const topSafeOffset = Math.max(
-    Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 18,
-    insets.top + 6
+    Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20,
+    insets.top + 10
   );
 
   const clientesFiltrados = useMemo(() => {

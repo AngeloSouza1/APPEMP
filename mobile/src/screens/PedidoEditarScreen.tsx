@@ -139,7 +139,7 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
     carregar();
   }, [carregar]);
 
-  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 18;
+  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20;
 
   const rotaAtualLabel = useMemo(() => {
     if (rotaId === null) return 'Sem rota';

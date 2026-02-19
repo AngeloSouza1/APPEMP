@@ -23,6 +23,20 @@ const formatarNumero = (valor: number) =>
     maximumFractionDigits: 3,
   }).format(Number(valor || 0));
 
+const agregarProducao = (rows: RelatorioProducaoItem[]) => {
+  const mapa = new Map<string, RelatorioProducaoItem>();
+  rows.forEach((row) => {
+    const key = String(row.produto_id);
+    const atual = mapa.get(key);
+    if (atual) {
+      atual.quantidade_total = Number(atual.quantidade_total || 0) + Number(row.quantidade_total || 0);
+      return;
+    }
+    mapa.set(key, { ...row, quantidade_total: Number(row.quantidade_total || 0) });
+  });
+  return [...mapa.values()];
+};
+
 export default function ProducaoDashboardScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
@@ -36,11 +50,12 @@ export default function ProducaoDashboardScreen() {
     setLoading(true);
     setErro(null);
     try {
-      const [response, produtosResp] = await Promise.all([
+      const [emEsperaResp, conferirResp, produtosResp] = await Promise.all([
         relatoriosApi.producao({ status: 'EM_ESPERA' }),
+        relatoriosApi.producao({ status: 'CONFERIR' }),
         produtosApi.listar(),
       ]);
-      setResultado(response.data);
+      setResultado(agregarProducao([...emEsperaResp.data, ...conferirResp.data]));
       const imagensMap = produtosResp.data.reduce<Record<number, string>>((acc, produto) => {
         if (produto.id && produto.imagem_url) {
           acc[produto.id] = produto.imagem_url;
@@ -74,8 +89,8 @@ export default function ProducaoDashboardScreen() {
   );
 
   const topSafeOffset = Math.max(
-    Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 18,
-    insets.top + 6
+    Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20,
+    insets.top + 10
   );
   const contentTopOffset = topSafeOffset + 98;
 

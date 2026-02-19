@@ -597,7 +597,7 @@ export default function RelatoriosScreen() {
     .map((status) => STATUS_OPTIONS.find((item) => item.value === status)?.label || status)
     .join(', ');
 
-  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 18;
+  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20;
   const contentTopOffset = topSafeOffset + 78;
   const ultimaSyncTexto = ultimaAtualizacao
     ? `${String(ultimaAtualizacao.getHours()).padStart(2, '0')}:${String(ultimaAtualizacao.getMinutes()).padStart(2, '0')}`
