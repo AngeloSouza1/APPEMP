@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { clientesApi, pedidosApi, rotasApi } from '../api/services';
 import { API_URL } from '../config/env';
 import DatePickerModal from '../components/DatePickerModal';
@@ -66,6 +67,7 @@ const STATUS_THEME: Record<string, { bg: string; border: string; text: string; l
 
 export default function PedidosScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const insets = useSafeAreaInsets();
 
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -297,7 +299,10 @@ export default function PedidosScreen() {
     );
   };
 
-  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20;
+  const topSafeOffset = Math.max(
+    Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20,
+    insets.top + 10
+  );
 
   return (
     <View style={styles.container}>

@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UsuarioResumo, usuariosApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -28,6 +29,7 @@ const PERFIS: Perfil[] = ['admin', 'backoffice', 'vendedor', 'motorista'];
 export default function UsuariosScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const [usuarios, setUsuarios] = useState<UsuarioResumo[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -56,7 +58,10 @@ export default function UsuariosScreen() {
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
 
   const isAdmin = user?.perfil === 'admin';
-  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20;
+  const topSafeOffset = Math.max(
+    Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20,
+    insets.top + 10
+  );
   const contentTopOffset = topSafeOffset + 140;
 
   const carregarUsuarios = useCallback(async (isRefresh = false) => {

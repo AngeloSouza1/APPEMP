@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DatePickerModal from '../components/DatePickerModal';
 import { ClienteResumo, clientesApi, pedidosApi } from '../api/services';
@@ -67,6 +68,7 @@ const formatarQuantidade = (valor: number) =>
 
 export default function HistoricoScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [clientes, setClientes] = useState<ClienteResumo[]>([]);
@@ -280,7 +282,10 @@ export default function HistoricoScreen() {
   const clienteSelecionado =
     clientes.find((item) => String(item.id) === clienteId)?.nome || 'Todos os clientes';
 
-  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20;
+  const topSafeOffset = Math.max(
+    Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20,
+    insets.top + 10
+  );
   const contentTopOffset = topSafeOffset + 96;
 
   useEffect(() => {

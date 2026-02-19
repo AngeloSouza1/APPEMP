@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { pedidosApi, ProdutoResumo, produtosApi, trocasApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -70,6 +71,7 @@ const formatarQuantidade = (value: number | string | null | undefined) => {
 export default function PedidoDetalheScreen({ route, navigation }: Props) {
   const { id, focus } = route.params;
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [trocas, setTrocas] = useState<TrocaPedido[]>([]);
   const [produtos, setProdutos] = useState<ProdutoResumo[]>([]);
@@ -236,7 +238,10 @@ export default function PedidoDetalheScreen({ route, navigation }: Props) {
     }
   };
 
-  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20;
+  const topSafeOffset = Math.max(
+    Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20,
+    insets.top + 10
+  );
 
   useEffect(() => {
     if (focus !== 'trocas' || loading || !pedido || trocasSectionY === null) return;

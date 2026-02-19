@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ClienteResumo, clientesApi, RotaResumo, rotasApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -27,6 +28,7 @@ type FiltroStatus = 'todos' | 'ativos' | 'bloqueados';
 export default function ClientesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [clientes, setClientes] = useState<ClienteResumo[]>([]);
   const [rotas, setRotas] = useState<RotaResumo[]>([]);
@@ -60,7 +62,10 @@ export default function ClientesScreen() {
 
   const canManageCadastros = user?.perfil === 'admin' || user?.perfil === 'backoffice';
 
-  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20;
+  const topSafeOffset = Math.max(
+    Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20,
+    insets.top + 10
+  );
   const contentTopOffset = topSafeOffset + (canManageCadastros ? 138 : 98);
 
   const carregarDados = useCallback(async (isRefresh = false) => {

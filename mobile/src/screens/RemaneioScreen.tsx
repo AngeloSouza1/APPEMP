@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DatePickerModal from '../components/DatePickerModal';
 import { pedidosApi, RotaResumo, rotasApi } from '../api/services';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -40,6 +41,7 @@ const parseDataFiltro = (value: string) => {
 export default function RemaneioScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState<Step>('selecao');
   const [pedidosSelecao, setPedidosSelecao] = useState<Pedido[]>([]);
@@ -64,7 +66,10 @@ export default function RemaneioScreen() {
   const [ordemSelecaoRemaneio, setOrdemSelecaoRemaneio] = useState<number[]>([]);
   const [stepSelecaoBloqueado, setStepSelecaoBloqueado] = useState(false);
 
-  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20;
+  const topSafeOffset = Math.max(
+    Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20,
+    insets.top + 10
+  );
   const contentTopOffset = topSafeOffset + 98;
 
   const podeAcessarRemaneio =

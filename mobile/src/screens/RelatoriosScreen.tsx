@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DatePickerModal from '../components/DatePickerModal';
 import {
@@ -195,6 +196,7 @@ const agruparRotasDetalhado = (rows: RelatorioRotaDetalhadoItem[]) => {
 
 export default function RelatoriosScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const insets = useSafeAreaInsets();
   const [subRelatorio, setSubRelatorio] = useState<SubRelatorio>('producao');
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -597,7 +599,10 @@ export default function RelatoriosScreen() {
     .map((status) => STATUS_OPTIONS.find((item) => item.value === status)?.label || status)
     .join(', ');
 
-  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20;
+  const topSafeOffset = Math.max(
+    Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20,
+    insets.top + 10
+  );
   const contentTopOffset = topSafeOffset + 78;
   const ultimaSyncTexto = ultimaAtualizacao
     ? `${String(ultimaAtualizacao.getHours()).padStart(2, '0')}:${String(ultimaAtualizacao.getMinutes()).padStart(2, '0')}`

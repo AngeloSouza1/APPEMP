@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DatePickerModal from '../components/DatePickerModal';
 import { pedidosApi, ProdutoResumo, produtosApi, RotaResumo, rotasApi } from '../api/services';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -92,6 +93,7 @@ const toEditableItem = (item: Pedido['itens'][number], index: number): EditableI
 
 export default function PedidoEditarScreen({ route, navigation }: Props) {
   const { id } = route.params;
+  const insets = useSafeAreaInsets();
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [rotas, setRotas] = useState<RotaResumo[]>([]);
   const [produtos, setProdutos] = useState<ProdutoResumo[]>([]);
@@ -139,7 +141,10 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
     carregar();
   }, [carregar]);
 
-  const topSafeOffset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20;
+  const topSafeOffset = Math.max(
+    Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20,
+    insets.top + 10
+  );
 
   const rotaAtualLabel = useMemo(() => {
     if (rotaId === null) return 'Sem rota';
