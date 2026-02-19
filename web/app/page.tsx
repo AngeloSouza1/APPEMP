@@ -276,11 +276,7 @@ export default function Home() {
     const pedidosComTroca = pedidosMotorista.filter(
       (pedido) => Boolean(pedido.tem_trocas) || Number(pedido.qtd_trocas || 0) > 0
     ).length;
-    const pedidosOrdenados = [...pedidosMotorista].sort((a, b) => {
-      const diff = new Date(b.data).getTime() - new Date(a.data).getTime();
-      if (diff !== 0) return diff;
-      return b.id - a.id;
-    });
+    const pedidosOrdenados = [...pedidosMotorista];
     return { totalPedidos, valorTotal, pedidosComTroca, pedidosOrdenados };
   }, [pedidosMotorista]);
 

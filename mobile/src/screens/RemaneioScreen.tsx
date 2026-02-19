@@ -74,7 +74,6 @@ export default function RemaneioScreen() {
   const [mostrarRotas, setMostrarRotas] = useState(false);
   const [buscaRota, setBuscaRota] = useState('');
   const [idsSelecionados, setIdsSelecionados] = useState<number[]>([]);
-  const [ordemLocalRemaneio, setOrdemLocalRemaneio] = useState<number[]>([]);
   const [stepSelecaoBloqueado, setStepSelecaoBloqueado] = useState(false);
 
   const topSafeOffset = Math.max(
@@ -86,23 +85,21 @@ export default function RemaneioScreen() {
   const podeAcessarRemaneio =
     user?.perfil === 'admin' || user?.perfil === 'backoffice' || user?.perfil === 'motorista';
 
-  const aplicarOrdemLocalRemaneio = useCallback(
-    (lista: Pedido[], ordemPreferencial?: number[]) => {
-      const ordemBase = ordemPreferencial && ordemPreferencial.length > 0 ? ordemPreferencial : ordemLocalRemaneio;
-      if (ordemBase.length === 0) return lista;
+  const aplicarOrdemPreferencial = useCallback((lista: Pedido[], ordemPreferencial?: number[]) => {
+      if (!ordemPreferencial || ordemPreferencial.length === 0) return lista;
       const porId = new Map(lista.map((pedido) => [pedido.id, pedido]));
       const usados = new Set<number>();
-      const ordenados = ordemBase
+      const ordenados = ordemPreferencial
         .map((id) => porId.get(id))
         .filter((pedido): pedido is Pedido => {
           if (!pedido) return false;
           usados.add(pedido.id);
           return true;
-        });
+      });
       const restantes = lista.filter((pedido) => !usados.has(pedido.id));
       return [...ordenados, ...restantes];
     },
-    [ordemLocalRemaneio]
+    []
   );
 
   const carregarDados = useCallback(
@@ -134,7 +131,7 @@ export default function RemaneioScreen() {
         ]);
 
         const listaSelecao = selecaoResp.data.data;
-        const listaRemaneio = aplicarOrdemLocalRemaneio(
+        const listaRemaneio = aplicarOrdemPreferencial(
           ordenarPedidosRemaneio(remaneioResp.data.data),
           ordemPreferencial
         );
@@ -149,7 +146,7 @@ export default function RemaneioScreen() {
         setRefreshing(false);
       }
     },
-    [aplicarOrdemLocalRemaneio, filtrosAplicados, podeAcessarRemaneio]
+    [aplicarOrdemPreferencial, filtrosAplicados, podeAcessarRemaneio]
   );
 
   useFocusEffect(
@@ -193,7 +190,7 @@ export default function RemaneioScreen() {
     [idsSelecionados, pedidosSelecao]
   );
 
-  const pedidosDashboard = useMemo(() => ordenarPedidosRemaneio(pedidosRemaneio), [pedidosRemaneio]);
+  const pedidosDashboard = useMemo(() => [...pedidosRemaneio], [pedidosRemaneio]);
 
   const resumoDashboard = useMemo(() => {
     const totalPedidos = pedidosDashboard.length;
@@ -346,7 +343,6 @@ export default function RemaneioScreen() {
     listaNova.splice(indiceDestino, 0, movido);
 
     setPedidosRemaneio(listaNova);
-    setOrdemLocalRemaneio(listaNova.map((pedido) => pedido.id));
     setErro(null);
     setSucesso(null);
     setProcessando(true);
@@ -357,9 +353,8 @@ export default function RemaneioScreen() {
       setPedidosRemaneio(ordenarPedidosRemaneio(listaNova));
       await carregarDados(true, ordemNova);
     } catch {
-      setPedidosRemaneio(listaNova);
-      setOrdemLocalRemaneio(listaNova.map((pedido) => pedido.id));
-      setErro('Ordem atualizada localmente. Não foi possível sincronizar com o servidor.');
+      setPedidosRemaneio(listaAnterior);
+      setErro('Não foi possível sincronizar a nova ordem. Tente novamente.');
     } finally {
       setProcessando(false);
     }
@@ -670,7 +665,14 @@ export default function RemaneioScreen() {
                 <Text style={styles.cardMeta}>Pedido #{item.id}</Text>
                 <Text style={styles.cardMeta}>{item.rota_nome || 'Sem rota'} • {formatarData(item.data)}</Text>
                 <View style={styles.remaneioActionsRow}>
-                  <Text style={styles.cardValue}>{formatarMoeda(Number(item.valor_total || 0))}</Text>
+                  <View style={styles.remaneioValueWrap}>
+                    <Text style={styles.cardValue}>{formatarMoeda(Number(item.valor_total || 0))}</Text>
+                    {(item.tem_trocas || Number(item.qtd_trocas || 0) > 0) ? (
+                      <View style={styles.trocaBadge}>
+                        <Text style={styles.trocaBadgeText}>{Number(item.qtd_trocas || 0)} troca(s)</Text>
+                      </View>
+                    ) : null}
+                  </View>
                   <View style={styles.remaneioButtonsWrap}>
                     <View style={styles.orderButtonsWrap}>
                       <Pressable
@@ -1280,6 +1282,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
+  },
+  remaneioValueWrap: {
+    alignItems: 'flex-start',
   },
   remaneioButtonsWrap: {
     flexDirection: 'row',
