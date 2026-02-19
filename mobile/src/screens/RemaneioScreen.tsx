@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   Platform,
@@ -292,6 +293,35 @@ export default function RemaneioScreen() {
     } finally {
       setProcessando(false);
     }
+  };
+
+  const confirmarRetirada = (pedidoId: number) => {
+    Alert.alert(
+      'Confirmar retirada',
+      `Deseja realmente retirar o pedido #${pedidoId} do remaneio?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sim, retirar',
+          style: 'destructive',
+          onPress: () => retirarDoRemaneio(pedidoId),
+        },
+      ]
+    );
+  };
+
+  const confirmarEfetivacao = (pedidoId: number) => {
+    Alert.alert(
+      'Confirmar efetivação',
+      `Deseja realmente efetivar o pedido #${pedidoId}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sim, efetivar',
+          onPress: () => efetivarPedido(pedidoId),
+        },
+      ]
+    );
   };
 
   if (!podeAcessarRemaneio) {
@@ -603,14 +633,14 @@ export default function RemaneioScreen() {
                   <View style={styles.remaneioButtonsWrap}>
                     <Pressable
                       style={[styles.smallPrimaryButton, processando && styles.disabledButton]}
-                      onPress={() => efetivarPedido(item.id)}
+                      onPress={() => confirmarEfetivacao(item.id)}
                       disabled={processando}
                     >
                       <Text style={styles.smallPrimaryButtonText}>Efetivar</Text>
                     </Pressable>
                     <Pressable
                       style={[styles.smallSecondaryButton, processando && styles.disabledButton]}
-                      onPress={() => retirarDoRemaneio(item.id)}
+                      onPress={() => confirmarRetirada(item.id)}
                       disabled={processando}
                     >
                       <Text style={styles.smallSecondaryButtonText}>Retirar</Text>
