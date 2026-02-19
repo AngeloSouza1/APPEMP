@@ -145,8 +145,25 @@ export default function EntregasDashboardScreen() {
     setLoading(true);
     setErro(null);
     try {
-      const response = await relatoriosApi.rotasDetalhado({ status: 'EM_ESPERA' });
-      setRotasDetalhado(response.data.filter((item) => item.pedido_status === 'EM_ESPERA'));
+      const [emEsperaResp, conferirResp] = await Promise.all([
+        relatoriosApi.rotasDetalhado({ status: 'EM_ESPERA' }),
+        relatoriosApi.rotasDetalhado({ status: 'CONFERIR' }),
+      ]);
+
+      const unicos = new Map<string, RelatorioRotaDetalhadoItem>();
+      [...emEsperaResp.data, ...conferirResp.data].forEach((item) => {
+        const chave = [
+          item.pedido_id,
+          item.cliente_id,
+          item.rota_id,
+          item.produto_id ?? 'sem-produto',
+          item.quantidade ?? 0,
+          item.valor_total_item ?? 0,
+        ].join('|');
+        unicos.set(chave, item);
+      });
+
+      setRotasDetalhado([...unicos.values()]);
     } catch {
       setErro('Não foi possível carregar o dashboard de entregas.');
     } finally {
