@@ -180,6 +180,7 @@ export const pedidosApi = {
     api.put<Pedido>(`/pedidos/${id}`, data),
   atualizarStatus: (id: number, data: { status: string; valor_efetivado?: number; data?: string }) =>
     api.patch(`/pedidos/${id}/status`, data),
+  excluir: (id: number) => api.delete(`/pedidos/${id}`),
   atualizarOrdemRemaneio: (pedido_ids: number[]) =>
     api.patch('/pedidos/remaneio/ordem', { pedido_ids }),
 };

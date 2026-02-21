@@ -1794,6 +1794,31 @@ app.patch("/pedidos/:id/status", async (req: AuthenticatedRequest, res) => {
   }
 });
 
+app.delete("/pedidos/:id", requireRoles("admin"), async (req: AuthenticatedRequest, res) => {
+  const { id } = req.params;
+  const pedidoId = Number(String(id));
+
+  if (!Number.isFinite(pedidoId) || pedidoId <= 0) {
+    return res.status(400).json({ error: "ID de pedido inválido" });
+  }
+
+  try {
+    const result = await pool.query(
+      "DELETE FROM pedidos WHERE id = $1 RETURNING id",
+      [pedidoId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Pedido não encontrado" });
+    }
+
+    return res.status(204).send();
+  } catch (error) {
+    console.error("Erro ao excluir pedido:", error);
+    return res.status(500).json({ error: "Erro ao excluir pedido" });
+  }
+});
+
 // --------- TROCAS ----------
 
 // Lista trocas de um pedido específico

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Image,
   Modal,
@@ -18,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DatePickerModal from '../components/DatePickerModal';
 import { ClienteResumo, clientesApi, pedidosApi } from '../api/services';
+import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { Pedido } from '../types/pedidos';
 import { formatarData, formatarMoeda } from '../utils/format';
@@ -68,6 +70,7 @@ const formatarQuantidade = (valor: number) =>
 
 export default function HistoricoScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -86,6 +89,7 @@ export default function HistoricoScreen() {
   const [datasExpandidas, setDatasExpandidas] = useState<Record<string, boolean>>({});
   const [expandirTodasDatas, setExpandirTodasDatas] = useState(false);
   const [headerVisivel, setHeaderVisivel] = useState(true);
+  const [deletingPedidoId, setDeletingPedidoId] = useState<number | null>(null);
   const headerTranslateY = useRef(new Animated.Value(0)).current;
   const ultimoScrollY = useRef(0);
 
@@ -138,6 +142,49 @@ export default function HistoricoScreen() {
   useEffect(() => {
     carregarDados();
   }, [carregarDados]);
+
+  const excluirPedido = useCallback(
+    async (pedidoId: number) => {
+      if (user?.perfil !== 'admin') {
+        Alert.alert('Permissão', 'Apenas administrador pode excluir pedidos no histórico.');
+        return;
+      }
+
+      setDeletingPedidoId(pedidoId);
+      setErro(null);
+      try {
+        await pedidosApi.excluir(pedidoId);
+        await carregarDados();
+      } catch (error: any) {
+        const mensagem = error?.response?.data?.error || 'Não foi possível excluir o pedido.';
+        Alert.alert('Erro', mensagem);
+      } finally {
+        setDeletingPedidoId(null);
+      }
+    },
+    [carregarDados, user?.perfil]
+  );
+
+  const confirmarExclusaoPedido = useCallback(
+    (pedidoId: number) => {
+      if (user?.perfil !== 'admin') return;
+      Alert.alert(
+        'Excluir pedido',
+        `Deseja realmente excluir o pedido #${pedidoId}? Esta ação não pode ser desfeita.`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Excluir',
+            style: 'destructive',
+            onPress: () => {
+              excluirPedido(pedidoId);
+            },
+          },
+        ]
+      );
+    },
+    [excluirPedido, user?.perfil]
+  );
 
   const aplicarFiltro = () => {
     setErro(null);
@@ -478,6 +525,8 @@ export default function HistoricoScreen() {
                         qtd: formatarQuantidade(Number(produto.quantidade || 0)),
                         valor: formatarMoeda(Number(produto.valor_total_item || 0)),
                       }));
+                      const podeExcluirNoHistorico = user?.perfil === 'admin';
+                      const excluindoPedido = deletingPedidoId === item.id;
                       return (
                         <Pressable
                           key={item.id}
@@ -511,6 +560,20 @@ export default function HistoricoScreen() {
                             <Text style={styles.vendaTotalLabel}>Valor total da venda</Text>
                             <Text style={styles.vendaTotalValue}>{formatarMoeda(Number(item.valor_total || 0))}</Text>
                           </View>
+                          {podeExcluirNoHistorico ? (
+                            <View style={styles.itemActionsRow}>
+                              <Pressable
+                                onPress={(event) => {
+                                  event.stopPropagation();
+                                  if (!excluindoPedido) confirmarExclusaoPedido(item.id);
+                                }}
+                              >
+                                <Text style={[styles.itemDeleteLink, excluindoPedido && styles.itemDeleteLinkDisabled]}>
+                                  {excluindoPedido ? 'Excluindo...' : 'Excluir'}
+                                </Text>
+                              </Pressable>
+                            </View>
+                          ) : null}
                         </Pressable>
                       );
                     })
@@ -589,6 +652,21 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: '#93c5fd',
     opacity: 0.45,
+  },
+  itemActionsRow: {
+    marginTop: 8,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+    alignItems: 'flex-end',
+  },
+  itemDeleteLink: {
+    color: '#b91c1c',
+    fontSize: 13.86,
+    fontWeight: '800',
+  },
+  itemDeleteLinkDisabled: {
+    color: '#94a3b8',
   },
   backgroundGlowCyan: {
     position: 'absolute',
