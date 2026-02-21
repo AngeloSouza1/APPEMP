@@ -4,6 +4,7 @@ import {
   Alert,
   FlatList,
   Image,
+  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -39,6 +40,14 @@ const parseDataFiltro = (value: string) => {
   return undefined;
 };
 
+const hojeBr = () => {
+  const agora = new Date();
+  const dd = String(agora.getDate()).padStart(2, '0');
+  const mm = String(agora.getMonth() + 1).padStart(2, '0');
+  const yyyy = agora.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+};
+
 const ordenarPedidosRemaneio = (lista: Pedido[]) =>
   [...lista].sort((a, b) => {
     const ordemA = a.ordem_remaneio ?? Number.MAX_SAFE_INTEGER;
@@ -68,6 +77,10 @@ export default function RemaneioScreen() {
   const [filtroRota, setFiltroRota] = useState<number | null>(null);
   const [data, setData] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pedidoEfetivacaoId, setPedidoEfetivacaoId] = useState<number | null>(null);
+  const [dataEfetivacao, setDataEfetivacao] = useState(hojeBr());
+  const [showEfetivacaoModal, setShowEfetivacaoModal] = useState(false);
+  const [showEfetivacaoDatePicker, setShowEfetivacaoDatePicker] = useState(false);
   const [filtrosAplicados, setFiltrosAplicados] = useState<{ q?: string; rota_id?: number; data?: string }>({});
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
 
@@ -283,17 +296,18 @@ export default function RemaneioScreen() {
     }
   };
 
-  const efetivarPedido = async (pedidoId: number) => {
+  const efetivarPedido = async (pedidoId: number, dataEfetivacaoIso: string) => {
     setErro(null);
     setSucesso(null);
     setProcessando(true);
     try {
       await pedidosApi.atualizarStatus(pedidoId, {
         status: 'EFETIVADO',
+        data: dataEfetivacaoIso,
       });
       await marcarRelatoriosComoDesatualizados();
       setStepSelecaoBloqueado(false);
-      setSucesso(`Pedido #${pedidoId} atualizado para Efetivado.`);
+      setSucesso(`Pedido #${pedidoId} efetivado com data ${formatarData(dataEfetivacaoIso)}.`);
       await carregarDados();
     } catch {
       setErro('Não foi possível efetivar o pedido.');
@@ -318,17 +332,21 @@ export default function RemaneioScreen() {
   };
 
   const confirmarEfetivacao = (pedidoId: number) => {
-    Alert.alert(
-      'Confirmar efetivação',
-      `Deseja realmente efetivar o pedido #${pedidoId}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Sim, efetivar',
-          onPress: () => efetivarPedido(pedidoId),
-        },
-      ]
-    );
+    setPedidoEfetivacaoId(pedidoId);
+    setDataEfetivacao(hojeBr());
+    setShowEfetivacaoModal(true);
+  };
+
+  const efetivarComDataSelecionada = async () => {
+    if (!pedidoEfetivacaoId) return;
+    const dataIso = parseDataFiltro(dataEfetivacao);
+    if (!dataIso) {
+      setErro('Data de efetivação inválida. Use o calendário para selecionar a data.');
+      return;
+    }
+    setShowEfetivacaoModal(false);
+    await efetivarPedido(pedidoEfetivacaoId, dataIso);
+    setPedidoEfetivacaoId(null);
   };
 
   const moverPedidoRemaneio = async (pedidoId: number, direcao: 'up' | 'down') => {
@@ -774,6 +792,64 @@ export default function RemaneioScreen() {
           setShowDatePicker(false);
         }}
         title="Selecionar data"
+      />
+
+      <Modal
+        visible={showEfetivacaoModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setShowEfetivacaoModal(false);
+          setPedidoEfetivacaoId(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFillObject}
+            onPress={() => {
+              setShowEfetivacaoModal(false);
+              setPedidoEfetivacaoId(null);
+            }}
+          />
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Efetivar pedido #{pedidoEfetivacaoId || '-'}</Text>
+            <Text style={styles.modalSubtitle}>Confirme a data da efetivação</Text>
+
+            <Pressable
+              style={({ pressed }) => [styles.dateInputPressable, pressed && styles.selectorTriggerPressed]}
+              onPress={() => setShowEfetivacaoDatePicker(true)}
+            >
+              <Text style={styles.dateInputText}>{dataEfetivacao}</Text>
+              <Text style={styles.selectorChevron}>▾</Text>
+            </Pressable>
+
+            <View style={styles.modalActions}>
+              <Pressable
+                style={styles.secondaryButton}
+                onPress={() => {
+                  setShowEfetivacaoModal(false);
+                  setPedidoEfetivacaoId(null);
+                }}
+              >
+                <Text style={styles.secondaryButtonText}>Cancelar</Text>
+              </Pressable>
+              <Pressable style={[styles.primaryButton, processando && styles.disabledButton]} disabled={processando} onPress={efetivarComDataSelecionada}>
+                <Text style={styles.primaryButtonText}>{processando ? 'Salvando...' : 'Confirmar'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <DatePickerModal
+        visible={showEfetivacaoDatePicker}
+        value={dataEfetivacao}
+        onClose={() => setShowEfetivacaoDatePicker(false)}
+        onChange={(value) => {
+          setDataEfetivacao(value);
+          setShowEfetivacaoDatePicker(false);
+        }}
+        title="Data da efetivação"
       />
     </View>
   );
@@ -1397,5 +1473,36 @@ const styles = StyleSheet.create({
     color: '#6d28d9',
     fontSize: 12.71,
     fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    backgroundColor: '#fff',
+    padding: 12,
+    gap: 10,
+  },
+  modalTitle: {
+    color: '#7c2d12',
+    fontSize: 18.48,
+    fontWeight: '800',
+  },
+  modalSubtitle: {
+    color: '#9a3412',
+    fontSize: 13.86,
+    fontWeight: '600',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 8,
   },
 });

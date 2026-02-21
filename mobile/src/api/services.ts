@@ -178,7 +178,7 @@ export const pedidosApi = {
     itens?: Omit<ItemPedido, 'id' | 'produto_nome' | 'codigo_produto' | 'valor_total_item'>[];
   }) =>
     api.put<Pedido>(`/pedidos/${id}`, data),
-  atualizarStatus: (id: number, data: { status: string; valor_efetivado?: number }) =>
+  atualizarStatus: (id: number, data: { status: string; valor_efetivado?: number; data?: string }) =>
     api.patch(`/pedidos/${id}/status`, data),
   atualizarOrdemRemaneio: (pedido_ids: number[]) =>
     api.patch('/pedidos/remaneio/ordem', { pedido_ids }),

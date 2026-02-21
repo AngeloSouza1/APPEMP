@@ -1419,7 +1419,7 @@ app.post("/pedidos", async (req, res) => {
 app.patch("/pedidos/:id/status", async (req, res) => {
     var _a;
     const { id } = req.params;
-    const { status, valor_efetivado } = req.body;
+    const { status, valor_efetivado, data } = req.body;
     if (!status) {
         return res.status(400).json({ error: "status é obrigatório" });
     }
@@ -1428,6 +1428,10 @@ app.patch("/pedidos/:id/status", async (req, res) => {
         return res.status(400).json({
             error: `Status inválido. Valores permitidos: ${STATUS_PERMITIDOS.join(", ")}`
         });
+    }
+    const dataNormalizada = data !== undefined ? parseDateParam(data) : null;
+    if (data !== undefined && !dataNormalizada) {
+        return res.status(400).json({ error: "Use data no formato YYYY-MM-DD" });
     }
     try {
         const updateFields = ["status = $1", "atualizado_por = $2"];
@@ -1446,6 +1450,11 @@ app.patch("/pedidos/:id/status", async (req, res) => {
         if (valor_efetivado !== undefined) {
             updateFields.push(`valor_efetivado = $${paramIndex}`);
             params.push(valor_efetivado);
+            paramIndex++;
+        }
+        if (data !== undefined && dataNormalizada) {
+            updateFields.push(`data = $${paramIndex}`);
+            params.push(dataNormalizada);
             paramIndex++;
         }
         params.push(parseInt(String(id), 10));
