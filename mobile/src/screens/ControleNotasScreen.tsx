@@ -57,7 +57,9 @@ export default function ControleNotasScreen() {
         page: 1,
         limit: 400,
       });
-      const pedidosComNf = response.data.data.filter((pedido) => Boolean(pedido.usa_nf) || Boolean(pedido.nf_imagem_url));
+      const pedidosComNf = response.data.data.filter(
+        (pedido) => Boolean(pedido.nf_imagem_url) && pedido.status !== 'CANCELADO'
+      );
       const mapa = new Map<number, Pedido>();
       pedidosComNf.forEach((pedido) => {
         const atual = mapa.get(pedido.id);
@@ -182,7 +184,7 @@ export default function ControleNotasScreen() {
         <View style={styles.summaryCard}>
           <Text style={styles.summaryTitle}>Pedidos com NF</Text>
           <Text style={styles.summaryValue}>{pedidos.length}</Text>
-          <Text style={styles.summarySub}>Com imagem anexada: {totalComImagem}</Text>
+          <Text style={styles.summarySub}>Somente pedidos com NF válida (não cancelados)</Text>
         </View>
 
         {loading ? (
