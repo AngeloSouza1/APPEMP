@@ -981,7 +981,7 @@ export default function HomeScreen() {
                 </View>
               </View>
             }
-            ListFooterComponent={rodapeAcoes}
+            ListFooterComponent={user?.perfil === 'vendedor' ? null : rodapeAcoes}
           />
         )}
       </View>
