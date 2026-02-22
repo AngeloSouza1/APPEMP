@@ -347,6 +347,7 @@ export const pedidosApi = {
     status: string;
     valor_efetivado?: number;
   }) => api.patch(`/pedidos/${id}/status`, data),
+  excluir: (id: number) => api.delete(`/pedidos/${id}`),
 };
 
 export const trocasApi = {

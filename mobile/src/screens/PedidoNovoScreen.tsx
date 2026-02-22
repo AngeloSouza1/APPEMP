@@ -58,6 +58,14 @@ const parseDecimal = (value: string) => {
   return Number.isFinite(parsed) ? parsed : NaN;
 };
 
+const formatarDataAtual = () => {
+  const agora = new Date();
+  const dd = String(agora.getDate()).padStart(2, '0');
+  const mm = String(agora.getMonth() + 1).padStart(2, '0');
+  const yyyy = agora.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+};
+
 export default function PedidoNovoScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [clientes, setClientes] = useState<ClienteResumo[]>([]);
@@ -66,7 +74,7 @@ export default function PedidoNovoScreen({ navigation }: Props) {
 
   const [clienteId, setClienteId] = useState<number | null>(null);
   const [rotaId, setRotaId] = useState<number | null>(null);
-  const [data, setData] = useState('');
+  const [data, setData] = useState(formatarDataAtual());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [precoPersonalizadoPorProduto, setPrecoPersonalizadoPorProduto] = useState<Record<number, number>>({});
 

@@ -29,6 +29,7 @@ type OrcamentoItem = {
   descricao: string;
   quantidade: string;
   valorUnitario: string;
+  produtoManualAtivo: boolean;
 };
 
 const toNumber = (value: string) => {
@@ -44,6 +45,14 @@ const formatarDataAtual = () => {
   return `${dd}/${mm}/${yyyy}`;
 };
 
+const escapeHtml = (value: string) =>
+  value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+
 export default function OrcamentoScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [clientes, setClientes] = useState<ClienteResumo[]>([]);
@@ -51,12 +60,14 @@ export default function OrcamentoScreen({ navigation }: Props) {
   const [loadingCadastros, setLoadingCadastros] = useState(true);
 
   const [clienteId, setClienteId] = useState<number | null>(null);
+  const [clienteManual, setClienteManual] = useState('');
+  const [clienteManualAtivo, setClienteManualAtivo] = useState(false);
   const [dataValidade, setDataValidade] = useState(formatarDataAtual());
   const [observacoes, setObservacoes] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [gerandoPdf, setGerandoPdf] = useState(false);
   const [itens, setItens] = useState<OrcamentoItem[]>([
-    { id: '1', produtoId: null, descricao: '', quantidade: '1', valorUnitario: '' },
+    { id: '1', produtoId: null, descricao: '', quantidade: '1', valorUnitario: '', produtoManualAtivo: false },
   ]);
 
   const [showClienteModal, setShowClienteModal] = useState(false);
@@ -115,11 +126,12 @@ export default function OrcamentoScreen({ navigation }: Props) {
     [itens]
   );
 
-  const atualizarItem = (id: string, campo: keyof OrcamentoItem, valor: string | number | null) => {
+  const atualizarItem = (id: string, campo: keyof OrcamentoItem, valor: string | number | null | boolean) => {
     setItens((prev) =>
       prev.map((item) => {
         if (item.id !== id) return item;
         if (campo === 'produtoId') return { ...item, produtoId: typeof valor === 'number' ? valor : null };
+        if (campo === 'produtoManualAtivo') return { ...item, produtoManualAtivo: Boolean(valor) };
         return { ...item, [campo]: String(valor) };
       })
     );
@@ -134,6 +146,7 @@ export default function OrcamentoScreen({ navigation }: Props) {
         descricao: '',
         quantidade: '1',
         valorUnitario: '',
+        produtoManualAtivo: false,
       },
     ]);
   };
@@ -155,6 +168,7 @@ export default function OrcamentoScreen({ navigation }: Props) {
               ...item,
               produtoId: produto.id,
               descricao: produto.nome,
+              produtoManualAtivo: false,
               valorUnitario: valorPadrao > 0 ? String(valorPadrao.toFixed(2).replace('.', ',')) : item.valorUnitario,
             }
           : item
@@ -167,8 +181,9 @@ export default function OrcamentoScreen({ navigation }: Props) {
 
   const gerarPdf = async () => {
     const itensValidos = itens.filter((item) => item.descricao.trim() && toNumber(item.quantidade) > 0);
-    if (!clienteSelecionado) {
-      Alert.alert('Validação', 'Selecione um cliente do cadastro.');
+    const nomeClienteFinal = (clienteManualAtivo ? clienteManual : '').trim() || clienteSelecionado?.nome || '';
+    if (!nomeClienteFinal) {
+      Alert.alert('Validação', 'Selecione um cliente do cadastro ou digite um novo cliente.');
       return;
     }
     if (itensValidos.length === 0) {
@@ -178,18 +193,26 @@ export default function OrcamentoScreen({ navigation }: Props) {
 
     setGerandoPdf(true);
     try {
+      const totalValido = itensValidos.reduce((acc, item) => {
+        const qtd = toNumber(item.quantidade);
+        const unit = toNumber(item.valorUnitario);
+        return acc + qtd * unit;
+      }, 0);
+      const emitidoEm = new Date().toLocaleString('pt-BR');
+
       const rows = itensValidos
         .map((item, index) => {
           const qtd = toNumber(item.quantidade);
           const unit = toNumber(item.valorUnitario);
           const total = qtd * unit;
+          const descricao = escapeHtml(item.descricao.trim());
           return `
             <tr>
-              <td style="padding:8px;border:1px solid #dbeafe;">${index + 1}</td>
-              <td style="padding:8px;border:1px solid #dbeafe;">${item.descricao}</td>
-              <td style="padding:8px;border:1px solid #dbeafe;text-align:right;">${qtd.toLocaleString('pt-BR')}</td>
-              <td style="padding:8px;border:1px solid #dbeafe;text-align:right;">${formatarMoeda(unit)}</td>
-              <td style="padding:8px;border:1px solid #dbeafe;text-align:right;font-weight:700;">${formatarMoeda(total)}</td>
+              <td class="td-center">${index + 1}</td>
+              <td class="td-desc">${descricao}</td>
+              <td class="td-right">${qtd.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
+              <td class="td-right">${formatarMoeda(unit)}</td>
+              <td class="td-right td-strong">${formatarMoeda(total)}</td>
             </tr>
           `;
         })
@@ -197,32 +220,192 @@ export default function OrcamentoScreen({ navigation }: Props) {
 
       const html = `
         <html>
+          <head>
+            <meta charset="utf-8" />
+            <style>
+              * { box-sizing: border-box; }
+              body {
+                margin: 0;
+                padding: 24px;
+                font-family: Arial, sans-serif;
+                color: #0f172a;
+                background: #ffffff;
+              }
+              .sheet {
+                border: 1px solid #dbeafe;
+                border-radius: 14px;
+                overflow: hidden;
+              }
+              .header {
+                background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 45%, #0ea5e9 100%);
+                color: #ffffff;
+                padding: 18px 20px;
+              }
+              .header-title {
+                margin: 0;
+                font-size: 24px;
+                font-weight: 800;
+                letter-spacing: 0.3px;
+              }
+              .header-subtitle {
+                margin: 4px 0 0 0;
+                font-size: 13px;
+                opacity: 0.95;
+              }
+              .content {
+                padding: 16px 20px 18px 20px;
+              }
+              .meta-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                margin-bottom: 14px;
+              }
+              .meta-box {
+                border: 1px solid #dbeafe;
+                border-radius: 10px;
+                padding: 9px 10px;
+                background: #f8fbff;
+              }
+              .meta-label {
+                margin: 0;
+                font-size: 10px;
+                text-transform: uppercase;
+                letter-spacing: 0.8px;
+                color: #475569;
+                font-weight: 700;
+              }
+              .meta-value {
+                margin: 4px 0 0 0;
+                font-size: 14px;
+                color: #0f172a;
+                font-weight: 700;
+                word-break: break-word;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 8px;
+              }
+              thead th {
+                background: #eff6ff;
+                color: #1e3a8a;
+                border: 1px solid #dbeafe;
+                padding: 8px;
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: 0.4px;
+                text-align: left;
+              }
+              tbody td {
+                border: 1px solid #dbeafe;
+                padding: 8px;
+                font-size: 12px;
+              }
+              .td-center { text-align: center; width: 42px; }
+              .td-right { text-align: right; white-space: nowrap; }
+              .td-desc { text-align: left; }
+              .td-strong { font-weight: 800; color: #0f172a; }
+              .summary {
+                margin-top: 14px;
+                border: 1px solid #bfdbfe;
+                border-radius: 10px;
+                background: #eff6ff;
+                padding: 10px 12px;
+              }
+              .summary-label {
+                margin: 0;
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: 0.7px;
+                color: #1e3a8a;
+                font-weight: 700;
+              }
+              .summary-total {
+                margin: 4px 0 0 0;
+                font-size: 24px;
+                color: #1d4ed8;
+                font-weight: 900;
+              }
+              .obs {
+                margin-top: 12px;
+                border: 1px solid #e2e8f0;
+                border-radius: 10px;
+                background: #f8fafc;
+                padding: 10px 12px;
+              }
+              .obs-label {
+                margin: 0 0 6px 0;
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: 0.7px;
+                color: #475569;
+                font-weight: 700;
+              }
+              .obs-text {
+                margin: 0;
+                font-size: 12px;
+                line-height: 1.45;
+                white-space: pre-wrap;
+              }
+              .footer {
+                margin-top: 14px;
+                font-size: 10px;
+                color: #64748b;
+                text-align: right;
+              }
+            </style>
+          </head>
           <body style="font-family:Arial, sans-serif;padding:20px;color:#0f172a;">
-            <h1 style="margin-bottom:4px;color:#1e40af;">Orçamento APPEMP</h1>
-            <p style="margin:0 0 6px 0;"><strong>Cliente:</strong> ${clienteSelecionado.nome}</p>
-            <p style="margin:0 0 6px 0;"><strong>Código:</strong> ${clienteSelecionado.codigo_cliente}</p>
-            <p style="margin:0 0 14px 0;"><strong>Validade:</strong> ${dataValidade}</p>
+            <div class="sheet">
+              <div class="header">
+                <h1 class="header-title">ORÇAMENTO</h1>
+                <p class="header-subtitle">APPEMP - Sistema de Pedidos</p>
+              </div>
+              <div class="content">
+                <div class="meta-grid">
+                  <div class="meta-box">
+                    <p class="meta-label">Cliente</p>
+                    <p class="meta-value">${escapeHtml(nomeClienteFinal)}</p>
+                  </div>
+                  <div class="meta-box">
+                    <p class="meta-label">Data do orçamento</p>
+                    <p class="meta-value">${escapeHtml(dataValidade)}</p>
+                  </div>
+                  <div class="meta-box">
+                    <p class="meta-label">Itens</p>
+                    <p class="meta-value">${itensValidos.length} item(ns)</p>
+                  </div>
+                </div>
 
-            <table style="width:100%;border-collapse:collapse;">
-              <thead>
-                <tr style="background:#eff6ff;">
-                  <th style="padding:8px;border:1px solid #dbeafe;">#</th>
-                  <th style="padding:8px;border:1px solid #dbeafe;text-align:left;">Descrição</th>
-                  <th style="padding:8px;border:1px solid #dbeafe;text-align:right;">Qtd</th>
-                  <th style="padding:8px;border:1px solid #dbeafe;text-align:right;">Unitário</th>
-                  <th style="padding:8px;border:1px solid #dbeafe;text-align:right;">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${rows}
-              </tbody>
-            </table>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 44px; text-align:center;">#</th>
+                      <th>Produto / Descrição</th>
+                      <th style="text-align:right;">Qtd</th>
+                      <th style="text-align:right;">Valor Unit.</th>
+                      <th style="text-align:right;">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${rows}
+                  </tbody>
+                </table>
 
-            <p style="margin-top:16px;font-size:18px;">
-              <strong>Valor total: ${formatarMoeda(totalOrcamento)}</strong>
-            </p>
-            <p style="margin-top:14px;"><strong>Observações:</strong></p>
-            <p style="white-space:pre-wrap;">${observacoes || '-'}</p>
+                <div class="summary">
+                  <p class="summary-label">Valor total do orçamento</p>
+                  <p class="summary-total">${formatarMoeda(totalValido)}</p>
+                </div>
+
+                <div class="obs">
+                  <p class="obs-label">Observações</p>
+                  <p class="obs-text">${escapeHtml(observacoes.trim() || '-')}</p>
+                </div>
+
+                <p class="footer">Emitido em ${escapeHtml(emitidoEm)}</p>
+              </div>
+            </div>
           </body>
         </html>
       `;
@@ -275,14 +458,57 @@ export default function OrcamentoScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: topSafeOffset + 96, paddingBottom: 24 }]}>
         <View style={styles.card}>
           <Text style={styles.label}>Cliente</Text>
-          <Pressable style={styles.inputPressable} onPress={() => setShowClienteModal(true)}>
-            <Text style={styles.inputPressableText}>
-              {clienteSelecionado ? `${clienteSelecionado.codigo_cliente} - ${clienteSelecionado.nome}` : 'Selecionar cliente'}
-            </Text>
-            <Text style={styles.inputPressableChevron}>▾</Text>
-          </Pressable>
+          {!clienteManualAtivo ? (
+            <Pressable style={styles.inputPressable} onPress={() => setShowClienteModal(true)}>
+              <Text style={styles.inputPressableText}>
+                {clienteSelecionado ? `${clienteSelecionado.codigo_cliente} - ${clienteSelecionado.nome}` : 'Selecionar cliente'}
+              </Text>
+              <Text style={styles.inputPressableChevron}>▾</Text>
+            </Pressable>
+          ) : null}
+          {clienteId && !clienteManualAtivo ? (
+            <Pressable
+              style={styles.inlineAction}
+              onPress={() => {
+                setClienteId(null);
+              }}
+            >
+              <Text style={styles.inlineActionText}>Cancelar cliente selecionado</Text>
+            </Pressable>
+          ) : null}
+          {!clienteId ? (
+            <>
+              <Text style={styles.orLabel}>ou digite novo cliente</Text>
+              <TextInput
+                style={styles.input}
+                value={clienteManual}
+                onChangeText={(value) => {
+                  setClienteManual(value);
+                  if (value.trim()) {
+                    setClienteId(null);
+                    setClienteManualAtivo(true);
+                  } else {
+                    setClienteManualAtivo(false);
+                  }
+                }}
+                placeholder="Nome do cliente (manual)"
+                placeholderTextColor="#94a3b8"
+              />
+              {clienteManualAtivo ? (
+                <Pressable
+                  style={styles.inlineAction}
+                  onPress={() => {
+                    setClienteManual('');
+                    setClienteManualAtivo(false);
+                  }}
+                >
+                  <Text style={styles.inlineActionText}>Cancelar cliente manual</Text>
+                </Pressable>
+              ) : null}
+            </>
+          ) : null}
 
-          <Text style={styles.label}>Validade</Text>
+          <Text style={styles.label}>Data do orçamento</Text>
           <Pressable style={styles.inputPressable} onPress={() => setShowDatePicker(true)}>
             <Text style={styles.inputPressableText}>{dataValidade}</Text>
             <Text style={styles.inputPressableChevron}>▾</Text>
@@ -299,16 +525,60 @@ export default function OrcamentoScreen({ navigation }: Props) {
                   </Pressable>
                 </View>
 
-                <Pressable
-                  style={styles.inputPressable}
-                  onPress={() => {
-                    setItemProdutoAtivoId(item.id);
-                    setShowProdutoModal(true);
-                  }}
-                >
-                  <Text style={styles.inputPressableText}>{item.descricao || 'Selecionar produto'}</Text>
-                  <Text style={styles.inputPressableChevron}>▾</Text>
-                </Pressable>
+                {!item.produtoManualAtivo ? (
+                  <Pressable
+                    style={styles.inputPressable}
+                    onPress={() => {
+                      setItemProdutoAtivoId(item.id);
+                      setShowProdutoModal(true);
+                    }}
+                  >
+                    <Text style={styles.inputPressableText}>{item.descricao || 'Selecionar produto'}</Text>
+                    <Text style={styles.inputPressableChevron}>▾</Text>
+                  </Pressable>
+                ) : null}
+                {item.produtoId && !item.produtoManualAtivo ? (
+                  <Pressable
+                    style={styles.inlineAction}
+                    onPress={() => {
+                      atualizarItem(item.id, 'produtoId', null);
+                      atualizarItem(item.id, 'descricao', '');
+                    }}
+                  >
+                    <Text style={styles.inlineActionText}>Cancelar produto selecionado</Text>
+                  </Pressable>
+                ) : null}
+                {!item.produtoId ? (
+                  <>
+                    <Text style={styles.orLabel}>ou digite produto manualmente</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={item.descricao}
+                      onChangeText={(value) => {
+                        atualizarItem(item.id, 'descricao', value);
+                        if (value.trim()) {
+                          atualizarItem(item.id, 'produtoId', null);
+                          atualizarItem(item.id, 'produtoManualAtivo', true);
+                        } else {
+                          atualizarItem(item.id, 'produtoManualAtivo', false);
+                        }
+                      }}
+                      placeholder="Nome do produto (manual)"
+                      placeholderTextColor="#94a3b8"
+                    />
+                    {item.produtoManualAtivo ? (
+                      <Pressable
+                        style={styles.inlineAction}
+                        onPress={() => {
+                          atualizarItem(item.id, 'descricao', '');
+                          atualizarItem(item.id, 'produtoManualAtivo', false);
+                        }}
+                      >
+                        <Text style={styles.inlineActionText}>Cancelar produto manual</Text>
+                      </Pressable>
+                    ) : null}
+                  </>
+                ) : null}
 
                 <View style={styles.itemGrid}>
                   <TextInput
@@ -364,7 +634,7 @@ export default function OrcamentoScreen({ navigation }: Props) {
           setDataValidade(value);
           setShowDatePicker(false);
         }}
-        title="Validade do orçamento"
+        title="Data do orçamento"
       />
 
       <Modal visible={showClienteModal} transparent animationType="fade" onRequestClose={() => setShowClienteModal(false)}>
@@ -386,6 +656,8 @@ export default function OrcamentoScreen({ navigation }: Props) {
                   style={styles.modalItem}
                   onPress={() => {
                     setClienteId(item.id);
+                    setClienteManual('');
+                    setClienteManualAtivo(false);
                     setShowClienteModal(false);
                     setBuscaCliente('');
                   }}
@@ -493,6 +765,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: { color: '#334155', fontWeight: '700', fontSize: 13.86, marginTop: 2 },
+  orLabel: { color: '#64748b', fontWeight: '600', fontSize: 12.71, marginTop: -2 },
+  inlineAction: {
+    alignSelf: 'flex-start',
+    marginTop: -2,
+    marginBottom: 2,
+    paddingVertical: 2,
+  },
+  inlineActionText: {
+    color: '#1d4ed8',
+    fontWeight: '700',
+    fontSize: 12.71,
+  },
   input: {
     borderWidth: 1,
     borderColor: '#cbd5e1',

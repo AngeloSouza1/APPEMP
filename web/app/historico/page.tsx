@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Cliente, Pedido, clientesApi, pedidosApi } from '@/lib/api';
 import FeedbackModal from '@/components/FeedbackModal';
+import { auth } from '@/lib/auth';
 
 const formatarMoeda = (valor: number) =>
   new Intl.NumberFormat('pt-BR', {
@@ -33,10 +34,13 @@ const getStatusBadgeClass = (status: string) => {
 };
 
 export default function HistoricoPage() {
+  const [usuario, setUsuario] = useState<ReturnType<typeof auth.getUser>>(null);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [sucesso, setSucesso] = useState<string | null>(null);
+  const [pedidoExcluindoId, setPedidoExcluindoId] = useState<number | null>(null);
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [clienteId, setClienteId] = useState('');
@@ -63,6 +67,10 @@ export default function HistoricoPage() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    setUsuario(auth.getUser());
   }, []);
 
   useEffect(() => {
@@ -136,6 +144,25 @@ export default function HistoricoPage() {
   const periodoAplicadoCompleto = Boolean(
     filtroAplicado.dataInicio && filtroAplicado.dataFim
   );
+  const isAdmin = usuario?.perfil === 'admin';
+
+  const excluirPedido = async (pedidoId: number) => {
+    const confirmado = window.confirm(`Tem certeza que deseja excluir o pedido #${pedidoId}?`);
+    if (!confirmado) return;
+
+    setPedidoExcluindoId(pedidoId);
+    setErro(null);
+    setSucesso(null);
+    try {
+      await pedidosApi.excluir(pedidoId);
+      setSucesso(`Pedido #${pedidoId} excluído com sucesso.`);
+      await carregarDados();
+    } catch {
+      setErro('Não foi possível excluir o pedido.');
+    } finally {
+      setPedidoExcluindoId(null);
+    }
+  };
 
   return (
     <div className="app-shell">
@@ -168,6 +195,12 @@ export default function HistoricoPage() {
           variant="error"
           message={erro || ''}
           onClose={() => setErro(null)}
+        />
+        <FeedbackModal
+          open={Boolean(sucesso)}
+          variant="success"
+          message={sucesso || ''}
+          onClose={() => setSucesso(null)}
         />
 
         <section className="surface p-4">
@@ -269,6 +302,7 @@ export default function HistoricoPage() {
                         <th className="py-2 pr-3 text-right">Venda</th>
                         <th className="py-2 pr-3 text-right">Baixa</th>
                         <th className="py-2 pr-3 text-right">Saldo acumulado</th>
+                        {isAdmin && <th className="py-2 pr-3 text-right">Ações</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -296,6 +330,18 @@ export default function HistoricoPage() {
                           <td className="py-2 pr-3 text-right font-bold">
                             {formatarMoeda(Number(item.saldo_acumulado || 0))}
                           </td>
+                          {isAdmin && (
+                            <td className="py-2 pr-3 text-right">
+                              <button
+                                type="button"
+                                className="text-sm font-semibold text-rose-700 hover:text-rose-800 disabled:cursor-not-allowed disabled:opacity-60"
+                                onClick={() => excluirPedido(item.id)}
+                                disabled={pedidoExcluindoId === item.id}
+                              >
+                                {pedidoExcluindoId === item.id ? 'Excluindo...' : 'Excluir'}
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
