@@ -17,6 +17,7 @@ import PedidoDetalheScreen from '../screens/PedidoDetalheScreen';
 import PedidoEditarScreen from '../screens/PedidoEditarScreen';
 import PedidoNovoScreen from '../screens/PedidoNovoScreen';
 import PedidosScreen from '../screens/PedidosScreen';
+import OrcamentoScreen from '../screens/OrcamentoScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -34,6 +35,7 @@ export type RootStackParamList = {
   PedidoDetalhe: { id: number; focus?: 'trocas' };
   PedidoEditar: { id: number };
   PedidoNovo: undefined;
+  Orcamento: undefined;
   Modulo: { modulo: string; titulo: string };
   Historico: undefined;
 };
@@ -61,6 +63,7 @@ export default function RootNavigator() {
           <Stack.Screen name="ProducaoDashboard" component={ProducaoDashboardScreen} />
           <Stack.Screen name="EntregasDashboard" component={EntregasDashboardScreen} />
           <Stack.Screen name="PedidoNovo" component={PedidoNovoScreen} />
+          <Stack.Screen name="Orcamento" component={OrcamentoScreen} />
           <Stack.Screen name="PedidoDetalhe" component={PedidoDetalheScreen} />
           <Stack.Screen name="PedidoEditar" component={PedidoEditarScreen} />
           <Stack.Screen name="Modulo" component={ModuloScreen} />
