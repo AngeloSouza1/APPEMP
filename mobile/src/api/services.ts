@@ -141,6 +141,50 @@ export const authApi = {
     ),
 };
 
+const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+const getMimeTypeFromUri = (uri: string) => {
+  const ext = uri.split('.').pop()?.toLowerCase();
+  if (ext === 'png') return 'image/png';
+  if (ext === 'webp') return 'image/webp';
+  if (ext === 'heic' || ext === 'heif') return 'image/heic';
+  return 'image/jpeg';
+};
+
+export const arquivosApi = {
+  uploadImagemCloudinary: async (uri: string) => {
+    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
+      throw new Error(
+        'Cloudinary não configurado. Defina EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME e EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET.'
+      );
+    }
+
+    const formData = new FormData();
+    formData.append('file', {
+      uri,
+      name: `nf-${Date.now()}.jpg`,
+      type: getMimeTypeFromUri(uri),
+    } as any);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    formData.append('folder', 'appemp/nf');
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
+
+    const data = await response.json();
+    if (!response.ok || !data?.secure_url) {
+      throw new Error(data?.error?.message || 'Falha ao enviar imagem para Cloudinary.');
+    }
+    return String(data.secure_url);
+  },
+};
+
 export const pedidosApi = {
   listarPaginado: (filtros?: {
     q?: string;
@@ -169,12 +213,16 @@ export const pedidosApi = {
     rota_id?: number | null;
     data: string;
     status?: string;
+    usa_nf?: boolean;
+    nf_imagem_url?: string | null;
     itens: Omit<ItemPedido, 'id' | 'produto_nome' | 'codigo_produto' | 'valor_total_item'>[];
   }) => api.post<Pedido>('/pedidos', data),
   atualizar: (id: number, data: {
     rota_id?: number | null;
     data?: string;
     status?: string;
+    usa_nf?: boolean;
+    nf_imagem_url?: string | null;
     itens?: Omit<ItemPedido, 'id' | 'produto_nome' | 'codigo_produto' | 'valor_total_item'>[];
   }) =>
     api.put<Pedido>(`/pedidos/${id}`, data),

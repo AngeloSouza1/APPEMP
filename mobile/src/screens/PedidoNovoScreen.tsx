@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DatePickerModal from '../components/DatePickerModal';
 import {
   clienteProdutosApi,
+  arquivosApi,
   ClienteResumo,
   clientesApi,
   pedidosApi,
@@ -26,6 +27,7 @@ import {
   RotaResumo,
   rotasApi,
 } from '../api/services';
+import * as ImagePicker from 'expo-image-picker';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { formatarMoeda } from '../utils/format';
 import { marcarRelatoriosComoDesatualizados } from '../utils/relatoriosRefresh';
@@ -76,6 +78,9 @@ export default function PedidoNovoScreen({ navigation }: Props) {
   const [rotaId, setRotaId] = useState<number | null>(null);
   const [data, setData] = useState(formatarDataAtual());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [usaNf, setUsaNf] = useState(false);
+  const [nfImagemUrl, setNfImagemUrl] = useState('');
+  const [enviandoNf, setEnviandoNf] = useState(false);
   const [precoPersonalizadoPorProduto, setPrecoPersonalizadoPorProduto] = useState<Record<number, number>>({});
 
   const [mostrarClientes, setMostrarClientes] = useState(false);
@@ -308,6 +313,62 @@ export default function PedidoNovoScreen({ navigation }: Props) {
     setItemExpandidoKey((atual) => (atual === key ? null : atual));
   };
 
+  const selecionarImagemNf = () => {
+    Alert.alert('Imagem da NF', 'Escolha a origem da imagem.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Galeria',
+        onPress: async () => {
+          const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (!permissao.granted) {
+            Alert.alert('Permissão negada', 'Permita acesso à galeria para selecionar a imagem da NF.');
+            return;
+          }
+          const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            quality: 0.8,
+          });
+          if (result.canceled || !result.assets?.length) return;
+          try {
+            setEnviandoNf(true);
+            const url = await arquivosApi.uploadImagemCloudinary(result.assets[0].uri);
+            setNfImagemUrl(url);
+          } catch (error: any) {
+            Alert.alert('Erro', error?.message || 'Não foi possível enviar a imagem da NF.');
+          } finally {
+            setEnviandoNf(false);
+          }
+        },
+      },
+      {
+        text: 'Câmera',
+        onPress: async () => {
+          const permissao = await ImagePicker.requestCameraPermissionsAsync();
+          if (!permissao.granted) {
+            Alert.alert('Permissão negada', 'Permita acesso à câmera para capturar a imagem da NF.');
+            return;
+          }
+          const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            quality: 0.8,
+          });
+          if (result.canceled || !result.assets?.length) return;
+          try {
+            setEnviandoNf(true);
+            const url = await arquivosApi.uploadImagemCloudinary(result.assets[0].uri);
+            setNfImagemUrl(url);
+          } catch (error: any) {
+            Alert.alert('Erro', error?.message || 'Não foi possível enviar a imagem da NF.');
+          } finally {
+            setEnviandoNf(false);
+          }
+        },
+      },
+    ]);
+  };
+
   const salvarPedido = async () => {
     if (!clienteId) {
       Alert.alert('Cliente obrigatório', 'Selecione um cliente para criar o pedido.');
@@ -322,6 +383,12 @@ export default function PedidoNovoScreen({ navigation }: Props) {
 
     if (itens.length === 0) {
       Alert.alert('Itens obrigatórios', 'Adicione ao menos um item no pedido.');
+      return;
+    }
+
+    const nfImagemNormalizada = nfImagemUrl.trim();
+    if (usaNf && !nfImagemNormalizada) {
+      Alert.alert('Imagem da NF', 'Informe a imagem da NF para continuar.');
       return;
     }
 
@@ -361,6 +428,8 @@ export default function PedidoNovoScreen({ navigation }: Props) {
         rota_id: rotaId,
         data: dataNormalizada,
         status: 'EM_ESPERA',
+        usa_nf: usaNf,
+        nf_imagem_url: usaNf ? nfImagemNormalizada : null,
         itens: itensPayload,
       });
       await marcarRelatoriosComoDesatualizados();
@@ -502,6 +571,49 @@ export default function PedidoNovoScreen({ navigation }: Props) {
               <Text style={styles.routeInfoLabel}>Rota vinculada ao cliente</Text>
               <Text style={styles.routeDisplayText}>{rotaAtualLabel}</Text>
             </View>
+          ) : null}
+
+          <Pressable
+            style={({ pressed }) => [styles.nfToggleRow, pressed && styles.selectorTriggerPressed]}
+            onPress={() =>
+              setUsaNf((prev) => {
+                const proximo = !prev;
+                if (!proximo) setNfImagemUrl('');
+                return proximo;
+              })
+            }
+          >
+            <View style={[styles.nfCheckbox, usaNf && styles.nfCheckboxChecked]}>
+              {usaNf ? <Text style={styles.nfCheckboxIcon}>✓</Text> : null}
+            </View>
+            <Text style={styles.nfToggleText}>Usa NF</Text>
+          </Pressable>
+
+          {usaNf ? (
+            <>
+              <Text style={styles.fieldLabel}>Imagem da NF</Text>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.nfUploadButton,
+                  pressed && styles.selectorTriggerPressed,
+                  enviandoNf && styles.saveButtonDisabled,
+                ]}
+                onPress={selecionarImagemNf}
+                disabled={enviandoNf}
+              >
+                <Text style={styles.nfUploadButtonText}>
+                  {enviandoNf ? 'Enviando imagem...' : nfImagemUrl ? 'Trocar imagem da NF' : 'Selecionar imagem da NF'}
+                </Text>
+              </Pressable>
+              {nfImagemUrl ? (
+                <View style={styles.nfPreviewCard}>
+                  <Image source={{ uri: nfImagemUrl }} style={styles.nfPreviewImage} resizeMode="cover" />
+                  <Pressable style={styles.nfRemoveButton} onPress={() => setNfImagemUrl('')}>
+                    <Text style={styles.nfRemoveButtonText}>Remover imagem</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+            </>
           ) : null}
         </View>
 
@@ -919,6 +1031,80 @@ const styles = StyleSheet.create({
     fontSize: 13.86,
     fontWeight: '700',
     marginTop: 2,
+  },
+  nfToggleRow: {
+    marginTop: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 8,
+    alignSelf: 'flex-start',
+    paddingVertical: 2,
+    paddingHorizontal: 2,
+  },
+  nfCheckbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#93c5fd',
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nfCheckboxChecked: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  nfCheckboxIcon: {
+    color: '#ffffff',
+    fontWeight: '800',
+    fontSize: 11,
+    lineHeight: 11,
+  },
+  nfToggleText: {
+    color: '#1e293b',
+    fontSize: 13.86,
+    fontWeight: '700',
+  },
+  nfUploadButton: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#93c5fd',
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nfUploadButtonText: {
+    color: '#1e3a8a',
+    fontSize: 13.86,
+    fontWeight: '700',
+  },
+  nfPreviewCard: {
+    marginTop: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    backgroundColor: '#f8fbff',
+    padding: 8,
+    gap: 8,
+  },
+  nfPreviewImage: {
+    width: '100%',
+    height: 170,
+    borderRadius: 8,
+    backgroundColor: '#e2e8f0',
+  },
+  nfRemoveButton: {
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
+  nfRemoveButtonText: {
+    color: '#b91c1c',
+    fontSize: 12.71,
+    fontWeight: '700',
   },
   input: {
     borderWidth: 1,

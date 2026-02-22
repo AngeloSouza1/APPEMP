@@ -62,6 +62,17 @@ const normalizarImagemUrl = (imagemUrl) => {
     const valor = String(imagemUrl !== null && imagemUrl !== void 0 ? imagemUrl : "").trim();
     return valor || null;
 };
+const normalizarBoolean = (valor) => {
+    if (typeof valor === "boolean")
+        return valor;
+    if (typeof valor === "string") {
+        const v = valor.trim().toLowerCase();
+        return v === "true" || v === "1" || v === "sim" || v === "yes";
+    }
+    if (typeof valor === "number")
+        return valor === 1;
+    return false;
+};
 const gerarToken = (user) => {
     var _a;
     return jsonwebtoken_1.default.sign({
@@ -124,6 +135,8 @@ const ensureImageColumns = async () => {
     await db_1.pool.query("ALTER TABLE rotas ADD COLUMN IF NOT EXISTS imagem_url TEXT");
     await db_1.pool.query("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS imagem_url TEXT");
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS ordem_remaneio INTEGER");
+    await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS usa_nf BOOLEAN NOT NULL DEFAULT false");
+    await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_imagem_url TEXT");
 };
 app.get("/health", (_req, res) => {
     res.json({ status: "ok", message: "APPEMP backend funcionando" });
@@ -975,6 +988,8 @@ app.get("/pedidos", async (req, res) => {
         p.data,
         p.status,
         p.ordem_remaneio,
+        p.usa_nf,
+        p.nf_imagem_url,
         p.valor_total,
         p.valor_efetivado,
         EXISTS (SELECT 1 FROM trocas t WHERE t.pedido_id = p.id) AS tem_trocas,
@@ -1068,6 +1083,8 @@ app.get("/pedidos/:id", async (req, res, next) => {
         p.data,
         p.status,
         p.ordem_remaneio,
+        p.usa_nf,
+        p.nf_imagem_url,
         p.valor_total,
         p.valor_efetivado,
         EXISTS (SELECT 1 FROM trocas t WHERE t.pedido_id = p.id) AS tem_trocas,
@@ -1170,6 +1187,8 @@ app.get("/pedidos/paginado", async (req, res) => {
         p.data,
         p.status,
         p.ordem_remaneio,
+        p.usa_nf,
+        p.nf_imagem_url,
         p.valor_total,
         p.valor_efetivado,
         EXISTS (SELECT 1 FROM trocas t WHERE t.pedido_id = p.id) AS tem_trocas,
@@ -1284,8 +1303,10 @@ app.patch("/pedidos/remaneio/ordem", autenticarToken, requireRoles("admin", "bac
 // Cria um novo pedido com itens
 app.post("/pedidos", async (req, res) => {
     var _a, _b, _c, _d, _e;
-    const { chave_pedido, cliente_id, rota_id, data, status, itens } = req.body;
+    const { chave_pedido, cliente_id, rota_id, data, status, itens, usa_nf, nf_imagem_url } = req.body;
     const usuarioId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.id) || null;
+    const usaNf = normalizarBoolean(usa_nf);
+    const nfImagemUrl = normalizarImagemUrl(nf_imagem_url);
     if (!cliente_id || !data || !itens || !Array.isArray(itens) || itens.length === 0) {
         return res.status(400).json({
             error: "cliente_id, data e itens (array não vazio) são obrigatórios",
@@ -1298,6 +1319,11 @@ app.post("/pedidos", async (req, res) => {
                 error: "Cada item deve ter produto_id, quantidade e valor_unitario",
             });
         }
+    }
+    if (usaNf && !nfImagemUrl) {
+        return res.status(400).json({
+            error: "Informe a imagem da NF quando o checklist 'Usa NF' estiver ativo.",
+        });
     }
     const client = await db_1.pool.connect();
     try {
@@ -1331,15 +1357,17 @@ app.post("/pedidos", async (req, res) => {
             throw new Error(`Status inválido. Valores permitidos: ${STATUS_PERMITIDOS.join(", ")}`);
         }
         // Inserir pedido
-        const pedidoResult = await client.query(`INSERT INTO pedidos (chave_pedido, cliente_id, rota_id, data, status, valor_total, criado_por)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, chave_pedido, data, status, valor_total`, [
+        const pedidoResult = await client.query(`INSERT INTO pedidos (chave_pedido, cliente_id, rota_id, data, status, valor_total, usa_nf, nf_imagem_url, criado_por)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING id, chave_pedido, data, status, valor_total, usa_nf, nf_imagem_url`, [
             finalChavePedido,
             cliente_id,
             rota_id || null,
             data,
             statusNormalizado,
             valorTotal,
+            usaNf,
+            usaNf ? nfImagemUrl : null,
             usuarioId,
         ]);
         const pedido = pedidoResult.rows[0];
@@ -1604,9 +1632,9 @@ app.delete("/trocas/:id", async (req, res) => {
 });
 // Atualiza um pedido completo (incluindo itens)
 app.put("/pedidos/:id", async (req, res) => {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d, _e, _f, _g;
     const { id } = req.params;
-    const { rota_id, data, status, itens } = req.body;
+    const { rota_id, data, status, itens, usa_nf, nf_imagem_url } = req.body;
     const usuarioId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.id) || null;
     const client = await db_1.pool.connect();
     try {
@@ -1638,6 +1666,25 @@ app.put("/pedidos/:id", async (req, res) => {
             }
             updateFields.push(`status = $${paramIndex}`);
             params.push(statusNormalizado);
+            paramIndex++;
+        }
+        if (usa_nf !== undefined) {
+            const usaNf = normalizarBoolean(usa_nf);
+            const nfImagemUrl = normalizarImagemUrl(nf_imagem_url);
+            if (usaNf && !nfImagemUrl) {
+                throw new Error("Informe a imagem da NF quando o checklist 'Usa NF' estiver ativo.");
+            }
+            updateFields.push(`usa_nf = $${paramIndex}`);
+            params.push(usaNf);
+            paramIndex++;
+            updateFields.push(`nf_imagem_url = $${paramIndex}`);
+            params.push(usaNf ? nfImagemUrl : null);
+            paramIndex++;
+        }
+        else if (nf_imagem_url !== undefined) {
+            const nfImagemUrl = normalizarImagemUrl(nf_imagem_url);
+            updateFields.push(`nf_imagem_url = $${paramIndex}`);
+            params.push(nfImagemUrl);
             paramIndex++;
         }
         // Se itens foram fornecidos, atualizar itens
@@ -1699,6 +1746,8 @@ app.put("/pedidos/:id", async (req, res) => {
         p.chave_pedido,
         p.data,
         p.status,
+        p.usa_nf,
+        p.nf_imagem_url,
         p.valor_total,
         p.valor_efetivado,
         c.id as cliente_id,
@@ -1735,17 +1784,20 @@ app.put("/pedidos/:id", async (req, res) => {
         if ((_b = error.message) === null || _b === void 0 ? void 0 : _b.includes("Cada item deve ter")) {
             return res.status(400).json({ error: error.message });
         }
-        if ((_c = error.message) === null || _c === void 0 ? void 0 : _c.includes("Produto com id")) {
+        if ((_c = error.message) === null || _c === void 0 ? void 0 : _c.includes("Informe a imagem da NF")) {
+            return res.status(400).json({ error: error.message });
+        }
+        if ((_d = error.message) === null || _d === void 0 ? void 0 : _d.includes("Produto com id")) {
             return res.status(404).json({ error: error.message });
         }
-        if ((_d = error.message) === null || _d === void 0 ? void 0 : _d.includes("Status inválido")) {
+        if ((_e = error.message) === null || _e === void 0 ? void 0 : _e.includes("Status inválido")) {
             return res.status(400).json({ error: error.message });
         }
         if (error.code === "23503") {
-            if ((_e = error.constraint) === null || _e === void 0 ? void 0 : _e.includes("rota_id")) {
+            if ((_f = error.constraint) === null || _f === void 0 ? void 0 : _f.includes("rota_id")) {
                 return res.status(400).json({ error: "Rota não encontrada" });
             }
-            if ((_f = error.constraint) === null || _f === void 0 ? void 0 : _f.includes("trocas_item_pedido_id_fkey")) {
+            if ((_g = error.constraint) === null || _g === void 0 ? void 0 : _g.includes("trocas_item_pedido_id_fkey")) {
                 return res.status(400).json({
                     error: "Não é possível atualizar pedido: existem trocas vinculadas aos itens. Remova as trocas primeiro ou atualize-as."
                 });
