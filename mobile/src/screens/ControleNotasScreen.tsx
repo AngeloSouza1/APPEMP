@@ -1,13 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -20,8 +18,6 @@ import { pedidosApi } from '../api/services';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { Pedido } from '../types/pedidos';
 import { formatarData, formatarMoeda } from '../utils/format';
-
-type FiltroStatus = '' | 'EM_ESPERA' | 'CONFERIR' | 'EFETIVADO' | 'CANCELADO';
 
 const STATUS_LABEL: Record<string, string> = {
   EM_ESPERA: 'Em espera',
@@ -37,24 +33,23 @@ const STATUS_COLOR: Record<string, { bg: string; border: string; text: string }>
   CANCELADO: { bg: '#fef2f2', border: '#fecaca', text: '#b91c1c' },
 };
 
-const FILTROS: Array<{ value: FiltroStatus; label: string }> = [
-  { value: '', label: 'Todos' },
-  { value: 'EM_ESPERA', label: 'Em espera' },
-  { value: 'CONFERIR', label: 'Conferir' },
-  { value: 'EFETIVADO', label: 'Efetivado' },
-  { value: 'CANCELADO', label: 'Cancelado' },
-];
+const STATUS_RANK: Record<string, number> = {
+  CANCELADO: 1,
+  EM_ESPERA: 2,
+  CONFERIR: 3,
+  EFETIVADO: 4,
+};
 
 export default function ControleNotasScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
 
-  const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>('');
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [notaSelecionada, setNotaSelecionada] = useState<string | null>(null);
+  const [cardsExpandidos, setCardsExpandidos] = useState<Record<number, boolean>>({});
 
   const carregar = useCallback(async () => {
     try {
@@ -62,8 +57,36 @@ export default function ControleNotasScreen() {
         page: 1,
         limit: 400,
       });
-      const pedidosComNf = response.data.data.filter((pedido) => Boolean(pedido.usa_nf));
-      setPedidos(pedidosComNf);
+      const pedidosComNf = response.data.data.filter((pedido) => Boolean(pedido.usa_nf) || Boolean(pedido.nf_imagem_url));
+      const mapa = new Map<number, Pedido>();
+      pedidosComNf.forEach((pedido) => {
+        const atual = mapa.get(pedido.id);
+        if (!atual) {
+          mapa.set(pedido.id, pedido);
+          return;
+        }
+        const atualRank = STATUS_RANK[atual.status] || 0;
+        const novoRank = STATUS_RANK[pedido.status] || 0;
+        if (novoRank > atualRank) {
+          mapa.set(pedido.id, pedido);
+          return;
+        }
+        if (novoRank === atualRank && !atual.nf_imagem_url && pedido.nf_imagem_url) {
+          mapa.set(pedido.id, pedido);
+          return;
+        }
+        if (novoRank === atualRank) {
+          const dataAtual = new Date(atual.data).getTime();
+          const dataNova = new Date(pedido.data).getTime();
+          if (dataNova > dataAtual) {
+            mapa.set(pedido.id, pedido);
+          }
+        }
+      });
+      const pedidosUnicos = Array.from(mapa.values()).sort(
+        (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime() || b.id - a.id
+      );
+      setPedidos(pedidosUnicos);
       setErro(null);
     } catch {
       setErro('Não foi possível carregar as notas dos pedidos.');
@@ -85,45 +108,52 @@ export default function ControleNotasScreen() {
     carregar();
   }, [carregar]);
 
-  const pedidosFiltrados = useMemo(() => {
-    if (!filtroStatus) return pedidos;
-    return pedidos.filter((pedido) => pedido.status === filtroStatus);
-  }, [filtroStatus, pedidos]);
-
   const totalComImagem = useMemo(
-    () => pedidosFiltrados.filter((pedido) => Boolean(pedido.nf_imagem_url)).length,
-    [pedidosFiltrados]
+    () => pedidos.filter((pedido) => Boolean(pedido.nf_imagem_url)).length,
+    [pedidos]
   );
+
+  const toggleCard = useCallback((id: number) => {
+    setCardsExpandidos((prev) => ({ ...prev, [id]: !prev[id] }));
+  }, []);
 
   const renderItem = ({ item }: { item: Pedido }) => {
     const statusTheme = STATUS_COLOR[item.status] || STATUS_COLOR.EM_ESPERA;
     const statusLabel = STATUS_LABEL[item.status] || item.status;
+    const expandido = Boolean(cardsExpandidos[item.id]);
     return (
-      <View style={styles.card}>
+      <Pressable style={styles.card} onPress={() => toggleCard(item.id)}>
         <View style={styles.cardTop}>
           <Text style={styles.cardTitle}>Pedido #{item.id}</Text>
-          <Text style={[styles.statusBadge, { backgroundColor: statusTheme.bg, borderColor: statusTheme.border, color: statusTheme.text }]}>
-            {statusLabel}
-          </Text>
+          <View style={styles.cardTopRight}>
+            <Text style={[styles.statusBadge, { backgroundColor: statusTheme.bg, borderColor: statusTheme.border, color: statusTheme.text }]}>
+              {statusLabel}
+            </Text>
+            <Text style={styles.expandHint}>{expandido ? '−' : '+'}</Text>
+          </View>
         </View>
         <Text style={styles.cardClient}>{item.cliente_nome}</Text>
-        <Text style={styles.cardMeta}>
+        <Text style={[styles.cardMeta, !expandido && styles.cardMetaCompact]}>
           {formatarData(item.data)} • {formatarMoeda(Number(item.valor_total || 0))}
         </Text>
-        {item.nf_imagem_url ? (
-          <Pressable style={styles.imageWrap} onPress={() => setNotaSelecionada(item.nf_imagem_url || null)}>
-            <Image source={{ uri: item.nf_imagem_url }} style={styles.imageThumb} resizeMode="cover" />
-            <Text style={styles.imageHint}>Toque para ampliar</Text>
-          </Pressable>
-        ) : (
-          <View style={styles.emptyNf}>
-            <Text style={styles.emptyNfText}>Sem imagem de NF anexada.</Text>
-          </View>
-        )}
-        <Pressable style={styles.detailButton} onPress={() => navigation.navigate('PedidoDetalhe', { id: item.id })}>
-          <Text style={styles.detailButtonText}>Ver pedido</Text>
-        </Pressable>
-      </View>
+        {expandido ? (
+          <>
+            {item.nf_imagem_url ? (
+              <Pressable style={styles.imageWrap} onPress={() => setNotaSelecionada(item.nf_imagem_url || null)}>
+                <Image source={{ uri: item.nf_imagem_url }} style={styles.imageThumb} resizeMode="cover" />
+                <Text style={styles.imageHint}>Toque para ampliar</Text>
+              </Pressable>
+            ) : (
+              <View style={styles.emptyNf}>
+                <Text style={styles.emptyNfText}>Sem imagem de NF anexada.</Text>
+              </View>
+            )}
+            <Pressable style={styles.detailButton} onPress={() => navigation.navigate('PedidoDetalhe', { id: item.id })}>
+              <Text style={styles.detailButtonText}>Ver pedido</Text>
+            </Pressable>
+          </>
+        ) : null}
+      </Pressable>
     );
   };
 
@@ -151,24 +181,9 @@ export default function ControleNotasScreen() {
 
         <View style={styles.summaryCard}>
           <Text style={styles.summaryTitle}>Pedidos com NF</Text>
-          <Text style={styles.summaryValue}>{pedidosFiltrados.length}</Text>
+          <Text style={styles.summaryValue}>{pedidos.length}</Text>
           <Text style={styles.summarySub}>Com imagem anexada: {totalComImagem}</Text>
         </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-          {FILTROS.map((filtro) => {
-            const ativo = filtroStatus === filtro.value;
-            return (
-              <Pressable
-                key={filtro.value || 'all'}
-                style={[styles.filterChip, ativo && styles.filterChipActive]}
-                onPress={() => setFiltroStatus(filtro.value)}
-              >
-                <Text style={[styles.filterChipText, ativo && styles.filterChipTextActive]}>{filtro.label}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
 
         {loading ? (
           <View style={styles.centerCard}>
@@ -183,7 +198,7 @@ export default function ControleNotasScreen() {
           </View>
         ) : (
           <FlatList
-            data={pedidosFiltrados}
+            data={pedidos}
             keyExtractor={(item) => String(item.id)}
             renderItem={renderItem}
             contentContainerStyle={styles.listContent}
@@ -192,7 +207,7 @@ export default function ControleNotasScreen() {
             refreshing={refreshing}
             ListEmptyComponent={
               <View style={styles.centerCard}>
-                <Text style={styles.emptyText}>Nenhum pedido com NF para este filtro.</Text>
+                <Text style={styles.emptyText}>Nenhum pedido com NF encontrado.</Text>
               </View>
             }
           />
@@ -284,21 +299,6 @@ const styles = StyleSheet.create({
   summaryTitle: { color: '#334155', fontSize: 14, fontWeight: '700' },
   summaryValue: { color: '#0f172a', fontSize: 28, fontWeight: '800', marginTop: 2 },
   summarySub: { color: '#475569', fontSize: 13, fontWeight: '600', marginTop: 2 },
-  filterRow: { paddingBottom: 8, columnGap: 8 },
-  filterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    backgroundColor: '#f8fafc',
-  },
-  filterChipActive: {
-    borderColor: '#60a5fa',
-    backgroundColor: '#dbeafe',
-  },
-  filterChipText: { color: '#334155', fontSize: 13, fontWeight: '700' },
-  filterChipTextActive: { color: '#1d4ed8' },
   listContent: { paddingBottom: 24, rowGap: 10 },
   card: {
     borderRadius: 12,
@@ -309,7 +309,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  cardTopRight: { flexDirection: 'row', alignItems: 'center', columnGap: 8 },
   cardTitle: { color: '#0f172a', fontSize: 16, fontWeight: '800' },
+  expandHint: { color: '#1d4ed8', fontSize: 18, fontWeight: '800' },
   statusBadge: {
     fontSize: 12,
     fontWeight: '800',
@@ -321,6 +323,7 @@ const styles = StyleSheet.create({
   },
   cardClient: { color: '#0f172a', fontSize: 15, fontWeight: '700', marginTop: 8 },
   cardMeta: { color: '#64748b', fontSize: 13, fontWeight: '600', marginTop: 2, marginBottom: 8 },
+  cardMetaCompact: { marginBottom: 0 },
   imageWrap: {
     borderWidth: 1,
     borderColor: '#bfdbfe',
