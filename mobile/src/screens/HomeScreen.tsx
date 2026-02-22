@@ -418,6 +418,11 @@ export default function HomeScreen() {
     return user.perfil === 'admin' || user.perfil === 'backoffice' || user.perfil === 'vendedor';
   }, [user]);
 
+  const podeAcessarControleNotas = useMemo(() => {
+    if (!user) return false;
+    return user.perfil === 'admin' || user.perfil === 'backoffice' || user.perfil === 'vendedor';
+  }, [user]);
+
   const resumoMotorista = useMemo(() => {
     const totalPedidos = pedidosMotorista.length;
     const valorTotal = pedidosMotorista.reduce((acc, pedido) => acc + Number(pedido.valor_total || 0), 0);
@@ -502,6 +507,17 @@ export default function HomeScreen() {
     setMenuAberto(false);
     setMostrarSobreApp(false);
     navigation.navigate('Orcamento');
+  };
+
+  const abrirControleNotas = () => {
+    if (!podeAcessarControleNotas) {
+      setMenuAberto(false);
+      Alert.alert('Acesso negado', 'Você não tem permissão para acessar Controle de Notas.');
+      return;
+    }
+    setMenuAberto(false);
+    setMostrarSobreApp(false);
+    navigation.navigate('ControleNotas');
   };
 
   const irParaNovoPedido = () => {
@@ -710,6 +726,15 @@ export default function HomeScreen() {
                       <Text style={styles.menuLinkIcon}>🧾</Text>
                     </View>
                     <Text style={styles.menuLinkText}>Orçamento</Text>
+                    <Text style={styles.menuLinkChevron}>{'▸'}</Text>
+                  </Pressable>
+                ) : null}
+                {podeAcessarControleNotas ? (
+                  <Pressable style={styles.menuLink} onPress={abrirControleNotas}>
+                    <View style={styles.menuLinkIconWrap}>
+                      <Text style={styles.menuLinkIcon}>🗂️</Text>
+                    </View>
+                    <Text style={styles.menuLinkText}>Controle de Notas</Text>
                     <Text style={styles.menuLinkChevron}>{'▸'}</Text>
                   </Pressable>
                 ) : null}
