@@ -327,13 +327,20 @@ export default function PedidoDetalheScreen({ route, navigation }: Props) {
           </View>
         </View>
 
-        {pedido.usa_nf && pedido.nf_imagem_url ? (
+        {pedido.usa_nf && (pedido.nf_imagem_url || pedido.nf_numero) ? (
           <View style={styles.itemsCard}>
             <Text style={styles.sectionTitle}>Imagem da NF</Text>
-            <Pressable onPress={() => setPreviewNfVisivel(true)}>
-              <Image source={{ uri: pedido.nf_imagem_url }} style={styles.nfThumb} resizeMode="cover" />
-            </Pressable>
-            <Text style={styles.nfHint}>Toque na imagem para ampliar</Text>
+            {pedido.nf_numero ? <Text style={styles.nfNumberText}>Número: {pedido.nf_numero}</Text> : null}
+            {pedido.nf_imagem_url ? (
+              <>
+                <Pressable onPress={() => setPreviewNfVisivel(true)}>
+                  <Image source={{ uri: pedido.nf_imagem_url }} style={styles.nfThumb} resizeMode="cover" />
+                </Pressable>
+                <Text style={styles.nfHint}>Toque na imagem para ampliar</Text>
+              </>
+            ) : (
+              <Text style={styles.emptyText}>Imagem da NF não informada.</Text>
+            )}
           </View>
         ) : null}
 
@@ -751,6 +758,11 @@ const styles = StyleSheet.create({
     color: '#64748b',
     fontSize: 12.71,
     fontWeight: '600',
+  },
+  nfNumberText: {
+    color: '#0f172a',
+    fontSize: 13.2,
+    fontWeight: '700',
   },
   itemsCard: {
     backgroundColor: 'rgba(255,255,255,0.94)',

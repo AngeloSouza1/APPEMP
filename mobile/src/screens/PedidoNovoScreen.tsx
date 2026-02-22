@@ -79,6 +79,7 @@ export default function PedidoNovoScreen({ navigation }: Props) {
   const [data, setData] = useState(formatarDataAtual());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [usaNf, setUsaNf] = useState(false);
+  const [nfNumero, setNfNumero] = useState('');
   const [nfImagemUrl, setNfImagemUrl] = useState('');
   const [enviandoNf, setEnviandoNf] = useState(false);
   const [previewNfVisivel, setPreviewNfVisivel] = useState(false);
@@ -229,7 +230,7 @@ export default function PedidoNovoScreen({ navigation }: Props) {
     dataValida &&
     itens.length > 0 &&
     !enviandoNf &&
-    (!usaNf || Boolean(nfImagemUrl.trim()));
+    (!usaNf || (Boolean(nfImagemUrl.trim()) && Boolean(nfNumero.trim())));
 
   const selecionarCliente = (cliente: ClienteResumo) => {
     setClienteId(cliente.id);
@@ -413,8 +414,13 @@ export default function PedidoNovoScreen({ navigation }: Props) {
     }
 
     const nfImagemNormalizada = nfImagemUrl.trim();
+    const nfNumeroNormalizado = nfNumero.trim();
     if (usaNf && !nfImagemNormalizada) {
       Alert.alert('Imagem da NF', 'Informe a imagem da NF para continuar.');
+      return;
+    }
+    if (usaNf && !nfNumeroNormalizado) {
+      Alert.alert('Número da NF', 'Informe o número da NF para continuar.');
       return;
     }
 
@@ -456,6 +462,7 @@ export default function PedidoNovoScreen({ navigation }: Props) {
         status: 'EM_ESPERA',
         usa_nf: usaNf,
         nf_imagem_url: usaNf ? nfImagemNormalizada : null,
+        nf_numero: usaNf ? nfNumeroNormalizado : null,
         itens: itensPayload,
       });
       await marcarRelatoriosComoDesatualizados();
@@ -604,7 +611,10 @@ export default function PedidoNovoScreen({ navigation }: Props) {
             onPress={() =>
               setUsaNf((prev) => {
                 const proximo = !prev;
-                if (!proximo) setNfImagemUrl('');
+                if (!proximo) {
+                  setNfImagemUrl('');
+                  setNfNumero('');
+                }
                 return proximo;
               })
             }
@@ -617,6 +627,16 @@ export default function PedidoNovoScreen({ navigation }: Props) {
 
           {usaNf ? (
             <>
+              <Text style={styles.fieldLabel}>Número da NF</Text>
+              <TextInput
+                value={nfNumero}
+                onChangeText={setNfNumero}
+                style={styles.input}
+                placeholder="Ex.: 000123"
+                placeholderTextColor="#64748b"
+                autoCapitalize="characters"
+                autoCorrect={false}
+              />
               <Text style={styles.fieldLabel}>Imagem da NF</Text>
               <Pressable
                 style={({ pressed }) => [

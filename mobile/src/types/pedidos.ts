@@ -18,6 +18,7 @@ export interface Pedido {
   ordem_remaneio?: number | null;
   usa_nf?: boolean;
   nf_imagem_url?: string | null;
+  nf_numero?: string | null;
   valor_total: number;
   valor_efetivado?: number;
   cliente_id: number;

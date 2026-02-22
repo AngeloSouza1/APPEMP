@@ -104,6 +104,7 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
   const [data, setData] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [usaNf, setUsaNf] = useState(false);
+  const [nfNumero, setNfNumero] = useState('');
   const [nfImagemUrl, setNfImagemUrl] = useState('');
   const [enviandoNf, setEnviandoNf] = useState(false);
   const [previewNfVisivel, setPreviewNfVisivel] = useState(false);
@@ -133,6 +134,7 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
       setStatus(pedidoData.status || 'EM_ESPERA');
       setData(toDisplayDate(pedidoData.data));
       setUsaNf(Boolean(pedidoData.usa_nf));
+      setNfNumero(String(pedidoData.nf_numero || ''));
       setNfImagemUrl(String(pedidoData.nf_imagem_url || ''));
       setRotaId(pedidoData.rota_id ?? null);
       setRotas(rotasResp.data);
@@ -379,8 +381,13 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
     }
 
     const nfImagemNormalizada = nfImagemUrl.trim();
+    const nfNumeroNormalizado = nfNumero.trim();
     if (usaNf && !nfImagemNormalizada) {
       Alert.alert('Imagem da NF', 'Informe a imagem da NF para continuar.');
+      return;
+    }
+    if (usaNf && !nfNumeroNormalizado) {
+      Alert.alert('Número da NF', 'Informe o número da NF para continuar.');
       return;
     }
 
@@ -421,6 +428,7 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
         rota_id: rotaId,
         usa_nf: usaNf,
         nf_imagem_url: usaNf ? nfImagemNormalizada : null,
+        nf_numero: usaNf ? nfNumeroNormalizado : null,
         itens: itensPayload,
       });
       await marcarRelatoriosComoDesatualizados();
@@ -522,7 +530,10 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
             onPress={() =>
               setUsaNf((prev) => {
                 const proximo = !prev;
-                if (!proximo) setNfImagemUrl('');
+                if (!proximo) {
+                  setNfImagemUrl('');
+                  setNfNumero('');
+                }
                 return proximo;
               })
             }
@@ -535,6 +546,16 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
 
           {usaNf ? (
             <>
+              <Text style={styles.fieldLabel}>Número da NF</Text>
+              <TextInput
+                value={nfNumero}
+                onChangeText={setNfNumero}
+                style={styles.input}
+                placeholder="Ex.: 000123"
+                placeholderTextColor="#64748b"
+                autoCapitalize="characters"
+                autoCorrect={false}
+              />
               <Text style={styles.fieldLabel}>Imagem da NF</Text>
               <Pressable
                 style={({ pressed }) => [

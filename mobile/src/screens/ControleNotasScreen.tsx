@@ -138,6 +138,7 @@ export default function ControleNotasScreen() {
         <Text style={[styles.cardMeta, !expandido && styles.cardMetaCompact]}>
           {formatarData(item.data)} • {formatarMoeda(Number(item.valor_total || 0))}
         </Text>
+        <Text style={styles.nfNumberText}>NF: {item.nf_numero ? item.nf_numero : 'Não informado'}</Text>
         {expandido ? (
           <>
             {item.nf_imagem_url ? (
@@ -326,6 +327,7 @@ const styles = StyleSheet.create({
   cardClient: { color: '#0f172a', fontSize: 15, fontWeight: '700', marginTop: 8 },
   cardMeta: { color: '#64748b', fontSize: 13, fontWeight: '600', marginTop: 2, marginBottom: 8 },
   cardMetaCompact: { marginBottom: 0 },
+  nfNumberText: { color: '#0f172a', fontSize: 12.8, fontWeight: '700', marginTop: 4 },
   imageWrap: {
     borderWidth: 1,
     borderColor: '#bfdbfe',
