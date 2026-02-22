@@ -335,6 +335,7 @@ export default function PedidoNovoScreen({ navigation }: Props) {
             setEnviandoNf(true);
             const url = await arquivosApi.uploadImagemCloudinary(result.assets[0] as any);
             setNfImagemUrl(url);
+            Alert.alert('Sucesso', 'Imagem da NF carregada com sucesso.');
           } catch (error: any) {
             Alert.alert('Erro', error?.message || 'Não foi possível enviar a imagem da NF.');
           } finally {
@@ -361,6 +362,7 @@ export default function PedidoNovoScreen({ navigation }: Props) {
             setEnviandoNf(true);
             const url = await arquivosApi.uploadImagemCloudinary(result.assets[0] as any);
             setNfImagemUrl(url);
+            Alert.alert('Sucesso', 'Imagem da NF carregada com sucesso.');
           } catch (error: any) {
             Alert.alert('Erro', error?.message || 'Não foi possível enviar a imagem da NF.');
           } finally {
@@ -897,6 +899,14 @@ export default function PedidoNovoScreen({ navigation }: Props) {
           <View style={styles.loadingCard}>
             <ActivityIndicator size="small" color="#1d4ed8" />
             <Text style={styles.loadingText}>Carregando...</Text>
+          </View>
+        </View>
+      </Modal>
+      <Modal transparent visible={enviandoNf} animationType="fade">
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingCard}>
+            <ActivityIndicator size="small" color="#1d4ed8" />
+            <Text style={styles.loadingText}>Processando upload da NF...</Text>
           </View>
         </View>
       </Modal>

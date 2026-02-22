@@ -164,22 +164,34 @@ export const arquivosApi = {
     const endpoint = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
     const mimeType = getMimeTypeFromUri(asset.uri, asset.mimeType);
 
-    const uploadViaBase64 = async () => {
+    const parseCloudinaryResponse = async (response: Response, metodo: string) => {
+      const data = await response.json();
+      if (!response.ok || !data?.secure_url) {
+        throw new Error(data?.error?.message || `${metodo}: falha (HTTP ${response.status}).`);
+      }
+      return String(data.secure_url);
+    };
+
+    const uploadViaBase64FormData = async () => {
+      const formData = new FormData();
+      formData.append('file', `data:${mimeType};base64,${asset.base64}`);
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      formData.append('folder', 'appemp/nf');
+      const response = await fetch(endpoint, { method: 'POST', body: formData });
+      return parseCloudinaryResponse(response, 'Upload base64');
+    };
+
+    const uploadViaBase64UrlEncoded = async () => {
       const body = new URLSearchParams();
       body.append('file', `data:${mimeType};base64,${asset.base64}`);
       body.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
       body.append('folder', 'appemp/nf');
-
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body.toString(),
       });
-      const data = await response.json();
-      if (!response.ok || !data?.secure_url) {
-        throw new Error(data?.error?.message || `Falha no upload base64 (HTTP ${response.status}).`);
-      }
-      return String(data.secure_url);
+      return parseCloudinaryResponse(response, 'Upload base64 urlencoded');
     };
 
     const uploadViaUri = async () => {
@@ -196,16 +208,16 @@ export const arquivosApi = {
         method: 'POST',
         body: formData,
       });
-      const data = await response.json();
-      if (!response.ok || !data?.secure_url) {
-        throw new Error(data?.error?.message || `Falha no upload por arquivo (HTTP ${response.status}).`);
-      }
-      return String(data.secure_url);
+      return parseCloudinaryResponse(response, 'Upload arquivo');
     };
 
     try {
       if (asset.base64) {
-        return await uploadViaBase64();
+        try {
+          return await uploadViaBase64FormData();
+        } catch {
+          return await uploadViaBase64UrlEncoded();
+        }
       }
       return await uploadViaUri();
     } catch (firstError: any) {

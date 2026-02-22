@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -309,6 +310,7 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
             setEnviandoNf(true);
             const url = await arquivosApi.uploadImagemCloudinary(result.assets[0] as any);
             setNfImagemUrl(url);
+            Alert.alert('Sucesso', 'Imagem da NF carregada com sucesso.');
           } catch (error: any) {
             Alert.alert('Erro', error?.message || 'Não foi possível enviar a imagem da NF.');
           } finally {
@@ -335,6 +337,7 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
             setEnviandoNf(true);
             const url = await arquivosApi.uploadImagemCloudinary(result.assets[0] as any);
             setNfImagemUrl(url);
+            Alert.alert('Sucesso', 'Imagem da NF carregada com sucesso.');
           } catch (error: any) {
             Alert.alert('Erro', error?.message || 'Não foi possível enviar a imagem da NF.');
           } finally {
@@ -780,6 +783,14 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
         onClose={() => setShowDatePicker(false)}
         title="Selecionar data do pedido"
       />
+      <Modal transparent visible={enviandoNf} animationType="fade">
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingCard}>
+            <ActivityIndicator size="small" color="#1d4ed8" />
+            <Text style={styles.loadingText}>Processando upload da NF...</Text>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1509,5 +1520,27 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: '#fff',
     fontWeight: '700',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 23, 42, 0.26)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 10,
+  },
+  loadingText: {
+    color: '#1f2937',
+    fontWeight: '700',
+    fontSize: 13.86,
   },
 });
