@@ -415,7 +415,7 @@ export default function HomeScreen() {
 
   const podeAcessarOrcamento = useMemo(() => {
     if (!user) return false;
-    return user.perfil === 'admin';
+    return user.perfil === 'admin' || user.perfil === 'backoffice' || user.perfil === 'vendedor';
   }, [user]);
 
   const resumoMotorista = useMemo(() => {
