@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -85,6 +87,7 @@ export default function PedidoDetalheScreen({ route, navigation }: Props) {
   const [quantidadeTroca, setQuantidadeTroca] = useState('1');
   const [erro, setErro] = useState<string | null>(null);
   const [trocasSectionY, setTrocasSectionY] = useState<number | null>(null);
+  const [previewNfVisivel, setPreviewNfVisivel] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   const fetchPedido = useCallback(async () => {
@@ -324,6 +327,16 @@ export default function PedidoDetalheScreen({ route, navigation }: Props) {
           </View>
         </View>
 
+        {pedido.usa_nf && pedido.nf_imagem_url ? (
+          <View style={styles.itemsCard}>
+            <Text style={styles.sectionTitle}>Imagem da NF</Text>
+            <Pressable onPress={() => setPreviewNfVisivel(true)}>
+              <Image source={{ uri: pedido.nf_imagem_url }} style={styles.nfThumb} resizeMode="cover" />
+            </Pressable>
+            <Text style={styles.nfHint}>Toque na imagem para ampliar</Text>
+          </View>
+        ) : null}
+
         <View style={styles.itemsCard}>
           <Text style={styles.sectionTitle}>Itens do pedido</Text>
           {pedido.itens.length === 0 ? (
@@ -530,8 +543,21 @@ export default function PedidoDetalheScreen({ route, navigation }: Props) {
                 ))}
               </>
             )}
-          </View>
+        </View>
       </ScrollView>
+      <Modal transparent visible={previewNfVisivel} animationType="fade" onRequestClose={() => setPreviewNfVisivel(false)}>
+        <View style={styles.previewOverlay}>
+          <Pressable style={styles.previewBackdrop} onPress={() => setPreviewNfVisivel(false)} />
+          <View style={styles.previewCard}>
+            {pedido.nf_imagem_url ? (
+              <Image source={{ uri: pedido.nf_imagem_url }} style={styles.previewImage} resizeMode="contain" />
+            ) : null}
+            <Pressable style={styles.previewCloseButton} onPress={() => setPreviewNfVisivel(false)}>
+              <Text style={styles.previewCloseText}>Fechar</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -713,6 +739,19 @@ const styles = StyleSheet.create({
     fontSize: 23.1,
     fontWeight: '800',
   },
+  nfThumb: {
+    width: '100%',
+    height: 190,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    backgroundColor: '#e2e8f0',
+  },
+  nfHint: {
+    color: '#64748b',
+    fontSize: 12.71,
+    fontWeight: '600',
+  },
   itemsCard: {
     backgroundColor: 'rgba(255,255,255,0.94)',
     borderRadius: 14,
@@ -753,6 +792,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
+  },
+  previewOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15,23,42,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  previewBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  previewCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    backgroundColor: '#ffffff',
+    padding: 10,
+    gap: 10,
+  },
+  previewImage: {
+    width: '100%',
+    height: 460,
+    borderRadius: 10,
+    backgroundColor: '#e2e8f0',
+  },
+  previewCloseButton: {
+    alignSelf: 'flex-end',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#93c5fd',
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  previewCloseText: {
+    color: '#1e3a8a',
+    fontWeight: '700',
+    fontSize: 13.86,
   },
   toggleTrocaButtonPressed: {
     opacity: 0.84,
