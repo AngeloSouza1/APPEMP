@@ -101,6 +101,10 @@ export default function OrcamentoScreen({ navigation }: Props) {
     () => clientes.find((item) => item.id === clienteId) || null,
     [clienteId, clientes]
   );
+  const clientePreenchido = useMemo(
+    () => Boolean((clienteManualAtivo ? clienteManual : '').trim() || clienteSelecionado?.nome?.trim()),
+    [clienteManual, clienteManualAtivo, clienteSelecionado]
+  );
 
   const clientesFiltrados = useMemo(() => {
     const termo = buscaCliente.trim().toLowerCase();
@@ -515,7 +519,13 @@ export default function OrcamentoScreen({ navigation }: Props) {
           </Pressable>
 
           <Text style={styles.label}>Itens do orçamento</Text>
-          <View style={styles.itemsWrap}>
+          {!clientePreenchido ? (
+            <Text style={styles.flowHint}>Selecione ou informe um cliente para liberar os itens.</Text>
+          ) : null}
+          <View
+            style={[styles.itemsWrap, !clientePreenchido && styles.sectionDisabled]}
+            pointerEvents={clientePreenchido ? 'auto' : 'none'}
+          >
             {itens.map((item, index) => (
               <View key={item.id} style={styles.itemCard}>
                 <View style={styles.itemHeaderRow}>
@@ -602,7 +612,11 @@ export default function OrcamentoScreen({ navigation }: Props) {
             ))}
           </View>
 
-          <Pressable style={styles.secondaryButton} onPress={adicionarItem}>
+          <Pressable
+            style={[styles.secondaryButton, !clientePreenchido && styles.disabledButton]}
+            onPress={adicionarItem}
+            disabled={!clientePreenchido}
+          >
             <Text style={styles.secondaryButtonText}>+ Adicionar item</Text>
           </Pressable>
 
@@ -620,7 +634,11 @@ export default function OrcamentoScreen({ navigation }: Props) {
             multiline
           />
 
-          <Pressable style={[styles.primaryButton, gerandoPdf && styles.disabledButton]} onPress={gerarPdf} disabled={gerandoPdf}>
+          <Pressable
+            style={[styles.primaryButton, (gerandoPdf || !clientePreenchido) && styles.disabledButton]}
+            onPress={gerarPdf}
+            disabled={gerandoPdf || !clientePreenchido}
+          >
             <Text style={styles.primaryButtonText}>{gerandoPdf ? 'Gerando PDF...' : 'Gerar PDF'}</Text>
           </Pressable>
         </View>
@@ -777,6 +795,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 12.71,
   },
+  flowHint: {
+    color: '#64748b',
+    fontWeight: '600',
+    fontSize: 12.71,
+    marginTop: -2,
+    marginBottom: 2,
+  },
   input: {
     borderWidth: 1,
     borderColor: '#cbd5e1',
@@ -801,6 +826,7 @@ const styles = StyleSheet.create({
   inputPressableText: { color: '#0f172a', fontSize: 15.015, flex: 1 },
   inputPressableChevron: { color: '#1d4ed8', fontWeight: '700', fontSize: 16.17 },
   itemsWrap: { gap: 8 },
+  sectionDisabled: { opacity: 0.45 },
   itemCard: {
     borderWidth: 1,
     borderColor: '#dbeafe',
