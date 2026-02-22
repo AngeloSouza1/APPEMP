@@ -161,33 +161,63 @@ export const arquivosApi = {
       );
     }
 
+    const endpoint = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
     const mimeType = getMimeTypeFromUri(asset.uri, asset.mimeType);
-    const formData = new FormData();
-    if (asset.base64) {
-      formData.append('file', `data:${mimeType};base64,${asset.base64}`);
-    } else {
+
+    const uploadViaBase64 = async () => {
+      const body = new URLSearchParams();
+      body.append('file', `data:${mimeType};base64,${asset.base64}`);
+      body.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      body.append('folder', 'appemp/nf');
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString(),
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.secure_url) {
+        throw new Error(data?.error?.message || `Falha no upload base64 (HTTP ${response.status}).`);
+      }
+      return String(data.secure_url);
+    };
+
+    const uploadViaUri = async () => {
+      const formData = new FormData();
       formData.append('file', {
         uri: asset.uri,
         name: `nf-${Date.now()}.jpg`,
         type: mimeType,
       } as any);
-    }
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    formData.append('folder', 'appemp/nf');
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      formData.append('folder', 'appemp/nf');
 
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-      {
+      const response = await fetch(endpoint, {
         method: 'POST',
         body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.secure_url) {
+        throw new Error(data?.error?.message || `Falha no upload por arquivo (HTTP ${response.status}).`);
       }
-    );
+      return String(data.secure_url);
+    };
 
-    const data = await response.json();
-    if (!response.ok || !data?.secure_url) {
-      throw new Error(data?.error?.message || 'Falha ao enviar imagem para Cloudinary.');
+    try {
+      if (asset.base64) {
+        return await uploadViaBase64();
+      }
+      return await uploadViaUri();
+    } catch (firstError: any) {
+      try {
+        return await uploadViaUri();
+      } catch (secondError: any) {
+        const motivo = secondError?.message || firstError?.message || 'Falha ao enviar imagem para Cloudinary.';
+        throw new Error(
+          `${motivo} Verifique cloud_name (${CLOUDINARY_CLOUD_NAME}) e upload_preset (${CLOUDINARY_UPLOAD_PRESET}).`
+        );
+      }
     }
-    return String(data.secure_url);
   },
 };
 
