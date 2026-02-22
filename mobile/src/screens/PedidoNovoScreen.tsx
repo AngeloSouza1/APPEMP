@@ -328,11 +328,12 @@ export default function PedidoNovoScreen({ navigation }: Props) {
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
             quality: 0.8,
+            base64: true,
           });
           if (result.canceled || !result.assets?.length) return;
           try {
             setEnviandoNf(true);
-            const url = await arquivosApi.uploadImagemCloudinary(result.assets[0].uri);
+            const url = await arquivosApi.uploadImagemCloudinary(result.assets[0] as any);
             setNfImagemUrl(url);
           } catch (error: any) {
             Alert.alert('Erro', error?.message || 'Não foi possível enviar a imagem da NF.');
@@ -353,11 +354,12 @@ export default function PedidoNovoScreen({ navigation }: Props) {
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
             quality: 0.8,
+            base64: true,
           });
           if (result.canceled || !result.assets?.length) return;
           try {
             setEnviandoNf(true);
-            const url = await arquivosApi.uploadImagemCloudinary(result.assets[0].uri);
+            const url = await arquivosApi.uploadImagemCloudinary(result.assets[0] as any);
             setNfImagemUrl(url);
           } catch (error: any) {
             Alert.alert('Erro', error?.message || 'Não foi possível enviar a imagem da NF.');

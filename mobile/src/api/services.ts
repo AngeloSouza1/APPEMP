@@ -144,7 +144,8 @@ export const authApi = {
 const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
 const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
-const getMimeTypeFromUri = (uri: string) => {
+const getMimeTypeFromUri = (uri: string, mimeType?: string | null) => {
+  if (mimeType && mimeType.startsWith('image/')) return mimeType;
   const ext = uri.split('.').pop()?.toLowerCase();
   if (ext === 'png') return 'image/png';
   if (ext === 'webp') return 'image/webp';
@@ -153,19 +154,24 @@ const getMimeTypeFromUri = (uri: string) => {
 };
 
 export const arquivosApi = {
-  uploadImagemCloudinary: async (uri: string) => {
+  uploadImagemCloudinary: async (asset: { uri: string; base64?: string | null; mimeType?: string | null }) => {
     if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
       throw new Error(
         'Cloudinary não configurado. Defina EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME e EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET.'
       );
     }
 
+    const mimeType = getMimeTypeFromUri(asset.uri, asset.mimeType);
     const formData = new FormData();
-    formData.append('file', {
-      uri,
-      name: `nf-${Date.now()}.jpg`,
-      type: getMimeTypeFromUri(uri),
-    } as any);
+    if (asset.base64) {
+      formData.append('file', `data:${mimeType};base64,${asset.base64}`);
+    } else {
+      formData.append('file', {
+        uri: asset.uri,
+        name: `nf-${Date.now()}.jpg`,
+        type: mimeType,
+      } as any);
+    }
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
     formData.append('folder', 'appemp/nf');
 
