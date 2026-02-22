@@ -106,6 +106,7 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
   const [usaNf, setUsaNf] = useState(false);
   const [nfImagemUrl, setNfImagemUrl] = useState('');
   const [enviandoNf, setEnviandoNf] = useState(false);
+  const [previewNfVisivel, setPreviewNfVisivel] = useState(false);
   const [rotaId, setRotaId] = useState<number | null>(null);
   const [itens, setItens] = useState<EditableItem[]>([]);
   const [buscaProduto, setBuscaProduto] = useState('');
@@ -550,7 +551,9 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
               </Pressable>
               {nfImagemUrl ? (
                 <View style={styles.nfPreviewCard}>
-                  <Image source={{ uri: nfImagemUrl }} style={styles.nfPreviewImage} resizeMode="cover" />
+                  <Pressable onPress={() => setPreviewNfVisivel(true)}>
+                    <Image source={{ uri: nfImagemUrl }} style={styles.nfPreviewImage} resizeMode="cover" />
+                  </Pressable>
                   <Pressable style={styles.nfRemoveButton} onPress={() => setNfImagemUrl('')}>
                     <Text style={styles.nfRemoveButtonText}>Remover imagem</Text>
                   </Pressable>
@@ -804,6 +807,19 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
           <View style={styles.loadingCard}>
             <ActivityIndicator size="small" color="#1d4ed8" />
             <Text style={styles.loadingText}>Processando upload da NF...</Text>
+          </View>
+        </View>
+      </Modal>
+      <Modal transparent visible={previewNfVisivel} animationType="fade" onRequestClose={() => setPreviewNfVisivel(false)}>
+        <View style={styles.previewOverlay}>
+          <Pressable style={styles.previewBackdrop} onPress={() => setPreviewNfVisivel(false)} />
+          <View style={styles.previewCard}>
+            {nfImagemUrl ? (
+              <Image source={{ uri: nfImagemUrl }} style={styles.previewImage} resizeMode="contain" />
+            ) : null}
+            <Pressable style={styles.previewCloseButton} onPress={() => setPreviewNfVisivel(false)}>
+              <Text style={styles.previewCloseText}>Fechar</Text>
+            </Pressable>
           </View>
         </View>
       </Modal>
@@ -1556,6 +1572,46 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     color: '#1f2937',
+    fontWeight: '700',
+    fontSize: 13.86,
+  },
+  previewOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15,23,42,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  previewBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  previewCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    backgroundColor: '#ffffff',
+    padding: 10,
+    gap: 10,
+  },
+  previewImage: {
+    width: '100%',
+    height: 420,
+    borderRadius: 10,
+    backgroundColor: '#e2e8f0',
+  },
+  previewCloseButton: {
+    alignSelf: 'flex-end',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#93c5fd',
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  previewCloseText: {
+    color: '#1e3a8a',
     fontWeight: '700',
     fontSize: 13.86,
   },
