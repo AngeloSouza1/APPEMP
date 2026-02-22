@@ -296,17 +296,25 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
         onPress: async () => {
           const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
           if (!permissao.granted) {
-            Alert.alert('Permissão negada', 'Permita acesso à galeria para selecionar a imagem da NF.');
+            Alert.alert(
+              'Permissão negada',
+              permissao.canAskAgain
+                ? 'Permita acesso à galeria para selecionar a imagem da NF.'
+                : 'Acesso à galeria bloqueado. Libere nas configurações do app.'
+            );
             return;
           }
-          const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            quality: 0.8,
-            base64: true,
-          });
-          if (result.canceled || !result.assets?.length) return;
           try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true,
+              quality: 0.7,
+              base64: true,
+            });
+            if (result.canceled || !result.assets?.length) {
+              Alert.alert('Seleção cancelada', 'Nenhuma imagem foi selecionada.');
+              return;
+            }
             setEnviandoNf(true);
             const url = await arquivosApi.uploadImagemCloudinary(result.assets[0] as any);
             setNfImagemUrl(url);
@@ -323,17 +331,25 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
         onPress: async () => {
           const permissao = await ImagePicker.requestCameraPermissionsAsync();
           if (!permissao.granted) {
-            Alert.alert('Permissão negada', 'Permita acesso à câmera para capturar a imagem da NF.');
+            Alert.alert(
+              'Permissão negada',
+              permissao.canAskAgain
+                ? 'Permita acesso à câmera para capturar a imagem da NF.'
+                : 'Acesso à câmera bloqueado. Libere nas configurações do app.'
+            );
             return;
           }
-          const result = await ImagePicker.launchCameraAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            quality: 0.8,
-            base64: true,
-          });
-          if (result.canceled || !result.assets?.length) return;
           try {
+            const result = await ImagePicker.launchCameraAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true,
+              quality: 0.7,
+              base64: true,
+            });
+            if (result.canceled || !result.assets?.length) {
+              Alert.alert('Captura cancelada', 'Nenhuma imagem foi capturada.');
+              return;
+            }
             setEnviandoNf(true);
             const url = await arquivosApi.uploadImagemCloudinary(result.assets[0] as any);
             setNfImagemUrl(url);
