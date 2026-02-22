@@ -413,6 +413,11 @@ export default function HomeScreen() {
     return user.perfil !== 'vendedor' && user.perfil !== 'motorista' && user.perfil !== 'backoffice';
   }, [user]);
 
+  const podeAcessarOrcamento = useMemo(() => {
+    if (!user) return false;
+    return user.perfil === 'admin';
+  }, [user]);
+
   const resumoMotorista = useMemo(() => {
     const totalPedidos = pedidosMotorista.length;
     const valorTotal = pedidosMotorista.reduce((acc, pedido) => acc + Number(pedido.valor_total || 0), 0);
@@ -489,6 +494,11 @@ export default function HomeScreen() {
   };
 
   const abrirOrcamento = () => {
+    if (!podeAcessarOrcamento) {
+      setMenuAberto(false);
+      Alert.alert('Acesso negado', 'Apenas usuários com perfil admin podem acessar Orçamento.');
+      return;
+    }
     setMenuAberto(false);
     setMostrarSobreApp(false);
     navigation.navigate('Orcamento');
@@ -694,7 +704,7 @@ export default function HomeScreen() {
                     <Text style={styles.menuLinkChevron}>{'▸'}</Text>
                   </Pressable>
                 ) : null}
-                {user?.perfil !== 'motorista' ? (
+                {podeAcessarOrcamento ? (
                   <Pressable style={styles.menuLink} onPress={abrirOrcamento}>
                     <View style={styles.menuLinkIconWrap}>
                       <Text style={styles.menuLinkIcon}>🧾</Text>
