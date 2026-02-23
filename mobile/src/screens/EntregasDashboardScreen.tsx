@@ -147,6 +147,7 @@ export default function EntregasDashboardScreen() {
   const [erro, setErro] = useState<string | null>(null);
   const [rotasDetalhado, setRotasDetalhado] = useState<RelatorioRotaDetalhadoItem[]>([]);
   const [rotaExpandidaId, setRotaExpandidaId] = useState<number | null>(null);
+  const [pedidoExpandidoKey, setPedidoExpandidoKey] = useState<string | null>(null);
 
   const carregarEntregas = async () => {
     setLoading(true);
@@ -171,6 +172,7 @@ export default function EntregasDashboardScreen() {
       });
 
       setRotasDetalhado([...unicos.values()]);
+      setPedidoExpandidoKey(null);
     } catch {
       setErro('Não foi possível carregar o dashboard de entregas.');
     } finally {
@@ -276,8 +278,15 @@ export default function EntregasDashboardScreen() {
                     </Text>
                     {rotaExpandidaId === rota.rota_id ? (
                       <View style={styles.expandBox}>
-                        {rota.pedidos.slice(0, 10).map((pedido) => (
-                          <View key={pedido.pedido_id} style={styles.pedidoCard}>
+                        {rota.pedidos.slice(0, 10).map((pedido) => {
+                          const keyPedido = `${rota.rota_id}-${pedido.pedido_id}`;
+                          const pedidoExpandido = pedidoExpandidoKey === keyPedido;
+                          return (
+                          <Pressable
+                            key={pedido.pedido_id}
+                            style={[styles.pedidoCard, pedidoExpandido && styles.pedidoCardActive]}
+                            onPress={() => setPedidoExpandidoKey((prev) => (prev === keyPedido ? null : keyPedido))}
+                          >
                             <View style={styles.pedidoHeader}>
                               <Text style={styles.pedidoTitle}>
                                 #{pedido.pedido_id} - {pedido.cliente_nome}
@@ -303,32 +312,40 @@ export default function EntregasDashboardScreen() {
                                 </Text>
                               </View>
                             </View>
-                            <Text style={styles.pedidoMeta}>{formatarData(pedido.pedido_data)}</Text>
-                            <Text style={styles.pedidoTotal}>
-                              Total: {formatarMoeda(pedido.pedido_valor_total)}
+                            <Text style={styles.pedidoToggleText}>
+                              {pedidoExpandido ? 'Ocultar pedido' : 'Ver pedido'}
                             </Text>
-                            {pedido.itens.length > 0 ? (
-                              <View style={styles.pedidoItensBox}>
-                                {pedido.itens.map((item) => (
-                                  <View key={item.item_chave} style={styles.pedidoItemRow}>
-                                    <Text style={styles.pedidoItemNome}>
-                                      {item.produto_nome}
-                                      {item.embalagem ? ` (${item.embalagem})` : ''}
-                                    </Text>
-                                    <View style={styles.pedidoItemInfoRow}>
-                                      <Text style={styles.pedidoItemQtd}>Qtd: {item.quantidade}</Text>
-                                      <Text style={styles.pedidoItemValor}>
-                                        {formatarMoeda(item.valor_total_item)}
-                                      </Text>
-                                    </View>
+                            {pedidoExpandido ? (
+                              <>
+                                <Text style={styles.pedidoMeta}>
+                                  {formatarData(pedido.pedido_data)} -{' '}
+                                  <Text style={styles.expandTextStrong}>
+                                    {formatarMoeda(pedido.pedido_valor_total)}
+                                  </Text>
+                                </Text>
+                                {pedido.itens.length > 0 ? (
+                                  <View style={styles.pedidoItensBox}>
+                                    {pedido.itens.map((item) => (
+                                      <View key={item.item_chave} style={styles.pedidoItemRow}>
+                                        <Text style={styles.pedidoItemNome}>{item.produto_nome}</Text>
+                                        <Text style={styles.pedidoItemMeta}>
+                                          Qtd {item.quantidade}
+                                          {item.embalagem ? ` ${item.embalagem}` : ''}
+                                          {'  |  '}
+                                          <Text style={styles.pedidoItemValor}>
+                                            {formatarMoeda(item.valor_total_item)}
+                                          </Text>
+                                        </Text>
+                                      </View>
+                                    ))}
                                   </View>
-                                ))}
-                              </View>
-                            ) : (
-                              <Text style={styles.pedidoItemVazio}>Sem itens detalhados.</Text>
-                            )}
-                          </View>
-                        ))}
+                                ) : (
+                                  <Text style={styles.pedidoItemVazio}>Sem itens detalhados.</Text>
+                                )}
+                              </>
+                            ) : null}
+                          </Pressable>
+                        )})}
                         {rota.pedidos.length > 10 ? (
                           <Text style={styles.expandText}>+ {rota.pedidos.length - 10} pedido(s)</Text>
                         ) : null}
@@ -564,10 +581,14 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     borderWidth: 1,
     borderColor: '#dbeafe',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
     paddingHorizontal: 8,
-    paddingVertical: 7,
-    gap: 4,
+    paddingVertical: 6,
+    gap: 2,
+  },
+  pedidoCardActive: {
+    borderColor: '#facc15',
+    backgroundColor: '#fef9c3',
   },
   pedidoHeader: {
     flexDirection: 'row',
@@ -586,6 +607,11 @@ const styles = StyleSheet.create({
     fontSize: 12.71,
     fontWeight: '600',
   },
+  pedidoToggleText: {
+    color: '#1d4ed8',
+    fontSize: 12.71,
+    fontWeight: '700',
+  },
   statusBadge: {
     borderRadius: 999,
     borderWidth: 1,
@@ -596,39 +622,35 @@ const styles = StyleSheet.create({
     fontSize: 11.55,
     fontWeight: '800',
   },
-  pedidoTotal: {
-    color: '#0f172a',
-    fontSize: 12.71,
-    fontWeight: '800',
-  },
   pedidoItensBox: {
-    marginTop: 2,
+    marginTop: 4,
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
-    paddingTop: 6,
+    paddingTop: 4,
     gap: 6,
   },
   pedidoItemRow: {
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 7,
+    paddingVertical: 5,
     gap: 2,
-  },
-  pedidoItemInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    columnGap: 10,
   },
   pedidoItemNome: {
     color: '#0f172a',
     fontSize: 12.71,
     fontWeight: '700',
   },
-  pedidoItemQtd: {
+  pedidoItemMeta: {
     color: '#64748b',
     fontSize: 11.55,
     fontWeight: '600',
   },
   pedidoItemValor: {
-    color: '#1e40af',
-    fontSize: 12.71,
+    color: '#1e3a8a',
+    fontSize: 11.55,
     fontWeight: '800',
   },
   pedidoItemVazio: {
