@@ -61,6 +61,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await authApi.login(username, password);
     await sessionStorage.setRememberMePreference(rememberMe);
     await sessionStorage.setSession(response.data.token, response.data.user);
+    if (rememberMe) {
+      await sessionStorage.setBiometricCredentials(username, password);
+    } else {
+      await sessionStorage.clearBiometricCredentials();
+    }
     sessionExpiredHandledRef.current = false;
     setToken(response.data.token);
     setUser(response.data.user);
@@ -68,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     await sessionStorage.clear();
+    await sessionStorage.clearBiometricCredentials();
     setToken(null);
     setUser(null);
   };

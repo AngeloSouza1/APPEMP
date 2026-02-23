@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -11,6 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { sessionStorage } from '../api/storage';
 import { authApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
@@ -30,11 +32,20 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(true);
   const [previewNome, setPreviewNome] = useState<string | null>(null);
   const [previewImagem, setPreviewImagem] = useState<string | null>(null);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
 
   useEffect(() => {
     const loadRememberPreference = async () => {
       const stored = await sessionStorage.getRememberMePreference();
       setRememberMe(stored);
+
+      const [hasHardware, isEnrolled, credentials] = await Promise.all([
+        LocalAuthentication.hasHardwareAsync(),
+        LocalAuthentication.isEnrolledAsync(),
+        sessionStorage.getBiometricCredentials(),
+      ]);
+      setBiometricAvailable(Boolean(stored && hasHardware && isEnrolled && credentials));
     };
     loadRememberPreference();
   }, []);
@@ -84,6 +95,32 @@ export default function LoginScreen() {
       setFormError('Usuário ou senha inválidos.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const onBiometricLogin = async () => {
+    setFormError(null);
+    setBiometricLoading(true);
+    try {
+      const auth = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Entrar com biometria',
+        cancelLabel: 'Cancelar',
+        fallbackLabel: 'Usar senha',
+      });
+      if (!auth.success) return;
+
+      const credentials = await sessionStorage.getBiometricCredentials();
+      if (!credentials) {
+        Alert.alert('Biometria', 'Nenhuma credencial salva para biometria.');
+        setBiometricAvailable(false);
+        return;
+      }
+
+      await login(credentials.username, credentials.password, true);
+    } catch {
+      Alert.alert('Biometria', 'Não foi possível autenticar por biometria.');
+    } finally {
+      setBiometricLoading(false);
     }
   };
 
@@ -183,6 +220,16 @@ export default function LoginScreen() {
                 const next = !rememberMe;
                 setRememberMe(next);
                 await sessionStorage.setRememberMePreference(next);
+                if (!next) {
+                  setBiometricAvailable(false);
+                  return;
+                }
+                const [hasHardware, isEnrolled, credentials] = await Promise.all([
+                  LocalAuthentication.hasHardwareAsync(),
+                  LocalAuthentication.isEnrolledAsync(),
+                  sessionStorage.getBiometricCredentials(),
+                ]);
+                setBiometricAvailable(Boolean(hasHardware && isEnrolled && credentials));
               }}
             >
               <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
@@ -193,15 +240,33 @@ export default function LoginScreen() {
 
             <Pressable
               onPress={onSubmit}
-              disabled={loading}
+              disabled={loading || biometricLoading}
               style={({ pressed }) => [
                 styles.button,
-                pressed && !loading && styles.buttonPressed,
-                loading && styles.buttonDisabled,
+                pressed && !loading && !biometricLoading && styles.buttonPressed,
+                (loading || biometricLoading) && styles.buttonDisabled,
               ]}
             >
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Entrar</Text>}
             </Pressable>
+
+            {biometricAvailable ? (
+              <Pressable
+                onPress={onBiometricLogin}
+                disabled={loading || biometricLoading}
+                style={({ pressed }) => [
+                  styles.biometricButton,
+                  pressed && !loading && !biometricLoading && styles.biometricButtonPressed,
+                  (loading || biometricLoading) && styles.buttonDisabled,
+                ]}
+              >
+                {biometricLoading ? (
+                  <ActivityIndicator color="#1e40af" />
+                ) : (
+                  <Text style={styles.biometricButtonText}>Entrar com biometria</Text>
+                )}
+              </Pressable>
+            ) : null}
           </View>
         </View>
       </ScrollView>
@@ -433,6 +498,21 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
+    fontWeight: '700',
+  },
+  biometricButton: {
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(37,99,235,0.35)',
+    backgroundColor: 'rgba(219,234,254,0.45)',
+  },
+  biometricButtonPressed: {
+    backgroundColor: 'rgba(191,219,254,0.60)',
+  },
+  biometricButtonText: {
+    color: '#1e40af',
     fontWeight: '700',
   },
   formError: {
