@@ -904,12 +904,17 @@ export default function RelatoriosScreen() {
                               {[...pedido.produtos.values()].length > 0 ? (
                                 <View style={styles.expandProdutosBox}>
                                   {[...pedido.produtos.values()].map((produto, produtoIndex) => (
-                                    <Text key={`${pedido.pedido_id}-${produto.codigo_produto}-${produtoIndex}`} style={styles.expandProdutoText}>
-                                      {produto.produto_nome}
-                                      {'\n'}
-                                      Valor: {formatarMoeda(produto.valor_total_item)} - Qtd: {formatarNumero(produto.quantidade)}
-                                      {produto.embalagem ? ` ${produto.embalagem}` : ''}
-                                    </Text>
+                                    <View key={`${pedido.pedido_id}-${produto.codigo_produto}-${produtoIndex}`} style={styles.expandProdutoRow}>
+                                      <Text style={styles.expandProdutoNome}>{produto.produto_nome}</Text>
+                                      <Text style={styles.expandProdutoMeta}>
+                                        Qtd {formatarNumero(produto.quantidade)}
+                                        {produto.embalagem ? ` ${produto.embalagem}` : ''}
+                                        {'  |  '}
+                                        <Text style={styles.expandProdutoValor}>
+                                          {formatarMoeda(produto.valor_total_item)}
+                                        </Text>
+                                      </Text>
+                                    </View>
                                   ))}
                                 </View>
                               ) : null}
@@ -1549,12 +1554,30 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
     paddingTop: 4,
+    gap: 6,
+  },
+  expandProdutoRow: {
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 7,
+    paddingVertical: 5,
     gap: 2,
   },
-  expandProdutoText: {
-    color: '#1e293b',
+  expandProdutoNome: {
+    color: '#0f172a',
     fontSize: 12.71,
+    fontWeight: '700',
+  },
+  expandProdutoMeta: {
+    color: '#64748b',
+    fontSize: 11.55,
     fontWeight: '600',
+  },
+  expandProdutoValor: {
+    color: '#1e3a8a',
+    fontWeight: '800',
   },
   expandPedidoTop: {
     flexDirection: 'row',
