@@ -2,11 +2,11 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   Image,
   Modal,
   Platform,
   Pressable,
+  SectionList,
   StatusBar,
   StyleSheet,
   Text,
@@ -64,8 +64,7 @@ export default function ControleNotasScreen() {
       const pedidosComNf = response.data.data.filter(
         (pedido) =>
           Boolean(pedido.nf_imagem_url) &&
-          pedido.status !== 'CANCELADO' &&
-          pedido.nf_status !== 'ANTECIPADA'
+          pedido.status !== 'CANCELADO'
       );
       const mapa = new Map<number, Pedido>();
       pedidosComNf.forEach((pedido) => {
@@ -125,17 +124,37 @@ export default function ControleNotasScreen() {
   }, [carregar]);
 
   const idsSelecionados = useMemo(
-    () => pedidos.filter((pedido) => Boolean(selecionados[pedido.id])).map((pedido) => pedido.id),
+    () =>
+      pedidos
+        .filter((pedido) => pedido.nf_status !== 'ANTECIPADA' && Boolean(selecionados[pedido.id]))
+        .map((pedido) => pedido.id),
     [pedidos, selecionados]
   );
 
   const totalSelecionado = useMemo(
     () =>
       pedidos.reduce((acc, pedido) => {
-        if (!selecionados[pedido.id]) return acc;
+        if (pedido.nf_status === 'ANTECIPADA' || !selecionados[pedido.id]) return acc;
         return acc + Number(pedido.valor_total || 0);
       }, 0),
     [pedidos, selecionados]
+  );
+
+  const pedidosAConferir = useMemo(
+    () => pedidos.filter((pedido) => pedido.nf_status !== 'ANTECIPADA'),
+    [pedidos]
+  );
+  const pedidosEfetivados = useMemo(
+    () => pedidos.filter((pedido) => pedido.nf_status === 'ANTECIPADA'),
+    [pedidos]
+  );
+
+  const secoes = useMemo(
+    () => [
+      { key: 'conferir', title: 'Pedidos a conferir', data: pedidosAConferir },
+      { key: 'efetivados', title: 'Pedidos efetivados', data: pedidosEfetivados },
+    ],
+    [pedidosAConferir, pedidosEfetivados]
   );
 
   const toggleCard = useCallback((id: number) => {
@@ -183,19 +202,21 @@ export default function ControleNotasScreen() {
     );
   }, [idsSelecionados]);
 
-  const renderItem = ({ item }: { item: Pedido }) => {
+  const renderItem = ({ item, sectionKey }: { item: Pedido; sectionKey: 'conferir' | 'efetivados' }) => {
     const statusTheme = STATUS_COLOR[item.status] || STATUS_COLOR.EM_ESPERA;
     const statusLabel = STATUS_LABEL[item.status] || item.status;
     const expandido = Boolean(cardsExpandidos[item.id]);
     const marcado = Boolean(selecionados[item.id]);
+    const podeSelecionar = sectionKey === 'conferir';
     return (
       <Pressable style={styles.card} onPress={() => toggleCard(item.id)}>
         <View style={styles.cardTop}>
           <View style={styles.cardTitleWrap}>
             <Pressable
-              style={[styles.checkbox, marcado && styles.checkboxChecked]}
+              style={[styles.checkbox, marcado && styles.checkboxChecked, !podeSelecionar && styles.checkboxDisabled]}
               onPress={(event) => {
                 event.stopPropagation();
+                if (!podeSelecionar) return;
                 ignorarProximoToggleCardRef.current = true;
                 toggleSelecionado(item.id);
               }}
@@ -216,6 +237,11 @@ export default function ControleNotasScreen() {
           {formatarData(item.data)} • {formatarMoeda(Number(item.valor_total || 0))}
         </Text>
         <Text style={styles.nfNumberText}>NF: {item.nf_numero ? item.nf_numero : 'Não informado'}</Text>
+        {sectionKey === 'efetivados' ? (
+          <Text style={styles.nfEfetivadoPorText}>
+            Efetivado por: {item.nf_efetivado_por_nome || 'Usuário não identificado'}
+          </Text>
+        ) : null}
         {expandido ? (
           <>
             {item.nf_imagem_url ? (
@@ -262,9 +288,11 @@ export default function ControleNotasScreen() {
         <View style={styles.summaryCard}>
           <Text style={styles.summaryTitle}>Pedidos com NF</Text>
           <Text style={styles.summaryValue}>{pedidos.length}</Text>
+          <Text style={styles.summarySub}>A conferir: {pedidosAConferir.length}</Text>
+          <Text style={styles.summarySub}>Efetivados: {pedidosEfetivados.length}</Text>
           <Text style={styles.summarySub}>Selecionados: {idsSelecionados.length}</Text>
           <Text style={styles.summarySub}>Valor selecionado: {formatarMoeda(totalSelecionado)}</Text>
-          <Text style={styles.summarySub}>Somente pedidos com NF válida (não cancelados e não antecipados)</Text>
+          <Text style={styles.summarySub}>Somente pedidos com NF válida (não cancelados)</Text>
         </View>
 
         {loading ? (
@@ -279,10 +307,21 @@ export default function ControleNotasScreen() {
             </Pressable>
           </View>
         ) : (
-          <FlatList
-            data={pedidos}
+          <SectionList
+            sections={secoes}
             keyExtractor={(item) => String(item.id)}
-            renderItem={renderItem}
+            renderItem={({ item, section }) =>
+              renderItem({
+                item,
+                sectionKey: section.key as 'conferir' | 'efetivados',
+              })
+            }
+            renderSectionHeader={({ section }) => (
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>{section.title}</Text>
+                <Text style={styles.sectionMeta}>{section.data.length}</Text>
+              </View>
+            )}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             onRefresh={onRefresh}
@@ -392,6 +431,29 @@ const styles = StyleSheet.create({
   summaryValue: { color: '#0f172a', fontSize: 28, fontWeight: '800', marginTop: 2 },
   summarySub: { color: '#475569', fontSize: 13, fontWeight: '600', marginTop: 2 },
   listContent: { paddingBottom: 24, rowGap: 10 },
+  sectionHeader: {
+    marginTop: 6,
+    marginBottom: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  sectionTitle: {
+    color: '#1e3a8a',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  sectionMeta: {
+    color: '#1e3a8a',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   card: {
     borderRadius: 12,
     borderWidth: 1,
@@ -418,6 +480,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#2563eb',
     borderColor: '#2563eb',
   },
+  checkboxDisabled: {
+    opacity: 0.45,
+  },
   checkboxIcon: {
     color: '#ffffff',
     fontSize: 12,
@@ -438,6 +503,7 @@ const styles = StyleSheet.create({
   cardMeta: { color: '#64748b', fontSize: 13, fontWeight: '600', marginTop: 2, marginBottom: 8 },
   cardMetaCompact: { marginBottom: 0 },
   nfNumberText: { color: '#0f172a', fontSize: 12.8, fontWeight: '700', marginTop: 4 },
+  nfEfetivadoPorText: { color: '#0f766e', fontSize: 12.8, fontWeight: '700', marginTop: 4 },
   imageWrap: {
     borderWidth: 1,
     borderColor: '#bfdbfe',

@@ -184,6 +184,8 @@ const ensureImageColumns = async () => {
   await pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_imagem_url TEXT");
   await pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_numero TEXT");
   await pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_status TEXT NOT NULL DEFAULT 'PENDENTE'");
+  await pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_efetivado_por INTEGER");
+  await pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_efetivado_por_nome TEXT");
   await pool.query("UPDATE pedidos SET nf_status = 'PENDENTE' WHERE nf_status IS NULL");
 };
 
@@ -1219,6 +1221,7 @@ app.get("/pedidos", async (req, res) => {
         p.nf_imagem_url,
         p.nf_numero,
         p.nf_status,
+        p.nf_efetivado_por_nome,
         p.valor_total,
         p.valor_efetivado,
         EXISTS (SELECT 1 FROM trocas t WHERE t.pedido_id = p.id) AS tem_trocas,
@@ -1329,6 +1332,7 @@ app.get("/pedidos/:id", async (req, res, next) => {
         p.nf_imagem_url,
         p.nf_numero,
         p.nf_status,
+        p.nf_efetivado_por_nome,
         p.valor_total,
         p.valor_efetivado,
         EXISTS (SELECT 1 FROM trocas t WHERE t.pedido_id = p.id) AS tem_trocas,
@@ -1456,6 +1460,7 @@ app.get("/pedidos/paginado", async (req, res) => {
         p.nf_imagem_url,
         p.nf_numero,
         p.nf_status,
+        p.nf_efetivado_por_nome,
         p.valor_total,
         p.valor_efetivado,
         EXISTS (SELECT 1 FROM trocas t WHERE t.pedido_id = p.id) AS tem_trocas,
@@ -1614,13 +1619,15 @@ app.patch("/pedidos/nf/antecipar", async (req: AuthenticatedRequest, res) => {
     const result = await pool.query(
       `UPDATE pedidos
        SET nf_status = 'ANTECIPADA',
+           nf_efetivado_por = $2,
+           nf_efetivado_por_nome = $3,
            atualizado_em = NOW(),
            atualizado_por = $2
        WHERE id = ANY($1::int[])
          AND COALESCE(nf_imagem_url, '') <> ''
          AND status <> 'CANCELADO'
        RETURNING id`,
-      [pedidoIds, req.user?.id || null]
+      [pedidoIds, req.user?.id || null, req.user?.nome || null]
     );
 
     return res.json({
@@ -2235,6 +2242,7 @@ app.put("/pedidos/:id", async (req: AuthenticatedRequest, res) => {
         p.nf_imagem_url,
         p.nf_numero,
         p.nf_status,
+        p.nf_efetivado_por_nome,
         p.valor_total,
         p.valor_efetivado,
         c.id as cliente_id,
