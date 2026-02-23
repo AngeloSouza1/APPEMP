@@ -515,12 +515,15 @@ export default function HistoricoScreen() {
                       <Text style={styles.dateGroupToggle}>{expandido ? '▾' : '▸'}</Text>
                     </Pressable>
                     {expandido
-                      ? grupo.itens.map((item) => {
+                      ? grupo.itens.map((item, index) => {
                       const theme = STATUS_THEME[item.status] || STATUS_THEME.CONFERIR;
                       return (
                         <Pressable
                           key={item.id}
-                          style={styles.itemCard}
+                          style={[
+                            styles.itemCard,
+                            grupo.itens.length > 1 && index % 2 === 1 ? styles.itemCardAlt : null,
+                          ]}
                           onPress={() => setPedidoDetalheModal(item)}
                         >
                           <View style={styles.itemTop}>
@@ -529,11 +532,9 @@ export default function HistoricoScreen() {
                               <Text style={[styles.statusBadgeText, { color: theme.text }]}>{theme.label}</Text>
                             </View>
                           </View>
-                          <Text style={styles.itemClient}>{item.cliente_nome}</Text>
-                          <Text style={styles.itemDate}>{formatarData(item.data)}</Text>
-                          <View style={styles.vendaTotalBox}>
-                            <Text style={styles.vendaTotalLabel}>Valor total da venda</Text>
-                            <Text style={styles.vendaTotalValue}>{formatarMoeda(Number(item.valor_total || 0))}</Text>
+                          <View style={styles.itemClientValueRow}>
+                            <Text style={styles.itemClient}>{item.cliente_nome}</Text>
+                            <Text style={styles.itemTotalInline}>{formatarMoeda(Number(item.valor_total || 0))}</Text>
                           </View>
                         </Pressable>
                       );
@@ -951,66 +952,29 @@ const styles = StyleSheet.create({
     padding: 10,
     gap: 5,
   },
+  itemCardAlt: {
+    backgroundColor: '#f8fafc',
+    borderColor: '#bfdbfe',
+  },
   itemTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', columnGap: 8 },
   itemSub: { color: '#64748b', fontSize: 12.71, fontWeight: '600' },
-  itemClient: { color: '#0f172a', fontSize: 15.02, fontWeight: '700', flex: 1 },
-  itemDate: { color: '#475569', fontSize: 12.71, fontWeight: '700' },
-  itensResumoBox: {
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#f8fafc',
-    paddingHorizontal: 8,
-    paddingVertical: 7,
-    gap: 5,
-  },
-  itensResumoTitulo: {
-    color: '#334155',
-    fontSize: 11.55,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  itensResumoRow: {
+  itemClientValueRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     columnGap: 8,
+    marginTop: 2,
   },
-  itemDescricaoNome: {
+  itemClient: {
     flex: 1,
     color: '#1e293b',
-    fontSize: 12.71,
+    fontSize: 15.02,
     fontWeight: '700',
   },
-  itemDescricaoMeta: {
-    color: '#475569',
-    fontSize: 12.71,
-    fontWeight: '700',
-  },
-  itensResumoExtra: {
-    color: '#64748b',
-    fontSize: 11.55,
-    fontWeight: '700',
-  },
-  vendaTotalBox: {
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-    marginTop: 2,
-    paddingTop: 6,
-    alignItems: 'flex-end',
-  },
-  vendaTotalLabel: {
-    color: '#64748b',
-    fontSize: 11.55,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  vendaTotalValue: {
+  itemTotalInline: {
     color: '#1e40af',
-    fontSize: 16.17,
+    fontSize: 15.02,
     fontWeight: '900',
-    marginTop: 1,
-    textAlign: 'right',
   },
   statusBadge: {
     borderRadius: 999,
