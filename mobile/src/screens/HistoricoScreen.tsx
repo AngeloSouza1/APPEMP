@@ -85,6 +85,7 @@ export default function HistoricoScreen() {
   const [showDataInicio, setShowDataInicio] = useState(false);
   const [showDataFim, setShowDataFim] = useState(false);
   const [showClienteModal, setShowClienteModal] = useState(false);
+  const [pedidoDetalheModal, setPedidoDetalheModal] = useState<Pedido | null>(null);
   const [lembrarFiltro, setLembrarFiltro] = useState(false);
   const [datasExpandidas, setDatasExpandidas] = useState<Record<string, boolean>>({});
   const [expandirTodasDatas, setExpandirTodasDatas] = useState(false);
@@ -516,22 +517,11 @@ export default function HistoricoScreen() {
                     {expandido
                       ? grupo.itens.map((item) => {
                       const theme = STATUS_THEME[item.status] || STATUS_THEME.CONFERIR;
-                      const quantidadeTotal = (item.itens || []).reduce(
-                        (acc, produto) => acc + Number(produto.quantidade || 0),
-                        0
-                      );
-                      const itensResumo = (item.itens || []).slice(0, 3).map((produto) => ({
-                        nome: produto.produto_nome || produto.codigo_produto || `Produto ${produto.produto_id}`,
-                        qtd: formatarQuantidade(Number(produto.quantidade || 0)),
-                        valor: formatarMoeda(Number(produto.valor_total_item || 0)),
-                      }));
-                      const podeExcluirNoHistorico = user?.perfil === 'admin';
-                      const excluindoPedido = deletingPedidoId === item.id;
                       return (
                         <Pressable
                           key={item.id}
                           style={styles.itemCard}
-                          onPress={() => navigation.navigate('PedidoDetalhe', { id: item.id })}
+                          onPress={() => setPedidoDetalheModal(item)}
                         >
                           <View style={styles.itemTop}>
                             <Text style={styles.itemSub}>Pedido #{item.id}</Text>
@@ -540,40 +530,11 @@ export default function HistoricoScreen() {
                             </View>
                           </View>
                           <Text style={styles.itemClient}>{item.cliente_nome}</Text>
-                          {itensResumo.length > 0 ? (
-                            <View style={styles.itensResumoBox}>
-                              <Text style={styles.itensResumoTitulo}>Itens do pedido</Text>
-                              {itensResumo.map((resumo, idx) => (
-                                <View key={`${item.id}-${idx}`} style={styles.itensResumoRow}>
-                                  <Text style={styles.itemDescricaoNome}>{resumo.nome}</Text>
-                                  <Text style={styles.itemDescricaoMeta}>
-                                    {resumo.qtd} • {resumo.valor}
-                                  </Text>
-                                </View>
-                              ))}
-                              {(item.itens || []).length > 3 ? (
-                                <Text style={styles.itensResumoExtra}>+ {(item.itens || []).length - 3} item(ns)</Text>
-                              ) : null}
-                            </View>
-                          ) : null}
+                          <Text style={styles.itemDate}>{formatarData(item.data)}</Text>
                           <View style={styles.vendaTotalBox}>
                             <Text style={styles.vendaTotalLabel}>Valor total da venda</Text>
                             <Text style={styles.vendaTotalValue}>{formatarMoeda(Number(item.valor_total || 0))}</Text>
                           </View>
-                          {podeExcluirNoHistorico ? (
-                            <View style={styles.itemActionsRow}>
-                              <Pressable
-                                onPress={(event) => {
-                                  event.stopPropagation();
-                                  if (!excluindoPedido) confirmarExclusaoPedido(item.id);
-                                }}
-                              >
-                                <Text style={[styles.itemDeleteLink, excluindoPedido && styles.itemDeleteLinkDisabled]}>
-                                  {excluindoPedido ? 'Excluindo...' : 'Excluir'}
-                                </Text>
-                              </Pressable>
-                            </View>
-                          ) : null}
                         </Pressable>
                       );
                     })
@@ -634,6 +595,93 @@ export default function HistoricoScreen() {
               <Text style={styles.modalCloseBtnText}>Fechar</Text>
             </Pressable>
           </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={Boolean(pedidoDetalheModal)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPedidoDetalheModal(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setPedidoDetalheModal(null)} />
+          {pedidoDetalheModal ? (
+            <View style={styles.modalCard}>
+              <View style={styles.modalPedidoHeader}>
+                <Text style={styles.modalTitle}>Pedido #{pedidoDetalheModal.id}</Text>
+                <View
+                  style={[
+                    styles.statusBadge,
+                    {
+                      backgroundColor:
+                        (STATUS_THEME[pedidoDetalheModal.status] || STATUS_THEME.CONFERIR).bg,
+                      borderColor:
+                        (STATUS_THEME[pedidoDetalheModal.status] || STATUS_THEME.CONFERIR).border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.statusBadgeText,
+                      { color: (STATUS_THEME[pedidoDetalheModal.status] || STATUS_THEME.CONFERIR).text },
+                    ]}
+                  >
+                    {(STATUS_THEME[pedidoDetalheModal.status] || STATUS_THEME.CONFERIR).label}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.modalPedidoClient}>{pedidoDetalheModal.cliente_nome}</Text>
+              <Text style={styles.modalPedidoMeta}>{formatarData(pedidoDetalheModal.data)}</Text>
+              <Text style={styles.modalPedidoTotal}>
+                Total: {formatarMoeda(Number(pedidoDetalheModal.valor_total || 0))}
+              </Text>
+
+              <ScrollView style={styles.modalPedidoItensList}>
+                {(pedidoDetalheModal.itens || []).length > 0 ? (
+                  (pedidoDetalheModal.itens || []).map((produto, idx) => (
+                    <View key={`${pedidoDetalheModal.id}-${produto.produto_id}-${idx}`} style={styles.modalPedidoItem}>
+                      <Text style={styles.modalPedidoItemNome}>
+                        {produto.produto_nome || produto.codigo_produto || `Produto ${produto.produto_id}`}
+                      </Text>
+                      <Text style={styles.modalPedidoItemMeta}>
+                        {formatarQuantidade(Number(produto.quantidade || 0))} •{' '}
+                        {formatarMoeda(Number(produto.valor_total_item || 0))}
+                      </Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.emptyText}>Sem itens detalhados para este pedido.</Text>
+                )}
+              </ScrollView>
+
+              <View style={styles.modalPedidoActions}>
+                {user?.perfil === 'admin' ? (
+                  <Pressable
+                    onPress={() => {
+                      if (deletingPedidoId === pedidoDetalheModal.id) return;
+                      setPedidoDetalheModal(null);
+                      confirmarExclusaoPedido(pedidoDetalheModal.id);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.itemDeleteLink,
+                        deletingPedidoId === pedidoDetalheModal.id && styles.itemDeleteLinkDisabled,
+                      ]}
+                    >
+                      {deletingPedidoId === pedidoDetalheModal.id ? 'Excluindo...' : 'Excluir pedido'}
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <View />
+                )}
+                <Pressable style={styles.modalCloseBtn} onPress={() => setPedidoDetalheModal(null)}>
+                  <Text style={styles.modalCloseBtnText}>Fechar</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
         </View>
       </Modal>
     </View>
@@ -906,6 +954,7 @@ const styles = StyleSheet.create({
   itemTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', columnGap: 8 },
   itemSub: { color: '#64748b', fontSize: 12.71, fontWeight: '600' },
   itemClient: { color: '#0f172a', fontSize: 15.02, fontWeight: '700', flex: 1 },
+  itemDate: { color: '#475569', fontSize: 12.71, fontWeight: '700' },
   itensResumoBox: {
     borderRadius: 8,
     borderWidth: 1,
@@ -1020,4 +1069,55 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   modalCloseBtnText: { color: '#334155', fontWeight: '700', fontSize: 13.86 },
+  modalPedidoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    columnGap: 8,
+  },
+  modalPedidoClient: {
+    color: '#0f172a',
+    fontSize: 16.17,
+    fontWeight: '800',
+  },
+  modalPedidoMeta: {
+    color: '#475569',
+    fontSize: 12.71,
+    fontWeight: '700',
+  },
+  modalPedidoTotal: {
+    color: '#1e40af',
+    fontSize: 15.02,
+    fontWeight: '900',
+  },
+  modalPedidoItensList: {
+    maxHeight: 260,
+    marginTop: 2,
+  },
+  modalPedidoItem: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    marginBottom: 6,
+    gap: 2,
+  },
+  modalPedidoItemNome: {
+    color: '#0f172a',
+    fontSize: 13.86,
+    fontWeight: '700',
+  },
+  modalPedidoItemMeta: {
+    color: '#475569',
+    fontSize: 12.71,
+    fontWeight: '700',
+  },
+  modalPedidoActions: {
+    marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
 });
