@@ -873,7 +873,10 @@ export default function RelatoriosScreen() {
                       return (
                         <Pressable
                           key={pedido.pedido_id}
-                          style={styles.expandPedidoRow}
+                          style={[
+                            styles.expandPedidoRow,
+                            pedidoExpandido ? styles.expandPedidoRowActive : null,
+                          ]}
                           onPress={() => setPedidoExpandidoKey((prev) => (prev === keyPedido ? null : keyPedido))}
                         >
                           <View style={styles.expandPedidoTop}>
@@ -1548,6 +1551,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 6,
     gap: 2,
+  },
+  expandPedidoRowActive: {
+    borderColor: '#facc15',
+    backgroundColor: '#fef9c3',
   },
   expandProdutosBox: {
     marginTop: 4,
