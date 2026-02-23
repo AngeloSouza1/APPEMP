@@ -215,6 +215,7 @@ export default function RelatoriosScreen() {
   const [showDateFim, setShowDateFim] = useState(false);
   const [lembrarPeriodo, setLembrarPeriodo] = useState(false);
   const [rotaExpandidaId, setRotaExpandidaId] = useState<number | null>(null);
+  const [pedidoExpandidoKey, setPedidoExpandidoKey] = useState<string | null>(null);
   const [filtroAplicado, setFiltroAplicado] = useState(false);
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState<Date | null>(null);
 
@@ -480,6 +481,7 @@ export default function RelatoriosScreen() {
       setTrocas(trocasMerged);
       setNotas(notasMerged);
       setRotaExpandidaId(null);
+      setPedidoExpandidoKey(null);
       setFiltroAplicado(true);
       const dataAtualizacao = new Date();
       setUltimaAtualizacao(dataAtualizacao);
@@ -534,6 +536,7 @@ export default function RelatoriosScreen() {
     setNotas([]);
     setFiltroNotasEfetivacao('todas');
     setRotaExpandidaId(null);
+    setPedidoExpandidoKey(null);
     removerPersistenciaRelatorios().catch(() => {
       // Ignora falha de limpeza local.
     });
@@ -865,8 +868,14 @@ export default function RelatoriosScreen() {
                           text: '#334155',
                           label: pedido.pedido_status || 'Sem status',
                         };
+                      const keyPedido = `${item.rota_id}-${pedido.pedido_id}`;
+                      const pedidoExpandido = pedidoExpandidoKey === keyPedido;
                       return (
-                        <View key={pedido.pedido_id} style={styles.expandPedidoRow}>
+                        <Pressable
+                          key={pedido.pedido_id}
+                          style={styles.expandPedidoRow}
+                          onPress={() => setPedidoExpandidoKey((prev) => (prev === keyPedido ? null : keyPedido))}
+                        >
                           <View style={styles.expandPedidoTop}>
                             <Text style={styles.expandText}>
                               #{pedido.pedido_id} - {pedido.cliente_nome}
@@ -883,22 +892,30 @@ export default function RelatoriosScreen() {
                               <Text style={[styles.statusBadgeText, { color: theme.text }]}>{theme.label}</Text>
                             </View>
                           </View>
-                          <Text style={styles.expandText}>
-                            {formatarData(pedido.pedido_data)} - <Text style={styles.expandTextStrong}>{formatarMoeda(pedido.pedido_valor_total)}</Text>
+                          <Text style={styles.expandPedidoToggle}>
+                            {pedidoExpandido ? 'Ocultar pedido' : 'Ver pedido'}
                           </Text>
-                          {[...pedido.produtos.values()].length > 0 ? (
-                            <View style={styles.expandProdutosBox}>
-                              {[...pedido.produtos.values()].map((produto, produtoIndex) => (
-                                <Text key={`${pedido.pedido_id}-${produto.codigo_produto}-${produtoIndex}`} style={styles.expandProdutoText}>
-                                  {produto.produto_nome}
-                                  {'\n'}
-                                  Valor: {formatarMoeda(produto.valor_total_item)} - Qtd: {formatarNumero(produto.quantidade)}
-                                  {produto.embalagem ? ` ${produto.embalagem}` : ''}
-                                </Text>
-                              ))}
-                            </View>
+                          {pedidoExpandido ? (
+                            <>
+                              <Text style={styles.expandText}>
+                                {formatarData(pedido.pedido_data)} -{' '}
+                                <Text style={styles.expandTextStrong}>{formatarMoeda(pedido.pedido_valor_total)}</Text>
+                              </Text>
+                              {[...pedido.produtos.values()].length > 0 ? (
+                                <View style={styles.expandProdutosBox}>
+                                  {[...pedido.produtos.values()].map((produto, produtoIndex) => (
+                                    <Text key={`${pedido.pedido_id}-${produto.codigo_produto}-${produtoIndex}`} style={styles.expandProdutoText}>
+                                      {produto.produto_nome}
+                                      {'\n'}
+                                      Valor: {formatarMoeda(produto.valor_total_item)} - Qtd: {formatarNumero(produto.quantidade)}
+                                      {produto.embalagem ? ` ${produto.embalagem}` : ''}
+                                    </Text>
+                                  ))}
+                                </View>
+                              ) : null}
+                            </>
                           ) : null}
-                        </View>
+                        </Pressable>
                       );
                     })}
                     {item.pedidos_detalhes.length > 8 ? (
@@ -1544,6 +1561,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     columnGap: 8,
+  },
+  expandPedidoToggle: {
+    color: '#1d4ed8',
+    fontSize: 12.71,
+    fontWeight: '700',
   },
   statusBadge: {
     borderRadius: 999,
