@@ -2,11 +2,11 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Image,
   Modal,
   Platform,
   Pressable,
-  SectionList,
   StatusBar,
   StyleSheet,
   Text,
@@ -53,6 +53,7 @@ export default function ControleNotasScreen() {
   const [cardsExpandidos, setCardsExpandidos] = useState<Record<number, boolean>>({});
   const [selecionados, setSelecionados] = useState<Record<number, boolean>>({});
   const [efetivando, setEfetivando] = useState(false);
+  const [abaAtiva, setAbaAtiva] = useState<'conferir' | 'efetivados'>('conferir');
   const ignorarProximoToggleCardRef = useRef(false);
 
   const carregar = useCallback(async () => {
@@ -149,12 +150,9 @@ export default function ControleNotasScreen() {
     [pedidos]
   );
 
-  const secoes = useMemo(
-    () => [
-      { key: 'conferir', title: 'Pedidos a conferir', data: pedidosAConferir },
-      { key: 'efetivados', title: 'Pedidos efetivados', data: pedidosEfetivados },
-    ],
-    [pedidosAConferir, pedidosEfetivados]
+  const pedidosDaAba = useMemo(
+    () => (abaAtiva === 'conferir' ? pedidosAConferir : pedidosEfetivados),
+    [abaAtiva, pedidosAConferir, pedidosEfetivados]
   );
 
   const toggleCard = useCallback((id: number) => {
@@ -295,6 +293,25 @@ export default function ControleNotasScreen() {
           <Text style={styles.summarySub}>Somente pedidos com NF válida (não cancelados)</Text>
         </View>
 
+        <View style={styles.tabsRow}>
+          <Pressable
+            style={[styles.tabButton, abaAtiva === 'conferir' && styles.tabButtonActive]}
+            onPress={() => setAbaAtiva('conferir')}
+          >
+            <Text style={[styles.tabButtonText, abaAtiva === 'conferir' && styles.tabButtonTextActive]}>
+              A conferir ({pedidosAConferir.length})
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.tabButton, abaAtiva === 'efetivados' && styles.tabButtonActive]}
+            onPress={() => setAbaAtiva('efetivados')}
+          >
+            <Text style={[styles.tabButtonText, abaAtiva === 'efetivados' && styles.tabButtonTextActive]}>
+              Efetivados ({pedidosEfetivados.length})
+            </Text>
+          </Pressable>
+        </View>
+
         {loading ? (
           <View style={styles.centerCard}>
             <ActivityIndicator />
@@ -307,21 +324,15 @@ export default function ControleNotasScreen() {
             </Pressable>
           </View>
         ) : (
-          <SectionList
-            sections={secoes}
+          <FlatList
+            data={pedidosDaAba}
             keyExtractor={(item) => String(item.id)}
-            renderItem={({ item, section }) =>
+            renderItem={({ item }) =>
               renderItem({
                 item,
-                sectionKey: section.key as 'conferir' | 'efetivados',
+                sectionKey: abaAtiva,
               })
             }
-            renderSectionHeader={({ section }) => (
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{section.title}</Text>
-                <Text style={styles.sectionMeta}>{section.data.length}</Text>
-              </View>
-            )}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             onRefresh={onRefresh}
@@ -430,30 +441,35 @@ const styles = StyleSheet.create({
   summaryTitle: { color: '#334155', fontSize: 14, fontWeight: '700' },
   summaryValue: { color: '#0f172a', fontSize: 28, fontWeight: '800', marginTop: 2 },
   summarySub: { color: '#475569', fontSize: 13, fontWeight: '600', marginTop: 2 },
-  listContent: { paddingBottom: 24, rowGap: 10 },
-  sectionHeader: {
-    marginTop: 6,
-    marginBottom: 4,
+  tabsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 9,
+    columnGap: 8,
+    marginBottom: 8,
+  },
+  tabButton: {
+    flex: 1,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#bfdbfe',
-    backgroundColor: '#eff6ff',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    backgroundColor: '#f8fbff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
   },
-  sectionTitle: {
-    color: '#1e3a8a',
-    fontSize: 13,
-    fontWeight: '800',
+  tabButtonActive: {
+    borderColor: '#93c5fd',
+    backgroundColor: '#dbeafe',
   },
-  sectionMeta: {
-    color: '#1e3a8a',
-    fontSize: 12,
+  tabButtonText: {
+    color: '#334155',
+    fontSize: 12.8,
     fontWeight: '700',
   },
+  tabButtonTextActive: {
+    color: '#1e3a8a',
+    fontWeight: '800',
+  },
+  listContent: { paddingBottom: 24, rowGap: 10 },
   card: {
     borderRadius: 12,
     borderWidth: 1,
