@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import DatePickerModal from '../components/DatePickerModal';
 import {
   relatoriosApi,
+  RelatorioNotaItem,
   RelatorioProducaoItem,
   RelatorioProdutosPorRotaItem,
   RelatorioRotaDetalhadoItem,
@@ -27,7 +28,7 @@ import { RootStackParamList } from '../navigation/RootNavigator';
 import { formatarData, formatarMoeda } from '../utils/format';
 import { limparTimestampRefreshRelatorios, lerTimestampRefreshRelatorios } from '../utils/relatoriosRefresh';
 
-type SubRelatorio = 'producao' | 'rotas' | 'produtos-rota' | 'top-clientes' | 'trocas';
+type SubRelatorio = 'producao' | 'rotas' | 'produtos-rota' | 'top-clientes' | 'trocas' | 'notas';
 type StatusFiltro = 'EM_ESPERA' | 'CONFERIR' | 'EFETIVADO' | 'CANCELADO';
 const RELATORIOS_FILTRO_STORAGE_KEY = '@appemp:relatorios_filtro_periodo';
 const RELATORIOS_RESULTADOS_STORAGE_KEY = '@appemp:relatorios_resultados';
@@ -82,6 +83,12 @@ const TAB_OPTIONS: Array<{
     label: 'Trocas',
     icon: 'TR',
     tone: { bg: '#fdf2f8', border: '#fbcfe8', text: '#9d174d' },
+  },
+  {
+    key: 'notas',
+    label: 'Notas',
+    icon: 'NF',
+    tone: { bg: '#ecfeff', border: '#a5f3fc', text: '#0e7490' },
   },
 ];
 
@@ -216,6 +223,10 @@ export default function RelatoriosScreen() {
   const [produtosPorRota, setProdutosPorRota] = useState<RelatorioProdutosPorRotaItem[]>([]);
   const [topClientes, setTopClientes] = useState<RelatorioTopClienteItem[]>([]);
   const [trocas, setTrocas] = useState<RelatorioTrocaItem[]>([]);
+  const [notas, setNotas] = useState<RelatorioNotaItem[]>([]);
+  const [filtroNotasEfetivacao, setFiltroNotasEfetivacao] = useState<'todas' | 'efetivadas' | 'nao-efetivadas'>(
+    'todas'
+  );
 
   useEffect(() => {
     const carregarFiltroSalvo = async () => {
@@ -254,6 +265,7 @@ export default function RelatoriosScreen() {
             produtosPorRota?: RelatorioProdutosPorRotaItem[];
             topClientes?: RelatorioTopClienteItem[];
             trocas?: RelatorioTrocaItem[];
+            notas?: RelatorioNotaItem[];
           };
 
           if (parsedResultados.lembrar) {
@@ -267,6 +279,7 @@ export default function RelatoriosScreen() {
             setProdutosPorRota(parsedResultados.produtosPorRota || []);
             setTopClientes(parsedResultados.topClientes || []);
             setTrocas(parsedResultados.trocas || []);
+            setNotas(parsedResultados.notas || []);
           }
         }
       } catch {
@@ -289,6 +302,7 @@ export default function RelatoriosScreen() {
         produtosPorRota,
         topClientes,
         trocas,
+        notas,
       })
     );
   }, [
@@ -299,6 +313,7 @@ export default function RelatoriosScreen() {
     subRelatorio,
     topClientes,
     trocas,
+    notas,
     ultimaAtualizacao,
   ]);
 
@@ -396,6 +411,16 @@ export default function RelatoriosScreen() {
     return [...mapa.values()];
   };
 
+  const agregarNotas = (rows: RelatorioNotaItem[]) => {
+    const mapa = new Map<number, RelatorioNotaItem>();
+    rows.forEach((item) => {
+      if (!mapa.has(item.pedido_id)) {
+        mapa.set(item.pedido_id, item);
+      }
+    });
+    return [...mapa.values()];
+  };
+
   const carregarBase = useCallback(async () => {
     const inicioIso = parseBrToIso(dataInicio);
     const fimIso = parseBrToIso(dataFim);
@@ -422,12 +447,13 @@ export default function RelatoriosScreen() {
       const resultadosPorStatus = await Promise.all(
         statusAplicados.map(async (status) => {
           const filtros = { ...filtrosBase, status };
-          const [producaoResp, rotasResp, produtosResp, topResp, trocasResp] = await Promise.all([
+          const [producaoResp, rotasResp, produtosResp, topResp, trocasResp, notasResp] = await Promise.all([
             relatoriosApi.producao(filtros),
             relatoriosApi.rotasDetalhado(filtros),
             relatoriosApi.produtosPorRota(filtros),
             relatoriosApi.topClientes(filtros),
             relatoriosApi.trocas(filtros),
+            relatoriosApi.notas(filtros),
           ]);
           return {
             producao: producaoResp.data,
@@ -435,6 +461,7 @@ export default function RelatoriosScreen() {
             produtos: produtosResp.data,
             top: topResp.data,
             trocas: trocasResp.data,
+            notas: notasResp.data,
           };
         })
       );
@@ -444,12 +471,14 @@ export default function RelatoriosScreen() {
       const produtosMerged = agregarProdutosPorRota(resultadosPorStatus.flatMap((item) => item.produtos));
       const topMerged = agregarTopClientes(resultadosPorStatus.flatMap((item) => item.top));
       const trocasMerged = agregarTrocas(resultadosPorStatus.flatMap((item) => item.trocas));
+      const notasMerged = agregarNotas(resultadosPorStatus.flatMap((item) => item.notas));
 
       setProducao(producaoMerged);
       setRotasDetalhado(rotasMerged);
       setProdutosPorRota(produtosMerged);
       setTopClientes(topMerged);
       setTrocas(trocasMerged);
+      setNotas(notasMerged);
       setRotaExpandidaId(null);
       setFiltroAplicado(true);
       const dataAtualizacao = new Date();
@@ -477,6 +506,7 @@ export default function RelatoriosScreen() {
               produtosPorRota: produtosMerged,
               topClientes: topMerged,
               trocas: trocasMerged,
+              notas: notasMerged,
             })
           ),
         ]);
@@ -501,6 +531,8 @@ export default function RelatoriosScreen() {
     setProdutosPorRota([]);
     setTopClientes([]);
     setTrocas([]);
+    setNotas([]);
+    setFiltroNotasEfetivacao('todas');
     setRotaExpandidaId(null);
     removerPersistenciaRelatorios().catch(() => {
       // Ignora falha de limpeza local.
@@ -575,14 +607,26 @@ export default function RelatoriosScreen() {
     'produtos-rota': 'Produtos/Rota',
     'top-clientes': 'Top Clientes',
     trocas: 'Trocas',
+    notas: 'Notas',
   };
+  const notasFiltradas = useMemo(() => {
+    if (filtroNotasEfetivacao === 'efetivadas') {
+      return notas.filter((item) => item.nf_status === 'ANTECIPADA');
+    }
+    if (filtroNotasEfetivacao === 'nao-efetivadas') {
+      return notas.filter((item) => item.nf_status !== 'ANTECIPADA');
+    }
+    return notas;
+  }, [filtroNotasEfetivacao, notas]);
   const totalSubRelatorio = useMemo(() => {
     if (subRelatorio === 'producao') return producaoOrdenada.length;
     if (subRelatorio === 'rotas') return rotasAgrupadas.length;
     if (subRelatorio === 'produtos-rota') return produtosPorRotaAgrupado.length;
     if (subRelatorio === 'top-clientes') return topClientes.length;
-    return trocasOrdenadas.length;
+    if (subRelatorio === 'trocas') return trocasOrdenadas.length;
+    return notasFiltradas.length;
   }, [
+    notasFiltradas.length,
     producaoOrdenada.length,
     produtosPorRotaAgrupado.length,
     rotasAgrupadas.length,
@@ -935,6 +979,82 @@ export default function RelatoriosScreen() {
                 </Text>
               </View>
             ))}
+          </View>
+        ) : null}
+
+        {filtroAplicado && !loading && subRelatorio === 'notas' ? (
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Notas</Text>
+              <Text style={styles.sectionMeta}>{notasFiltradas.length} nota(s)</Text>
+            </View>
+
+            <View style={styles.notesFilterRow}>
+              <Pressable
+                style={[styles.notesFilterChip, filtroNotasEfetivacao === 'todas' && styles.notesFilterChipActive]}
+                onPress={() => setFiltroNotasEfetivacao('todas')}
+              >
+                <Text
+                  style={[styles.notesFilterChipText, filtroNotasEfetivacao === 'todas' && styles.notesFilterChipTextActive]}
+                >
+                  Todas
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.notesFilterChip, filtroNotasEfetivacao === 'efetivadas' && styles.notesFilterChipActive]}
+                onPress={() => setFiltroNotasEfetivacao('efetivadas')}
+              >
+                <Text
+                  style={[
+                    styles.notesFilterChipText,
+                    filtroNotasEfetivacao === 'efetivadas' && styles.notesFilterChipTextActive,
+                  ]}
+                >
+                  Efetivadas
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.notesFilterChip,
+                  filtroNotasEfetivacao === 'nao-efetivadas' && styles.notesFilterChipActive,
+                ]}
+                onPress={() => setFiltroNotasEfetivacao('nao-efetivadas')}
+              >
+                <Text
+                  style={[
+                    styles.notesFilterChipText,
+                    filtroNotasEfetivacao === 'nao-efetivadas' && styles.notesFilterChipTextActive,
+                  ]}
+                >
+                  Não efetivadas
+                </Text>
+              </Pressable>
+            </View>
+
+            {notasFiltradas.length === 0 ? (
+              <Text style={styles.emptyText}>Nenhuma nota encontrada para este filtro.</Text>
+            ) : (
+              notasFiltradas.map((item) => (
+                <View key={item.pedido_id} style={styles.itemCard}>
+                  <View style={styles.itemTop}>
+                    <Text style={styles.itemTitle}>Pedido #{item.pedido_id}</Text>
+                    <Text style={styles.itemValue}>{formatarMoeda(Number(item.pedido_valor_total || 0))}</Text>
+                  </View>
+                  <Text style={styles.itemMeta}>
+                    {item.codigo_cliente} - {item.cliente_nome}
+                  </Text>
+                  <Text style={styles.itemMeta}>
+                    NF: <Text style={styles.itemMetaStrong}>{item.nf_numero || 'Não informada'}</Text>
+                  </Text>
+                  <Text style={styles.itemMeta}>
+                    {formatarData(item.pedido_data)} -{' '}
+                    <Text style={styles.itemMetaStrong}>
+                      {item.nf_status === 'ANTECIPADA' ? 'Efetivada' : 'Não efetivada'}
+                    </Text>
+                  </Text>
+                </View>
+              ))
+            )}
           </View>
         ) : null}
       </ScrollView>
@@ -1344,6 +1464,31 @@ const styles = StyleSheet.create({
     color: '#0f172a',
     fontSize: 13.86,
     fontWeight: '800',
+  },
+  notesFilterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  notesFilterChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#f8fafc',
+  },
+  notesFilterChipActive: {
+    borderColor: '#67e8f9',
+    backgroundColor: '#ecfeff',
+  },
+  notesFilterChipText: {
+    color: '#334155',
+    fontWeight: '700',
+    fontSize: 13.86,
+  },
+  notesFilterChipTextActive: {
+    color: '#0e7490',
   },
   expandHint: {
     marginTop: 4,

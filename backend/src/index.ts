@@ -2730,6 +2730,82 @@ app.get("/relatorios/trocas", async (req, res) => {
   }
 });
 
+// Relatório de notas (NF)
+app.get("/relatorios/notas", async (req, res) => {
+  try {
+    const dataInicio = parseDateParam(req.query.data_inicio);
+    const dataFim = parseDateParam(req.query.data_fim);
+    const status = req.query.status ? normalizarStatus(String(req.query.status)) : null;
+    const nfStatus = req.query.nf_status ? normalizarNfStatus(req.query.nf_status) : null;
+
+    if ((req.query.data_inicio && !dataInicio) || (req.query.data_fim && !dataFim)) {
+      return res.status(400).json({ error: "Use data_inicio e data_fim no formato YYYY-MM-DD" });
+    }
+    if (dataInicio && dataFim && dataInicio > dataFim) {
+      return res.status(400).json({ error: "data_inicio não pode ser maior que data_fim" });
+    }
+    if (req.query.status && !status) {
+      return res.status(400).json({
+        error: `Status inválido. Valores permitidos: ${STATUS_PERMITIDOS.join(", ")}`,
+      });
+    }
+
+    const params: string[] = [];
+    const filtros: string[] = [
+      "p.usa_nf = true",
+      "COALESCE(p.nf_imagem_url, '') <> ''",
+      "p.status <> 'CANCELADO'",
+    ];
+
+    if (dataInicio) {
+      params.push(dataInicio);
+      filtros.push(`p.data >= $${params.length}`);
+    }
+    if (dataFim) {
+      params.push(dataFim);
+      filtros.push(`p.data <= $${params.length}`);
+    }
+    if (status) {
+      params.push(status);
+      filtros.push(`p.status = $${params.length}`);
+    }
+    if (nfStatus) {
+      params.push(nfStatus);
+      filtros.push(`p.nf_status = $${params.length}`);
+    }
+
+    const whereClause = filtros.length > 0 ? `WHERE ${filtros.join(" AND ")}` : "";
+
+    const result = await pool.query(
+      `SELECT
+        p.id AS pedido_id,
+        p.chave_pedido,
+        p.data AS pedido_data,
+        p.status AS pedido_status,
+        p.valor_total AS pedido_valor_total,
+        p.nf_numero,
+        p.nf_imagem_url,
+        p.nf_status,
+        c.id AS cliente_id,
+        c.codigo_cliente,
+        c.nome AS cliente_nome,
+        r.id AS rota_id,
+        r.nome AS rota_nome
+      FROM pedidos p
+      INNER JOIN clientes c ON c.id = p.cliente_id
+      LEFT JOIN rotas r ON r.id = p.rota_id
+      ${whereClause}
+      ORDER BY p.data DESC, p.id DESC`,
+      params
+    );
+
+    return res.json(result.rows);
+  } catch (error) {
+    console.error("Erro ao gerar relatório de notas:", error);
+    return res.status(500).json({ error: "Erro ao gerar relatório de notas" });
+  }
+});
+
 const startServer = async () => {
   try {
     await ensureImageColumns();

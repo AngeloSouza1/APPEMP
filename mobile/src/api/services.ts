@@ -132,6 +132,22 @@ export type RelatorioTrocaItem = {
   produto_nome: string;
 };
 
+export type RelatorioNotaItem = {
+  pedido_id: number;
+  chave_pedido?: string | null;
+  pedido_data: string;
+  pedido_status: string;
+  pedido_valor_total: number;
+  nf_numero?: string | null;
+  nf_imagem_url?: string | null;
+  nf_status?: 'PENDENTE' | 'ANTECIPADA' | string | null;
+  cliente_id: number;
+  codigo_cliente: string;
+  cliente_nome: string;
+  rota_id?: number | null;
+  rota_nome?: string | null;
+};
+
 export const authApi = {
   login: (username: string, password: string) =>
     api.post<LoginResponse>('/auth/login', { username, password }),
@@ -454,5 +470,13 @@ export const relatoriosApi = {
     if (filtros?.data_fim) params.append('data_fim', filtros.data_fim);
     if (filtros?.status) params.append('status', filtros.status);
     return api.get<RelatorioTrocaItem[]>(`/relatorios/trocas?${params.toString()}`);
+  },
+  notas: (filtros?: { data_inicio?: string; data_fim?: string; status?: string; nf_status?: 'PENDENTE' | 'ANTECIPADA' }) => {
+    const params = new URLSearchParams();
+    if (filtros?.data_inicio) params.append('data_inicio', filtros.data_inicio);
+    if (filtros?.data_fim) params.append('data_fim', filtros.data_fim);
+    if (filtros?.status) params.append('status', filtros.status);
+    if (filtros?.nf_status) params.append('nf_status', filtros.nf_status);
+    return api.get<RelatorioNotaItem[]>(`/relatorios/notas?${params.toString()}`);
   },
 };
