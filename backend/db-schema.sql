@@ -56,6 +56,10 @@ CREATE TABLE pedidos (
   rota_id INTEGER REFERENCES rotas(id),
   data DATE NOT NULL,
   status TEXT NOT NULL, -- ex: 'EM_ESPERA', 'CONFERIR', 'EFETIVADO'
+  usa_nf BOOLEAN NOT NULL DEFAULT FALSE,
+  nf_imagem_url TEXT,
+  nf_numero TEXT,
+  nf_status TEXT NOT NULL DEFAULT 'PENDENTE',
   valor_total NUMERIC(14, 2) DEFAULT 0,
   valor_efetivado NUMERIC(14, 2),
   codigo_empresa TEXT, -- CODEMPP

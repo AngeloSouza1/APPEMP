@@ -281,6 +281,8 @@ export const pedidosApi = {
   excluir: (id: number) => api.delete(`/pedidos/${id}`),
   atualizarOrdemRemaneio: (pedido_ids: number[]) =>
     api.patch('/pedidos/remaneio/ordem', { pedido_ids }),
+  anteciparNotas: (pedido_ids: number[]) =>
+    api.patch<{ ok: boolean; total: number; ids: number[] }>('/pedidos/nf/antecipar', { pedido_ids }),
 };
 
 export const clientesApi = {

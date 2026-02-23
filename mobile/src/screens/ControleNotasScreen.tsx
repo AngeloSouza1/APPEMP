@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   Modal,
@@ -50,6 +51,8 @@ export default function ControleNotasScreen() {
   const [erro, setErro] = useState<string | null>(null);
   const [notaSelecionada, setNotaSelecionada] = useState<string | null>(null);
   const [cardsExpandidos, setCardsExpandidos] = useState<Record<number, boolean>>({});
+  const [selecionados, setSelecionados] = useState<Record<number, boolean>>({});
+  const [efetivando, setEfetivando] = useState(false);
 
   const carregar = useCallback(async () => {
     try {
@@ -58,7 +61,10 @@ export default function ControleNotasScreen() {
         limit: 400,
       });
       const pedidosComNf = response.data.data.filter(
-        (pedido) => Boolean(pedido.nf_imagem_url) && pedido.status !== 'CANCELADO'
+        (pedido) =>
+          Boolean(pedido.nf_imagem_url) &&
+          pedido.status !== 'CANCELADO' &&
+          pedido.nf_status !== 'ANTECIPADA'
       );
       const mapa = new Map<number, Pedido>();
       pedidosComNf.forEach((pedido) => {
@@ -89,6 +95,13 @@ export default function ControleNotasScreen() {
         (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime() || b.id - a.id
       );
       setPedidos(pedidosUnicos);
+      setSelecionados((prev) => {
+        const prox: Record<number, boolean> = {};
+        pedidosUnicos.forEach((pedido) => {
+          if (prev[pedido.id]) prox[pedido.id] = true;
+        });
+        return prox;
+      });
       setErro(null);
     } catch {
       setErro('Não foi possível carregar as notas dos pedidos.');
@@ -110,23 +123,81 @@ export default function ControleNotasScreen() {
     carregar();
   }, [carregar]);
 
-  const totalComImagem = useMemo(
-    () => pedidos.filter((pedido) => Boolean(pedido.nf_imagem_url)).length,
-    [pedidos]
+  const idsSelecionados = useMemo(
+    () => pedidos.filter((pedido) => Boolean(selecionados[pedido.id])).map((pedido) => pedido.id),
+    [pedidos, selecionados]
+  );
+
+  const totalSelecionado = useMemo(
+    () =>
+      pedidos.reduce((acc, pedido) => {
+        if (!selecionados[pedido.id]) return acc;
+        return acc + Number(pedido.valor_total || 0);
+      }, 0),
+    [pedidos, selecionados]
   );
 
   const toggleCard = useCallback((id: number) => {
     setCardsExpandidos((prev) => ({ ...prev, [id]: !prev[id] }));
   }, []);
 
+  const toggleSelecionado = useCallback((id: number) => {
+    setSelecionados((prev) => ({ ...prev, [id]: !prev[id] }));
+  }, []);
+
+  const efetivarNotas = useCallback(() => {
+    if (!idsSelecionados.length) {
+      Alert.alert('Seleção vazia', 'Selecione ao menos uma nota para efetivar.');
+      return;
+    }
+
+    Alert.alert(
+      'Efetivar notas',
+      `Deseja efetivar ${idsSelecionados.length} nota(s) selecionada(s)?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Efetivar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setEfetivando(true);
+              await pedidosApi.anteciparNotas(idsSelecionados);
+              setPedidos((prev) => prev.filter((pedido) => !idsSelecionados.includes(pedido.id)));
+              setSelecionados({});
+              setCardsExpandidos({});
+              Alert.alert('Sucesso', 'Notas efetivadas e removidas da listagem.');
+            } catch {
+              Alert.alert('Erro', 'Não foi possível efetivar as notas selecionadas.');
+            } finally {
+              setEfetivando(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [idsSelecionados]);
+
   const renderItem = ({ item }: { item: Pedido }) => {
     const statusTheme = STATUS_COLOR[item.status] || STATUS_COLOR.EM_ESPERA;
     const statusLabel = STATUS_LABEL[item.status] || item.status;
     const expandido = Boolean(cardsExpandidos[item.id]);
+    const marcado = Boolean(selecionados[item.id]);
     return (
       <Pressable style={styles.card} onPress={() => toggleCard(item.id)}>
         <View style={styles.cardTop}>
-          <Text style={styles.cardTitle}>Pedido #{item.id}</Text>
+          <View style={styles.cardTitleWrap}>
+            <Pressable
+              style={[styles.checkbox, marcado && styles.checkboxChecked]}
+              onPress={(event) => {
+                event.stopPropagation();
+                toggleSelecionado(item.id);
+              }}
+            >
+              {marcado ? <Text style={styles.checkboxIcon}>✓</Text> : null}
+            </Pressable>
+            <Text style={styles.cardTitle}>Pedido #{item.id}</Text>
+          </View>
           <View style={styles.cardTopRight}>
             <Text style={[styles.statusBadge, { backgroundColor: statusTheme.bg, borderColor: statusTheme.border, color: statusTheme.text }]}>
               {statusLabel}
@@ -185,7 +256,9 @@ export default function ControleNotasScreen() {
         <View style={styles.summaryCard}>
           <Text style={styles.summaryTitle}>Pedidos com NF</Text>
           <Text style={styles.summaryValue}>{pedidos.length}</Text>
-          <Text style={styles.summarySub}>Somente pedidos com NF válida (não cancelados)</Text>
+          <Text style={styles.summarySub}>Selecionados: {idsSelecionados.length}</Text>
+          <Text style={styles.summarySub}>Valor selecionado: {formatarMoeda(totalSelecionado)}</Text>
+          <Text style={styles.summarySub}>Somente pedidos com NF válida (não cancelados e não antecipados)</Text>
         </View>
 
         {loading ? (
@@ -215,6 +288,16 @@ export default function ControleNotasScreen() {
             }
           />
         )}
+
+        <Pressable
+          style={[styles.efetivarButton, (!idsSelecionados.length || efetivando) && styles.efetivarButtonDisabled]}
+          onPress={efetivarNotas}
+          disabled={!idsSelecionados.length || efetivando}
+        >
+          <Text style={styles.efetivarButtonText}>
+            {efetivando ? 'Efetivando...' : 'Efetivar notas selecionadas'}
+          </Text>
+        </Pressable>
       </View>
 
       <Modal visible={Boolean(notaSelecionada)} transparent animationType="fade" onRequestClose={() => setNotaSelecionada(null)}>
@@ -312,8 +395,29 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  cardTitleWrap: { flexDirection: 'row', alignItems: 'center', columnGap: 8, flex: 1 },
   cardTopRight: { flexDirection: 'row', alignItems: 'center', columnGap: 8 },
   cardTitle: { color: '#0f172a', fontSize: 16, fontWeight: '800' },
+  checkbox: {
+    width: 21,
+    height: 21,
+    borderWidth: 1,
+    borderColor: '#93c5fd',
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+  },
+  checkboxChecked: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  checkboxIcon: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 12,
+  },
   expandHint: { color: '#1d4ed8', fontSize: 18, fontWeight: '800' },
   statusBadge: {
     fontSize: 12,
@@ -390,6 +494,24 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   retryButtonText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  efetivarButton: {
+    marginTop: 10,
+    borderRadius: 11,
+    backgroundColor: '#2563eb',
+    borderWidth: 1,
+    borderColor: '#1d4ed8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
+  efetivarButtonDisabled: {
+    opacity: 0.55,
+  },
+  efetivarButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
+  },
   previewBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(2, 6, 23, 0.82)',

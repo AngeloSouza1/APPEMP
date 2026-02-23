@@ -19,6 +19,7 @@ export interface Pedido {
   usa_nf?: boolean;
   nf_imagem_url?: string | null;
   nf_numero?: string | null;
+  nf_status?: 'PENDENTE' | 'ANTECIPADA' | string | null;
   valor_total: number;
   valor_efetivado?: number;
   cliente_id: number;
