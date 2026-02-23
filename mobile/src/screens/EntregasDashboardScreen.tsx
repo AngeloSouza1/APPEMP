@@ -133,6 +133,13 @@ const agruparRotas = (rows: RelatorioRotaDetalhadoItem[]): RotaResumoEntrega[] =
     .sort((a, b) => a.rota_nome.localeCompare(b.rota_nome));
 };
 
+const STATUS_THEME: Record<string, { bg: string; border: string; text: string; label: string }> = {
+  EM_ESPERA: { bg: '#fff7ed', border: '#fdba74', text: '#9a3412', label: 'Em espera' },
+  CONFERIR: { bg: '#eff6ff', border: '#93c5fd', text: '#1d4ed8', label: 'Conferir' },
+  EFETIVADO: { bg: '#ecfdf5', border: '#86efac', text: '#047857', label: 'Efetivado' },
+  CANCELADO: { bg: '#fef2f2', border: '#fca5a5', text: '#b91c1c', label: 'Cancelado' },
+};
+
 export default function EntregasDashboardScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
@@ -272,12 +279,31 @@ export default function EntregasDashboardScreen() {
                         {rota.pedidos.slice(0, 10).map((pedido) => (
                           <View key={pedido.pedido_id} style={styles.pedidoCard}>
                             <View style={styles.pedidoHeader}>
-                              <Text style={styles.pedidoTitle}>Pedido #{pedido.pedido_id}</Text>
-                              <Text style={styles.pedidoStatus}>{pedido.pedido_status}</Text>
+                              <Text style={styles.pedidoTitle}>
+                                #{pedido.pedido_id} - {pedido.cliente_nome}
+                              </Text>
+                              <View
+                                style={[
+                                  styles.statusBadge,
+                                  {
+                                    backgroundColor:
+                                      (STATUS_THEME[pedido.pedido_status] || STATUS_THEME.CONFERIR).bg,
+                                    borderColor:
+                                      (STATUS_THEME[pedido.pedido_status] || STATUS_THEME.CONFERIR).border,
+                                  },
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.statusBadgeText,
+                                    { color: (STATUS_THEME[pedido.pedido_status] || STATUS_THEME.CONFERIR).text },
+                                  ]}
+                                >
+                                  {(STATUS_THEME[pedido.pedido_status] || STATUS_THEME.CONFERIR).label}
+                                </Text>
+                              </View>
                             </View>
-                            <Text style={styles.pedidoMeta}>
-                              {pedido.cliente_nome} - {formatarData(pedido.pedido_data)}
-                            </Text>
+                            <Text style={styles.pedidoMeta}>{formatarData(pedido.pedido_data)}</Text>
                             <Text style={styles.pedidoTotal}>
                               Total: {formatarMoeda(pedido.pedido_valor_total)}
                             </Text>
@@ -555,16 +581,20 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     flex: 1,
   },
-  pedidoStatus: {
-    color: '#1d4ed8',
-    fontSize: 12.71,
-    fontWeight: '700',
-    textTransform: 'capitalize',
-  },
   pedidoMeta: {
     color: '#475569',
     fontSize: 12.71,
     fontWeight: '600',
+  },
+  statusBadge: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  statusBadgeText: {
+    fontSize: 11.55,
+    fontWeight: '800',
   },
   pedidoTotal: {
     color: '#0f172a',
