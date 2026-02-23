@@ -147,6 +147,8 @@ const ensureImageColumns = async () => {
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_imagem_url TEXT");
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_numero TEXT");
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_status TEXT NOT NULL DEFAULT 'PENDENTE'");
+    await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_efetivado_por INTEGER");
+    await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_efetivado_por_nome TEXT");
     await db_1.pool.query("UPDATE pedidos SET nf_status = 'PENDENTE' WHERE nf_status IS NULL");
 };
 app.get("/health", (_req, res) => {
@@ -1003,6 +1005,7 @@ app.get("/pedidos", async (req, res) => {
         p.nf_imagem_url,
         p.nf_numero,
         p.nf_status,
+        p.nf_efetivado_por_nome,
         p.valor_total,
         p.valor_efetivado,
         EXISTS (SELECT 1 FROM trocas t WHERE t.pedido_id = p.id) AS tem_trocas,
@@ -1100,6 +1103,7 @@ app.get("/pedidos/:id", async (req, res, next) => {
         p.nf_imagem_url,
         p.nf_numero,
         p.nf_status,
+        p.nf_efetivado_por_nome,
         p.valor_total,
         p.valor_efetivado,
         EXISTS (SELECT 1 FROM trocas t WHERE t.pedido_id = p.id) AS tem_trocas,
@@ -1206,6 +1210,7 @@ app.get("/pedidos/paginado", async (req, res) => {
         p.nf_imagem_url,
         p.nf_numero,
         p.nf_status,
+        p.nf_efetivado_por_nome,
         p.valor_total,
         p.valor_efetivado,
         EXISTS (SELECT 1 FROM trocas t WHERE t.pedido_id = p.id) AS tem_trocas,
@@ -1318,7 +1323,7 @@ app.patch("/pedidos/remaneio/ordem", autenticarToken, requireRoles("admin", "bac
     }
 });
 app.patch("/pedidos/nf/antecipar", async (req, res) => {
-    var _a, _b;
+    var _a, _b, _c;
     const pedidoIdsRaw = Array.isArray((_a = req.body) === null || _a === void 0 ? void 0 : _a.pedido_ids) ? req.body.pedido_ids : null;
     if (!pedidoIdsRaw || pedidoIdsRaw.length === 0) {
         return res.status(400).json({ error: "pedido_ids é obrigatório e deve ter ao menos 1 item." });
@@ -1335,12 +1340,14 @@ app.patch("/pedidos/nf/antecipar", async (req, res) => {
     try {
         const result = await db_1.pool.query(`UPDATE pedidos
        SET nf_status = 'ANTECIPADA',
+           nf_efetivado_por = $2,
+           nf_efetivado_por_nome = $3,
            atualizado_em = NOW(),
            atualizado_por = $2
        WHERE id = ANY($1::int[])
          AND COALESCE(nf_imagem_url, '') <> ''
          AND status <> 'CANCELADO'
-       RETURNING id`, [pedidoIds, ((_b = req.user) === null || _b === void 0 ? void 0 : _b.id) || null]);
+       RETURNING id`, [pedidoIds, ((_b = req.user) === null || _b === void 0 ? void 0 : _b.id) || null, ((_c = req.user) === null || _c === void 0 ? void 0 : _c.nome) || null]);
         return res.json({
             ok: true,
             total: result.rowCount || 0,
@@ -1829,6 +1836,7 @@ app.put("/pedidos/:id", async (req, res) => {
         p.nf_imagem_url,
         p.nf_numero,
         p.nf_status,
+        p.nf_efetivado_por_nome,
         p.valor_total,
         p.valor_efetivado,
         c.id as cliente_id,
