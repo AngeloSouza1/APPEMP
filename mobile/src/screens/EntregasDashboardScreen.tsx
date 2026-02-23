@@ -317,25 +317,33 @@ export default function EntregasDashboardScreen() {
                             </Text>
                             {pedidoExpandido ? (
                               <>
-                                <Text style={styles.pedidoMeta}>
-                                  {formatarData(pedido.pedido_data)} -{' '}
-                                  <Text style={styles.expandTextStrong}>
+                                <View style={styles.pedidoResumoRow}>
+                                  <Text style={styles.pedidoMeta}>{formatarData(pedido.pedido_data)}</Text>
+                                  <Text style={styles.pedidoTotalValue}>
                                     {formatarMoeda(pedido.pedido_valor_total)}
                                   </Text>
-                                </Text>
+                                </View>
                                 {pedido.itens.length > 0 ? (
                                   <View style={styles.pedidoItensBox}>
-                                    {pedido.itens.map((item) => (
-                                      <View key={item.item_chave} style={styles.pedidoItemRow}>
+                                    <Text style={styles.pedidoItensTitulo}>Itens do pedido</Text>
+                                    {pedido.itens.map((item, itemIndex) => (
+                                      <View
+                                        key={item.item_chave}
+                                        style={[
+                                          styles.pedidoItemRow,
+                                          itemIndex % 2 === 1 && styles.pedidoItemRowAlt,
+                                        ]}
+                                      >
                                         <Text style={styles.pedidoItemNome}>{item.produto_nome}</Text>
-                                        <Text style={styles.pedidoItemMeta}>
-                                          Qtd {item.quantidade}
-                                          {item.embalagem ? ` ${item.embalagem}` : ''}
-                                          {'  |  '}
+                                        <View style={styles.pedidoItemMetaRow}>
+                                          <Text style={styles.pedidoItemMeta}>
+                                            Qtd {item.quantidade}
+                                            {item.embalagem ? ` ${item.embalagem}` : ''}
+                                          </Text>
                                           <Text style={styles.pedidoItemValor}>
                                             {formatarMoeda(item.valor_total_item)}
                                           </Text>
-                                        </Text>
+                                        </View>
                                       </View>
                                     ))}
                                   </View>
@@ -578,17 +586,17 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   pedidoCard: {
-    borderRadius: 9,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#dbeafe',
     backgroundColor: '#ffffff',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    gap: 2,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
+    gap: 4,
   },
   pedidoCardActive: {
-    borderColor: '#facc15',
-    backgroundColor: '#fef9c3',
+    borderColor: '#93c5fd',
+    backgroundColor: '#f8fbff',
   },
   pedidoHeader: {
     flexDirection: 'row',
@@ -612,6 +620,18 @@ const styles = StyleSheet.create({
     fontSize: 12.71,
     fontWeight: '700',
   },
+  pedidoResumoRow: {
+    marginTop: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    columnGap: 8,
+  },
+  pedidoTotalValue: {
+    color: '#1e3a8a',
+    fontSize: 12.71,
+    fontWeight: '800',
+  },
   statusBadge: {
     borderRadius: 999,
     borderWidth: 1,
@@ -626,27 +646,45 @@ const styles = StyleSheet.create({
     marginTop: 4,
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
-    paddingTop: 4,
+    paddingTop: 6,
     gap: 6,
+  },
+  pedidoItensTitulo: {
+    color: '#475569',
+    fontSize: 11.55,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.2,
   },
   pedidoItemRow: {
     borderRadius: 7,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     backgroundColor: '#f8fafc',
-    paddingHorizontal: 7,
-    paddingVertical: 5,
-    gap: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    gap: 3,
+  },
+  pedidoItemRowAlt: {
+    borderColor: '#dbeafe',
+    backgroundColor: '#f1f5f9',
   },
   pedidoItemNome: {
     color: '#0f172a',
     fontSize: 12.71,
     fontWeight: '700',
   },
+  pedidoItemMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    columnGap: 8,
+  },
   pedidoItemMeta: {
     color: '#64748b',
     fontSize: 11.55,
     fontWeight: '600',
+    flex: 1,
   },
   pedidoItemValor: {
     color: '#1e3a8a',
