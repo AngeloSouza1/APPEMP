@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -53,6 +53,7 @@ export default function ControleNotasScreen() {
   const [cardsExpandidos, setCardsExpandidos] = useState<Record<number, boolean>>({});
   const [selecionados, setSelecionados] = useState<Record<number, boolean>>({});
   const [efetivando, setEfetivando] = useState(false);
+  const ignorarProximoToggleCardRef = useRef(false);
 
   const carregar = useCallback(async () => {
     try {
@@ -138,6 +139,10 @@ export default function ControleNotasScreen() {
   );
 
   const toggleCard = useCallback((id: number) => {
+    if (ignorarProximoToggleCardRef.current) {
+      ignorarProximoToggleCardRef.current = false;
+      return;
+    }
     setCardsExpandidos((prev) => ({ ...prev, [id]: !prev[id] }));
   }, []);
 
@@ -191,6 +196,7 @@ export default function ControleNotasScreen() {
               style={[styles.checkbox, marcado && styles.checkboxChecked]}
               onPress={(event) => {
                 event.stopPropagation();
+                ignorarProximoToggleCardRef.current = true;
                 toggleSelecionado(item.id);
               }}
             >
