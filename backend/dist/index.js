@@ -66,6 +66,10 @@ const normalizarNfNumero = (nfNumero) => {
     const valor = String(nfNumero !== null && nfNumero !== void 0 ? nfNumero : "").trim();
     return valor || null;
 };
+const normalizarNfStatus = (valor) => {
+    const status = String(valor !== null && valor !== void 0 ? valor : "").trim().toUpperCase();
+    return status === "ANTECIPADA" ? "ANTECIPADA" : "PENDENTE";
+};
 const normalizarBoolean = (valor) => {
     if (typeof valor === "boolean")
         return valor;
@@ -142,6 +146,8 @@ const ensureImageColumns = async () => {
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS usa_nf BOOLEAN NOT NULL DEFAULT false");
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_imagem_url TEXT");
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_numero TEXT");
+    await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_status TEXT NOT NULL DEFAULT 'PENDENTE'");
+    await db_1.pool.query("UPDATE pedidos SET nf_status = 'PENDENTE' WHERE nf_status IS NULL");
 };
 app.get("/health", (_req, res) => {
     res.json({ status: "ok", message: "APPEMP backend funcionando" });
@@ -996,6 +1002,7 @@ app.get("/pedidos", async (req, res) => {
         p.usa_nf,
         p.nf_imagem_url,
         p.nf_numero,
+        p.nf_status,
         p.valor_total,
         p.valor_efetivado,
         EXISTS (SELECT 1 FROM trocas t WHERE t.pedido_id = p.id) AS tem_trocas,
@@ -1092,6 +1099,7 @@ app.get("/pedidos/:id", async (req, res, next) => {
         p.usa_nf,
         p.nf_imagem_url,
         p.nf_numero,
+        p.nf_status,
         p.valor_total,
         p.valor_efetivado,
         EXISTS (SELECT 1 FROM trocas t WHERE t.pedido_id = p.id) AS tem_trocas,
@@ -1197,6 +1205,7 @@ app.get("/pedidos/paginado", async (req, res) => {
         p.usa_nf,
         p.nf_imagem_url,
         p.nf_numero,
+        p.nf_status,
         p.valor_total,
         p.valor_efetivado,
         EXISTS (SELECT 1 FROM trocas t WHERE t.pedido_id = p.id) AS tem_trocas,
@@ -1308,6 +1317,41 @@ app.patch("/pedidos/remaneio/ordem", autenticarToken, requireRoles("admin", "bac
         client.release();
     }
 });
+app.patch("/pedidos/nf/antecipar", async (req, res) => {
+    var _a, _b;
+    const pedidoIdsRaw = Array.isArray((_a = req.body) === null || _a === void 0 ? void 0 : _a.pedido_ids) ? req.body.pedido_ids : null;
+    if (!pedidoIdsRaw || pedidoIdsRaw.length === 0) {
+        return res.status(400).json({ error: "pedido_ids é obrigatório e deve ter ao menos 1 item." });
+    }
+    const pedidoIds = [
+        ...new Set(pedidoIdsRaw
+            .map((value) => Number(value))
+            .filter((value) => Number.isFinite(value) && value > 0)
+            .map((value) => Math.trunc(value))),
+    ];
+    if (pedidoIds.length === 0) {
+        return res.status(400).json({ error: "pedido_ids inválido." });
+    }
+    try {
+        const result = await db_1.pool.query(`UPDATE pedidos
+       SET nf_status = 'ANTECIPADA',
+           atualizado_em = NOW(),
+           atualizado_por = $2
+       WHERE id = ANY($1::int[])
+         AND COALESCE(nf_imagem_url, '') <> ''
+         AND status <> 'CANCELADO'
+       RETURNING id`, [pedidoIds, ((_b = req.user) === null || _b === void 0 ? void 0 : _b.id) || null]);
+        return res.json({
+            ok: true,
+            total: result.rowCount || 0,
+            ids: result.rows.map((row) => Number(row.id)),
+        });
+    }
+    catch (error) {
+        console.error("Erro ao efetivar notas:", error);
+        return res.status(500).json({ error: "Erro ao efetivar notas." });
+    }
+});
 // Cria um novo pedido com itens
 app.post("/pedidos", async (req, res) => {
     var _a, _b, _c, _d, _e;
@@ -1371,9 +1415,9 @@ app.post("/pedidos", async (req, res) => {
             throw new Error(`Status inválido. Valores permitidos: ${STATUS_PERMITIDOS.join(", ")}`);
         }
         // Inserir pedido
-        const pedidoResult = await client.query(`INSERT INTO pedidos (chave_pedido, cliente_id, rota_id, data, status, valor_total, usa_nf, nf_imagem_url, nf_numero, criado_por)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING id, chave_pedido, data, status, valor_total, usa_nf, nf_imagem_url, nf_numero`, [
+        const pedidoResult = await client.query(`INSERT INTO pedidos (chave_pedido, cliente_id, rota_id, data, status, valor_total, usa_nf, nf_imagem_url, nf_numero, nf_status, criado_por)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       RETURNING id, chave_pedido, data, status, valor_total, usa_nf, nf_imagem_url, nf_numero, nf_status`, [
             finalChavePedido,
             cliente_id,
             rota_id || null,
@@ -1383,6 +1427,7 @@ app.post("/pedidos", async (req, res) => {
             usaNf,
             usaNf ? nfImagemUrl : null,
             usaNf ? nfNumero : null,
+            "PENDENTE",
             usuarioId,
         ]);
         const pedido = pedidoResult.rows[0];
@@ -1702,11 +1747,17 @@ app.put("/pedidos/:id", async (req, res) => {
             updateFields.push(`nf_numero = $${paramIndex}`);
             params.push(usaNf ? nfNumero : null);
             paramIndex++;
+            updateFields.push(`nf_status = $${paramIndex}`);
+            params.push("PENDENTE");
+            paramIndex++;
         }
         else if (nf_imagem_url !== undefined) {
             const nfImagemUrl = normalizarImagemUrl(nf_imagem_url);
             updateFields.push(`nf_imagem_url = $${paramIndex}`);
             params.push(nfImagemUrl);
+            paramIndex++;
+            updateFields.push(`nf_status = $${paramIndex}`);
+            params.push("PENDENTE");
             paramIndex++;
         }
         else if (nf_numero !== undefined) {
@@ -1777,6 +1828,7 @@ app.put("/pedidos/:id", async (req, res) => {
         p.usa_nf,
         p.nf_imagem_url,
         p.nf_numero,
+        p.nf_status,
         p.valor_total,
         p.valor_efetivado,
         c.id as cliente_id,
