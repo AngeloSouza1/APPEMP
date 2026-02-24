@@ -19,6 +19,7 @@ import { useAuth } from '../context/AuthContext';
 
 const BG_LOGIN = require('../../assets/fundo_login_claro_reduzido_v2.png');
 const LOGO = require('../../assets/processado1.png');
+const BIOMETRIA_ICON = require('../../assets/biometria.png');
 
 export default function LoginScreen() {
   const { login } = useAuth();
@@ -295,10 +296,8 @@ export default function LoginScreen() {
                 <ActivityIndicator color="#1e40af" />
               ) : (
                 <View style={styles.biometricIconButton}>
-                  <View style={styles.biometricRingOuter}>
-                    <View style={styles.biometricRingMid}>
-                      <View style={styles.biometricRingInner} />
-                    </View>
+                  <View style={styles.biometricIconWrap}>
+                    <Image source={BIOMETRIA_ICON} style={styles.biometricIconImage} resizeMode="contain" />
                   </View>
                   <Text style={styles.biometricLabel}>
                     {biometricAvailable ? 'Biometria' : 'Configurar biometria'}
@@ -560,31 +559,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  biometricRingOuter: {
+  biometricIconWrap: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    borderWidth: 2,
-    borderColor: '#1d4ed8',
+    borderWidth: 1,
+    borderColor: 'rgba(37,99,235,0.20)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(219,234,254,0.8)',
+    backgroundColor: 'rgba(255,255,255,0.85)',
   },
-  biometricRingMid: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: 'rgba(37,99,235,0.85)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  biometricRingInner: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: 'rgba(29,78,216,0.75)',
+  biometricIconImage: {
+    width: 34,
+    height: 34,
   },
   biometricLabel: {
     color: '#1e40af',
