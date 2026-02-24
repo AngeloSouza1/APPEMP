@@ -28,6 +28,9 @@ type RotaResumoEntrega = {
     pedido_data: string;
     pedido_status: string;
     pedido_valor_total: number;
+    tem_trocas?: boolean;
+    qtd_trocas?: number;
+    nomes_trocas?: string | null;
     cliente_nome: string;
     itens: Array<{
       item_chave: string;
@@ -53,6 +56,9 @@ const agruparRotas = (rows: RelatorioRotaDetalhadoItem[]): RotaResumoEntrega[] =
           pedido_data: string;
           pedido_status: string;
           pedido_valor_total: number;
+          tem_trocas?: boolean;
+          qtd_trocas?: number;
+          nomes_trocas?: string | null;
           cliente_nome: string;
           itens: Map<
             string,
@@ -86,11 +92,19 @@ const agruparRotas = (rows: RelatorioRotaDetalhadoItem[]): RotaResumoEntrega[] =
         pedido_data: row.pedido_data,
         pedido_status: row.pedido_status,
         pedido_valor_total: Number(row.pedido_valor_total || 0),
+        tem_trocas: Boolean(row.tem_trocas || Number(row.qtd_trocas || 0) > 0),
+        qtd_trocas: Number(row.qtd_trocas || 0),
+        nomes_trocas: row.nomes_trocas ?? null,
         cliente_nome: row.cliente_nome,
         itens: new Map(),
       });
     }
     const pedido = rota.pedidos.get(row.pedido_id)!;
+    if (row.tem_trocas || Number(row.qtd_trocas || 0) > 0) {
+      pedido.tem_trocas = true;
+      pedido.qtd_trocas = Math.max(Number(pedido.qtd_trocas || 0), Number(row.qtd_trocas || 0));
+      if (row.nomes_trocas) pedido.nomes_trocas = row.nomes_trocas;
+    }
     if (row.produto_nome) {
       const embalagem = row.embalagem || '';
       const itemChave = row.produto_id
@@ -323,6 +337,16 @@ export default function EntregasDashboardScreen() {
                                     {formatarMoeda(pedido.pedido_valor_total)}
                                   </Text>
                                 </View>
+                                {pedido.tem_trocas || Number(pedido.qtd_trocas || 0) > 0 ? (
+                                  <View style={styles.pedidoTrocasBox}>
+                                    <Text style={styles.pedidoTrocasTitulo}>
+                                      Trocas {Number(pedido.qtd_trocas || 0) > 0 ? `(${Number(pedido.qtd_trocas || 0)})` : ''}
+                                    </Text>
+                                    <Text style={styles.pedidoTrocasTexto}>
+                                      {pedido.nomes_trocas?.trim() || 'Troca registrada neste pedido.'}
+                                    </Text>
+                                  </View>
+                                ) : null}
                                 {pedido.itens.length > 0 ? (
                                   <View style={styles.pedidoItensBox}>
                                     <Text style={styles.pedidoItensTitulo}>Itens do pedido</Text>
@@ -696,6 +720,28 @@ const styles = StyleSheet.create({
     fontSize: 11.55,
     fontWeight: '600',
     marginTop: 2,
+  },
+  pedidoTrocasBox: {
+    marginTop: 4,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+    backgroundColor: '#fffbeb',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    gap: 3,
+  },
+  pedidoTrocasTitulo: {
+    color: '#92400e',
+    fontSize: 11.55,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.2,
+  },
+  pedidoTrocasTexto: {
+    color: '#78350f',
+    fontSize: 11.55,
+    fontWeight: '600',
   },
   footerDock: {
     position: 'absolute',
