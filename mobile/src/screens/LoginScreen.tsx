@@ -130,11 +130,21 @@ export default function LoginScreen() {
         cancelLabel: 'Cancelar',
         fallbackLabel: 'Usar senha',
       });
-      if (!auth.success) return;
+      if (!auth.success) {
+        const detail = auth.error ? ` (${auth.error})` : '';
+        if (auth.error === 'user_cancel' || auth.error === 'system_cancel') return;
+        Alert.alert('Biometria', `Autenticação não concluída${detail}.`);
+        return;
+      }
 
       await login(credentials.username, credentials.password, true);
-    } catch {
-      Alert.alert('Biometria', 'Não foi possível autenticar por biometria.');
+    } catch (error) {
+      const detail =
+        error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+      Alert.alert(
+        'Biometria',
+        `Não foi possível autenticar por biometria${detail ? ` (${detail})` : ''}.`
+      );
     } finally {
       setBiometricLoading(false);
     }
