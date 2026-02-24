@@ -77,11 +77,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     await sessionStorage.clear();
-    try {
-      await sessionStorage.clearBiometricCredentials();
-    } catch {
-      // Ignora falha de limpeza da biometria no logout.
-    }
     setToken(null);
     setUser(null);
   };
