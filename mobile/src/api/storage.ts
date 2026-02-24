@@ -5,7 +5,7 @@ import { UsuarioSession } from '../types/auth';
 const TOKEN_KEY = '@appemp/token';
 const USER_KEY = '@appemp/user';
 const REMEMBER_ME_KEY = '@appemp/remember-me';
-const BIOMETRIC_CREDENTIALS_KEY = '@appemp/biometric-credentials';
+const BIOMETRIC_CREDENTIALS_KEY = 'appemp_biometric_credentials';
 
 export const sessionStorage = {
   async setSession(token: string, user: UsuarioSession) {
