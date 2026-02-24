@@ -18,6 +18,8 @@ import { RootStackParamList } from '../navigation/RootNavigator';
 import { TrocaPedido } from '../types/pedidos';
 import { formatarData, formatarMoeda } from '../utils/format';
 
+const formatarQuantidadeSemDecimal = (valor: number) => String(Math.round(Number(valor || 0)));
+
 type RotaResumoEntrega = {
   rota_id: number;
   rota_nome: string;
@@ -392,7 +394,7 @@ export default function EntregasDashboardScreen() {
                                             <Text style={styles.pedidoItemNome}>{troca.produto_nome}</Text>
                                             <View style={styles.pedidoItemMetaRow}>
                                               <Text style={styles.pedidoItemMeta}>
-                                                Qtd {troca.quantidade}
+                                                Qtd {formatarQuantidadeSemDecimal(troca.quantidade)}
                                                 {itemPedido?.embalagem ? ` ${itemPedido.embalagem}` : ''}
                                               </Text>
                                               <Text style={styles.pedidoItemValor}>
