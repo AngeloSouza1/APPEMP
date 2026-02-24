@@ -88,7 +88,8 @@ export const getExpoPushToken = async (): Promise<string | null> => {
     const token = tokenResult?.data ? String(tokenResult.data) : null;
     cachedExpoPushToken = token;
     return token;
-  } catch {
+  } catch (error) {
+    console.error('Falha ao obter Expo push token:', error);
     return null;
   }
 };

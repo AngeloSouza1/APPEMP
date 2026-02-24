@@ -2,6 +2,13 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+def hasGoogleServicesJson = file("$projectDir/google-services.json").exists()
+if (hasGoogleServicesJson) {
+    apply plugin: "com.google.gms.google-services"
+} else {
+    println("APPEMP: google-services.json não encontrado em android/app. Push remoto via FCM ficará indisponível.")
+}
+
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
 /**
