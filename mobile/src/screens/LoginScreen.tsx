@@ -283,18 +283,27 @@ export default function LoginScreen() {
             <Pressable
               onPress={onBiometricLogin}
               disabled={loading || biometricLoading}
+              accessibilityRole="button"
+              accessibilityLabel="Entrar com biometria"
               style={({ pressed }) => [
-                styles.biometricButton,
-                pressed && !loading && !biometricLoading && styles.biometricButtonPressed,
+                styles.biometricTouchArea,
+                pressed && !loading && !biometricLoading && styles.biometricTouchAreaPressed,
                 (loading || biometricLoading) && styles.buttonDisabled,
               ]}
             >
               {biometricLoading ? (
                 <ActivityIndicator color="#1e40af" />
               ) : (
-                <Text style={styles.biometricButtonText}>
-                  {biometricAvailable ? 'Entrar com biometria' : 'Configurar biometria'}
-                </Text>
+                <View style={styles.biometricIconButton}>
+                  <View style={styles.biometricRingOuter}>
+                    <View style={styles.biometricRingMid}>
+                      <View style={styles.biometricRingInner} />
+                    </View>
+                  </View>
+                  <Text style={styles.biometricLabel}>
+                    {biometricAvailable ? 'Biometria' : 'Configurar biometria'}
+                  </Text>
+                </View>
               )}
             </Pressable>
           </View>
@@ -533,20 +542,54 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
   },
-  biometricButton: {
-    borderRadius: 10,
-    paddingVertical: 12,
+  biometricTouchArea: {
+    marginTop: 2,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    paddingVertical: 8,
     borderWidth: 1,
-    borderColor: 'rgba(37,99,235,0.35)',
-    backgroundColor: 'rgba(219,234,254,0.45)',
+    borderColor: 'rgba(37,99,235,0.20)',
+    backgroundColor: 'rgba(239,246,255,0.48)',
   },
-  biometricButtonPressed: {
-    backgroundColor: 'rgba(191,219,254,0.60)',
+  biometricTouchAreaPressed: {
+    backgroundColor: 'rgba(191,219,254,0.35)',
   },
-  biometricButtonText: {
+  biometricIconButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  biometricRingOuter: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: '#1d4ed8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(219,234,254,0.8)',
+  },
+  biometricRingMid: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: 'rgba(37,99,235,0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  biometricRingInner: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: 'rgba(29,78,216,0.75)',
+  },
+  biometricLabel: {
     color: '#1e40af',
     fontWeight: '700',
+    fontSize: 12.8,
   },
   formError: {
     color: '#be123c',
