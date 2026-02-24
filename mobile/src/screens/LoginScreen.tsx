@@ -37,15 +37,19 @@ export default function LoginScreen() {
 
   useEffect(() => {
     const loadRememberPreference = async () => {
-      const stored = await sessionStorage.getRememberMePreference();
-      setRememberMe(stored);
+      try {
+        const stored = await sessionStorage.getRememberMePreference();
+        setRememberMe(stored);
 
-      const [hasHardware, isEnrolled, credentials] = await Promise.all([
-        LocalAuthentication.hasHardwareAsync(),
-        LocalAuthentication.isEnrolledAsync(),
-        sessionStorage.getBiometricCredentials(),
-      ]);
-      setBiometricAvailable(Boolean(stored && hasHardware && isEnrolled && credentials));
+        const [hasHardware, isEnrolled, credentials] = await Promise.all([
+          LocalAuthentication.hasHardwareAsync(),
+          LocalAuthentication.isEnrolledAsync(),
+          sessionStorage.getBiometricCredentials(),
+        ]);
+        setBiometricAvailable(Boolean(stored && hasHardware && isEnrolled && credentials));
+      } catch {
+        setBiometricAvailable(false);
+      }
     };
     loadRememberPreference();
   }, []);
@@ -92,7 +96,7 @@ export default function LoginScreen() {
     try {
       await login(user, pass, rememberMe);
     } catch {
-      setFormError('Usuário ou senha inválidos.');
+      setFormError('Não foi possível entrar. Confira usuário/senha e tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -224,12 +228,16 @@ export default function LoginScreen() {
                   setBiometricAvailable(false);
                   return;
                 }
-                const [hasHardware, isEnrolled, credentials] = await Promise.all([
-                  LocalAuthentication.hasHardwareAsync(),
-                  LocalAuthentication.isEnrolledAsync(),
-                  sessionStorage.getBiometricCredentials(),
-                ]);
-                setBiometricAvailable(Boolean(hasHardware && isEnrolled && credentials));
+                try {
+                  const [hasHardware, isEnrolled, credentials] = await Promise.all([
+                    LocalAuthentication.hasHardwareAsync(),
+                    LocalAuthentication.isEnrolledAsync(),
+                    sessionStorage.getBiometricCredentials(),
+                  ]);
+                  setBiometricAvailable(Boolean(hasHardware && isEnrolled && credentials));
+                } catch {
+                  setBiometricAvailable(false);
+                }
               }}
             >
               <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>

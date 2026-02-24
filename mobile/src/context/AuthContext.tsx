@@ -61,10 +61,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await authApi.login(username, password);
     await sessionStorage.setRememberMePreference(rememberMe);
     await sessionStorage.setSession(response.data.token, response.data.user);
-    if (rememberMe) {
-      await sessionStorage.setBiometricCredentials(username, password);
-    } else {
-      await sessionStorage.clearBiometricCredentials();
+    try {
+      if (rememberMe) {
+        await sessionStorage.setBiometricCredentials(username, password);
+      } else {
+        await sessionStorage.clearBiometricCredentials();
+      }
+    } catch {
+      // Biometria é opcional: falhas aqui não podem impedir o login por senha.
     }
     sessionExpiredHandledRef.current = false;
     setToken(response.data.token);
@@ -73,7 +77,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     await sessionStorage.clear();
-    await sessionStorage.clearBiometricCredentials();
+    try {
+      await sessionStorage.clearBiometricCredentials();
+    } catch {
+      // Ignora falha de limpeza da biometria no logout.
+    }
     setToken(null);
     setUser(null);
   };
