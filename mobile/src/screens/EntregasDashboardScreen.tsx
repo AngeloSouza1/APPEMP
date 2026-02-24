@@ -388,7 +388,9 @@ export default function EntregasDashboardScreen() {
                                             key={troca.id}
                                             style={[
                                               styles.pedidoItemRow,
+                                              styles.pedidoTrocaItemRow,
                                               trocaIndex % 2 === 1 && styles.pedidoItemRowAlt,
+                                              trocaIndex % 2 === 1 && styles.pedidoTrocaItemRowAlt,
                                             ]}
                                           >
                                             <Text style={styles.pedidoItemNome}>{troca.produto_nome}</Text>
@@ -756,6 +758,14 @@ const styles = StyleSheet.create({
   pedidoItemRowAlt: {
     borderColor: '#dbeafe',
     backgroundColor: '#f1f5f9',
+  },
+  pedidoTrocaItemRow: {
+    borderColor: '#fde68a',
+    backgroundColor: '#fef9c3',
+  },
+  pedidoTrocaItemRowAlt: {
+    borderColor: '#fcd34d',
+    backgroundColor: '#fef08a',
   },
   pedidoItemNome: {
     color: '#0f172a',
