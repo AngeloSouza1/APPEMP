@@ -106,19 +106,31 @@ export default function LoginScreen() {
     setFormError(null);
     setBiometricLoading(true);
     try {
+      if (!rememberMe) {
+        Alert.alert('Biometria', 'Ative "Manter conectado" para usar biometria.');
+        return;
+      }
+
+      const [hasHardware, isEnrolled, credentials] = await Promise.all([
+        LocalAuthentication.hasHardwareAsync(),
+        LocalAuthentication.isEnrolledAsync(),
+        sessionStorage.getBiometricCredentials(),
+      ]);
+      if (!hasHardware || !isEnrolled) {
+        Alert.alert('Biometria', 'Biometria indisponível neste aparelho.');
+        return;
+      }
+      if (!credentials) {
+        Alert.alert('Biometria', 'Faça um login com senha primeiro para habilitar.');
+        return;
+      }
+
       const auth = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Entrar com biometria',
         cancelLabel: 'Cancelar',
         fallbackLabel: 'Usar senha',
       });
       if (!auth.success) return;
-
-      const credentials = await sessionStorage.getBiometricCredentials();
-      if (!credentials) {
-        Alert.alert('Biometria', 'Nenhuma credencial salva para biometria.');
-        setBiometricAvailable(false);
-        return;
-      }
 
       await login(credentials.username, credentials.password, true);
     } catch {
@@ -258,23 +270,23 @@ export default function LoginScreen() {
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Entrar</Text>}
             </Pressable>
 
-            {biometricAvailable ? (
-              <Pressable
-                onPress={onBiometricLogin}
-                disabled={loading || biometricLoading}
-                style={({ pressed }) => [
-                  styles.biometricButton,
-                  pressed && !loading && !biometricLoading && styles.biometricButtonPressed,
-                  (loading || biometricLoading) && styles.buttonDisabled,
-                ]}
-              >
-                {biometricLoading ? (
-                  <ActivityIndicator color="#1e40af" />
-                ) : (
-                  <Text style={styles.biometricButtonText}>Entrar com biometria</Text>
-                )}
-              </Pressable>
-            ) : null}
+            <Pressable
+              onPress={onBiometricLogin}
+              disabled={loading || biometricLoading}
+              style={({ pressed }) => [
+                styles.biometricButton,
+                pressed && !loading && !biometricLoading && styles.biometricButtonPressed,
+                (loading || biometricLoading) && styles.buttonDisabled,
+              ]}
+            >
+              {biometricLoading ? (
+                <ActivityIndicator color="#1e40af" />
+              ) : (
+                <Text style={styles.biometricButtonText}>
+                  {biometricAvailable ? 'Entrar com biometria' : 'Configurar biometria'}
+                </Text>
+              )}
+            </Pressable>
           </View>
         </View>
       </ScrollView>
