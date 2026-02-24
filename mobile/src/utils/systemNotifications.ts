@@ -1,8 +1,10 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 
 let initialized = false;
 let permissionGranted: boolean | null = null;
+let cachedExpoPushToken: string | null = null;
 
 const CHANNEL_ID = 'appemp-pedidos';
 
@@ -69,4 +71,28 @@ export const clearSystemBadge = async () => {
   } catch {
     // Sem suporte a badge no dispositivo/launcher.
   }
+};
+
+export const getExpoPushToken = async (): Promise<string | null> => {
+  if (cachedExpoPushToken) return cachedExpoPushToken;
+
+  const allowed = await ensureNotificationPermission();
+  if (!allowed) return null;
+
+  try {
+    const projectId =
+      Constants?.expoConfig?.extra?.eas?.projectId ||
+      Constants?.easConfig?.projectId ||
+      undefined;
+    const tokenResult = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
+    const token = tokenResult?.data ? String(tokenResult.data) : null;
+    cachedExpoPushToken = token;
+    return token;
+  } catch {
+    return null;
+  }
+};
+
+export const clearCachedExpoPushToken = () => {
+  cachedExpoPushToken = null;
 };

@@ -157,6 +157,13 @@ export const authApi = {
     ),
 };
 
+export const notificacoesApi = {
+  registrarDispositivo: (expo_push_token: string, plataforma: string) =>
+    api.post<{ ok: boolean }>('/notificacoes/dispositivos', { expo_push_token, plataforma }),
+  desativarDispositivo: (expo_push_token: string) =>
+    api.delete<{ ok: boolean }>('/notificacoes/dispositivos', { expo_push_token }),
+};
+
 const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
 const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 

@@ -1,9 +1,10 @@
 import { createContext, ReactNode, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert } from 'react-native';
-import { authApi } from '../api/services';
+import { Alert, Platform } from 'react-native';
+import { authApi, notificacoesApi } from '../api/services';
 import { sessionStorage } from '../api/storage';
 import { setUnauthorizedHandler } from '../api/client';
 import { UsuarioSession } from '../types/auth';
+import { clearCachedExpoPushToken, getExpoPushToken } from '../utils/systemNotifications';
 
 type AuthContextValue = {
   user: UsuarioSession | null;
@@ -20,6 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const sessionExpiredHandledRef = useRef(false);
+  const pushTokenRegistradoRef = useRef<string | null>(null);
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -57,6 +59,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => setUnauthorizedHandler(null);
   }, []);
 
+  useEffect(() => {
+    if (!token || !user?.id) return;
+    let cancelado = false;
+
+    const registrarDispositivo = async () => {
+      try {
+        const expoPushToken = await getExpoPushToken();
+        if (!expoPushToken || cancelado) return;
+        await notificacoesApi.registrarDispositivo(expoPushToken, Platform.OS);
+        if (!cancelado) {
+          pushTokenRegistradoRef.current = expoPushToken;
+        }
+      } catch {
+        // Notificação push não pode bloquear sessão do usuário.
+      }
+    };
+
+    registrarDispositivo();
+    return () => {
+      cancelado = true;
+    };
+  }, [token, user?.id]);
+
   const login = async (username: string, password: string, rememberMe = true) => {
     const response = await authApi.login(username, password);
     await sessionStorage.setRememberMePreference(rememberMe);
@@ -76,6 +101,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    const tokenPush = pushTokenRegistradoRef.current;
+    if (tokenPush) {
+      try {
+        await notificacoesApi.desativarDispositivo(tokenPush);
+      } catch {
+        // Não bloquear logout por falha de comunicação.
+      }
+    }
+    pushTokenRegistradoRef.current = null;
+    clearCachedExpoPushToken();
     await sessionStorage.clear();
     setToken(null);
     setUser(null);

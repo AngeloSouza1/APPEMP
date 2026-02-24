@@ -43,6 +43,8 @@ const AUTH_NAME = process.env.AUTH_NAME || "Administrador";
 const AUTH_PERFIL = (process.env.AUTH_PERFIL || "admin");
 const JWT_SECRET = process.env.JWT_SECRET || "appemp-dev-secret-change-me";
 const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || "8h");
+const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
+const EXPO_PUSH_ACCESS_TOKEN = process.env.EXPO_PUSH_ACCESS_TOKEN || "";
 const normalizarStatus = (status) => {
     const valorNormalizado = status.trim().toUpperCase().replace(/\s+/g, "_");
     const valorMapeado = valorNormalizado === "OK" ? "EFETIVADO" : valorNormalizado;
@@ -80,6 +82,98 @@ const normalizarBoolean = (valor) => {
     if (typeof valor === "number")
         return valor === 1;
     return false;
+};
+const normalizarExpoPushToken = (valor) => {
+    const token = String(valor !== null && valor !== void 0 ? valor : "").trim();
+    if (!token)
+        return null;
+    if (token.startsWith("ExponentPushToken[") || token.startsWith("ExpoPushToken[")) {
+        return token;
+    }
+    return null;
+};
+const dividirEmBlocos = (itens, tamanho) => {
+    const blocos = [];
+    for (let i = 0; i < itens.length; i += tamanho) {
+        blocos.push(itens.slice(i, i + tamanho));
+    }
+    return blocos;
+};
+const desativarTokensInvalidos = async (tokens) => {
+    if (!tokens.length)
+        return;
+    try {
+        await db_1.pool.query(`UPDATE notificacao_dispositivos
+       SET ativo = false,
+           atualizado_em = NOW()
+       WHERE expo_push_token = ANY($1::text[])`, [tokens]);
+    }
+    catch (error) {
+        console.error("Erro ao desativar tokens inválidos:", error);
+    }
+};
+const enviarPushPedidos = async (params) => {
+    try {
+        const tokensResult = await db_1.pool.query(`SELECT DISTINCT nd.expo_push_token
+       FROM notificacao_dispositivos nd
+       INNER JOIN usuarios u ON u.id = nd.usuario_id
+       WHERE nd.ativo = true
+         AND u.ativo = true`);
+        const tokens = tokensResult.rows
+            .map((row) => normalizarExpoPushToken(row.expo_push_token))
+            .filter((value) => Boolean(value));
+        if (!tokens.length)
+            return;
+        const payloadBase = {
+            sound: "default",
+            title: params.titulo,
+            body: params.corpo,
+            data: params.data || {},
+            priority: "high",
+            channelId: "appemp-pedidos",
+        };
+        const invalidos = [];
+        const headers = {
+            Accept: "application/json",
+            "Accept-encoding": "gzip, deflate",
+            "Content-Type": "application/json",
+        };
+        if (EXPO_PUSH_ACCESS_TOKEN) {
+            headers.Authorization = `Bearer ${EXPO_PUSH_ACCESS_TOKEN}`;
+        }
+        const blocos = dividirEmBlocos(tokens, 100);
+        for (const bloco of blocos) {
+            const body = bloco.map((to) => ({ to, ...payloadBase }));
+            const response = await fetch(EXPO_PUSH_URL, {
+                method: "POST",
+                headers,
+                body: JSON.stringify(body),
+            });
+            if (!response.ok) {
+                const textoErro = await response.text();
+                console.error("Falha ao enviar push Expo:", response.status, textoErro);
+                continue;
+            }
+            const json = (await response.json());
+            if (!Array.isArray(json.data))
+                continue;
+            json.data.forEach((item, index) => {
+                var _a;
+                const erro = (_a = item === null || item === void 0 ? void 0 : item.details) === null || _a === void 0 ? void 0 : _a.error;
+                if ((item === null || item === void 0 ? void 0 : item.status) === "error" && erro === "DeviceNotRegistered") {
+                    const token = bloco[index];
+                    if (token)
+                        invalidos.push(token);
+                }
+            });
+        }
+        if (invalidos.length) {
+            await desativarTokensInvalidos(invalidos);
+        }
+    }
+    catch (error) {
+        console.error("Erro ao enviar push de pedidos:", error);
+    }
 };
 const gerarToken = (user) => {
     var _a;
@@ -150,6 +244,17 @@ const ensureImageColumns = async () => {
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_efetivado_por INTEGER");
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_efetivado_por_nome TEXT");
     await db_1.pool.query("UPDATE pedidos SET nf_status = 'PENDENTE' WHERE nf_status IS NULL");
+    await db_1.pool.query(`CREATE TABLE IF NOT EXISTS notificacao_dispositivos (
+      id SERIAL PRIMARY KEY,
+      usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+      expo_push_token TEXT NOT NULL UNIQUE,
+      plataforma VARCHAR(30) NOT NULL DEFAULT 'unknown',
+      ativo BOOLEAN NOT NULL DEFAULT true,
+      criado_em TIMESTAMP NOT NULL DEFAULT NOW(),
+      atualizado_em TIMESTAMP NOT NULL DEFAULT NOW()
+    )`);
+    await db_1.pool.query(`CREATE INDEX IF NOT EXISTS idx_notificacao_dispositivos_usuario
+     ON notificacao_dispositivos (usuario_id)`);
 };
 app.get("/health", (_req, res) => {
     res.json({ status: "ok", message: "APPEMP backend funcionando" });
@@ -265,6 +370,46 @@ app.post("/auth/change-password", autenticarToken, async (req, res) => {
     catch (error) {
         console.error("Erro ao trocar senha:", error);
         return res.status(500).json({ error: "Erro ao trocar senha" });
+    }
+});
+app.post("/notificacoes/dispositivos", autenticarToken, async (req, res) => {
+    var _a, _b, _c;
+    const expoPushToken = normalizarExpoPushToken((_a = req.body) === null || _a === void 0 ? void 0 : _a.expo_push_token);
+    const plataforma = String(((_b = req.body) === null || _b === void 0 ? void 0 : _b.plataforma) || "unknown").trim().slice(0, 30) || "unknown";
+    if (!expoPushToken) {
+        return res.status(400).json({ error: "expo_push_token inválido." });
+    }
+    try {
+        await db_1.pool.query(`INSERT INTO notificacao_dispositivos (usuario_id, expo_push_token, plataforma, ativo, atualizado_em)
+       VALUES ($1, $2, $3, true, NOW())
+       ON CONFLICT (expo_push_token) DO UPDATE
+       SET usuario_id = EXCLUDED.usuario_id,
+           plataforma = EXCLUDED.plataforma,
+           ativo = true,
+           atualizado_em = NOW()`, [(_c = req.user) === null || _c === void 0 ? void 0 : _c.id, expoPushToken, plataforma]);
+        return res.json({ ok: true });
+    }
+    catch (error) {
+        console.error("Erro ao registrar dispositivo de notificação:", error);
+        return res.status(500).json({ error: "Erro ao registrar dispositivo de notificação." });
+    }
+});
+app.delete("/notificacoes/dispositivos", autenticarToken, async (req, res) => {
+    var _a;
+    const expoPushToken = normalizarExpoPushToken((_a = req.body) === null || _a === void 0 ? void 0 : _a.expo_push_token);
+    if (!expoPushToken) {
+        return res.status(400).json({ error: "expo_push_token inválido." });
+    }
+    try {
+        await db_1.pool.query(`UPDATE notificacao_dispositivos
+       SET ativo = false,
+           atualizado_em = NOW()
+       WHERE expo_push_token = $1`, [expoPushToken]);
+        return res.json({ ok: true });
+    }
+    catch (error) {
+        console.error("Erro ao desativar dispositivo de notificação:", error);
+        return res.status(500).json({ error: "Erro ao desativar dispositivo de notificação." });
     }
 });
 app.use(autenticarToken);
@@ -1367,6 +1512,7 @@ app.post("/pedidos", async (req, res) => {
     const usaNf = normalizarBoolean(usa_nf);
     const nfImagemUrl = normalizarImagemUrl(nf_imagem_url);
     const nfNumero = normalizarNfNumero(nf_numero);
+    let clienteNome = "Cliente";
     if (!cliente_id || !data || !itens || !Array.isArray(itens) || itens.length === 0) {
         return res.status(400).json({
             error: "cliente_id, data e itens (array não vazio) são obrigatórios",
@@ -1393,13 +1539,14 @@ app.post("/pedidos", async (req, res) => {
     const client = await db_1.pool.connect();
     try {
         await client.query("BEGIN");
+        const clienteResult = await client.query("SELECT codigo_cliente, nome FROM clientes WHERE id = $1", [cliente_id]);
+        if (clienteResult.rows.length === 0) {
+            throw new Error("Cliente não encontrado");
+        }
+        clienteNome = String(clienteResult.rows[0].nome || "Cliente");
         // Gerar chave_pedido se não fornecida
         let finalChavePedido = chave_pedido;
         if (!finalChavePedido) {
-            const clienteResult = await client.query("SELECT codigo_cliente FROM clientes WHERE id = $1", [cliente_id]);
-            if (clienteResult.rows.length === 0) {
-                throw new Error("Cliente não encontrado");
-            }
             const codigoCliente = clienteResult.rows[0].codigo_cliente;
             const timestamp = Date.now().toString(36);
             finalChavePedido = `${codigoCliente}${timestamp}`;
@@ -1472,6 +1619,14 @@ app.post("/pedidos", async (req, res) => {
             });
         }
         await client.query("COMMIT");
+        void enviarPushPedidos({
+            titulo: "Novo pedido",
+            corpo: `Pedido #${pedido.id} criado para ${clienteNome}.`,
+            data: {
+                tipo: "pedido_criado",
+                pedido_id: Number(pedido.id),
+            },
+        });
         res.status(201).json({
             ...pedido,
             itens: itensInseridos,
@@ -1560,6 +1715,15 @@ app.patch("/pedidos/:id/status", async (req, res) => {
         if (result.rows.length === 0) {
             return res.status(404).json({ error: "Pedido não encontrado" });
         }
+        void enviarPushPedidos({
+            titulo: "Pedido atualizado",
+            corpo: `Pedido #${result.rows[0].id} alterado para ${result.rows[0].status}.`,
+            data: {
+                tipo: "pedido_status_atualizado",
+                pedido_id: Number(result.rows[0].id),
+                status: String(result.rows[0].status),
+            },
+        });
         res.json(result.rows[0]);
     }
     catch (error) {
@@ -1865,6 +2029,14 @@ app.put("/pedidos/:id", async (req, res) => {
       WHERE ip.pedido_id = $1
       ORDER BY ip.id`, [parseInt(String(id), 10)]);
         pedido.itens = itensResult.rows;
+        void enviarPushPedidos({
+            titulo: "Pedido atualizado",
+            corpo: `Pedido #${pedido.id} de ${pedido.cliente_nome} foi atualizado.`,
+            data: {
+                tipo: "pedido_atualizado",
+                pedido_id: Number(pedido.id),
+            },
+        });
         res.json(pedido);
     }
     catch (error) {
