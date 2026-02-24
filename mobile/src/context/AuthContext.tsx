@@ -15,6 +15,7 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UsuarioSession | null>(null);
@@ -63,16 +64,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!token || !user?.id) return;
     let cancelado = false;
 
+    const registrarDispositivoComRetry = async (expoPushToken: string) => {
+      const atrasos = [0, 2000, 5000, 10000];
+      for (let i = 0; i < atrasos.length; i++) {
+        if (cancelado) return false;
+        if (atrasos[i] > 0) await wait(atrasos[i]);
+        try {
+          await notificacoesApi.registrarDispositivo(expoPushToken, Platform.OS);
+          return true;
+        } catch (error) {
+          console.error(`Falha ao registrar push token (tentativa ${i + 1}/${atrasos.length})`, error);
+        }
+      }
+      return false;
+    };
+
     const registrarDispositivo = async () => {
       try {
         const expoPushToken = await getExpoPushToken();
         if (!expoPushToken || cancelado) return;
-        await notificacoesApi.registrarDispositivo(expoPushToken, Platform.OS);
+        const registrado = await registrarDispositivoComRetry(expoPushToken);
+        if (!registrado || cancelado) return;
         if (!cancelado) {
           pushTokenRegistradoRef.current = expoPushToken;
         }
-      } catch {
-        // Notificação push não pode bloquear sessão do usuário.
+      } catch (error) {
+        console.error('Erro no fluxo de registro de notificação push:', error);
       }
     };
 

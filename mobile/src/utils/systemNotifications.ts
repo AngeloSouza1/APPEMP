@@ -16,7 +16,7 @@ export const initSystemNotifications = async () => {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
-      shouldPlaySound: false,
+      shouldPlaySound: true,
       shouldSetBadge: true,
     }),
   });
@@ -24,8 +24,9 @@ export const initSystemNotifications = async () => {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
       name: 'Pedidos',
-      importance: Notifications.AndroidImportance.HIGH,
+      importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 120, 250],
+      sound: 'default',
       lightColor: '#1d4ed8',
     });
   }
