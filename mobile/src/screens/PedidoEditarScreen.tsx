@@ -20,7 +20,9 @@ import DatePickerModal from '../components/DatePickerModal';
 import { arquivosApi, pedidosApi, ProdutoResumo, produtosApi, RotaResumo, rotasApi } from '../api/services';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { Pedido } from '../types/pedidos';
+import { notifyPedidoChange } from '../utils/systemNotifications';
 import { formatarMoeda } from '../utils/format';
+import { pushAppNotification } from '../utils/appNotifications';
 import { marcarRelatoriosComoDesatualizados } from '../utils/relatoriosRefresh';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PedidoEditar'>;
@@ -431,6 +433,14 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
         nf_numero: usaNf ? nfNumeroNormalizado : null,
         itens: itensPayload,
       });
+      await pushAppNotification({
+        type: 'pedido_editado',
+        message: `Pedido #${pedido.id} atualizado com sucesso.`,
+      });
+      await notifyPedidoChange(
+        'Pedido atualizado',
+        `Pedido #${pedido.id} de ${pedido.cliente_nome} foi atualizado.`
+      );
       await marcarRelatoriosComoDesatualizados();
       Alert.alert('Sucesso', 'Pedido atualizado com sucesso.');
       navigation.goBack();

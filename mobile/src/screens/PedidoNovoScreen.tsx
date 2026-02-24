@@ -29,7 +29,9 @@ import {
 } from '../api/services';
 import * as ImagePicker from 'expo-image-picker';
 import { RootStackParamList } from '../navigation/RootNavigator';
+import { notifyPedidoChange } from '../utils/systemNotifications';
 import { formatarMoeda } from '../utils/format';
+import { pushAppNotification } from '../utils/appNotifications';
 import { marcarRelatoriosComoDesatualizados } from '../utils/relatoriosRefresh';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PedidoNovo'>;
@@ -455,7 +457,7 @@ export default function PedidoNovoScreen({ navigation }: Props) {
 
     setSalvando(true);
     try {
-      await pedidosApi.criar({
+      const response = await pedidosApi.criar({
         cliente_id: clienteId,
         rota_id: rotaId,
         data: dataNormalizada,
@@ -465,6 +467,14 @@ export default function PedidoNovoScreen({ navigation }: Props) {
         nf_numero: usaNf ? nfNumeroNormalizado : null,
         itens: itensPayload,
       });
+      await pushAppNotification({
+        type: 'pedido_criado',
+        message: `Pedido #${response.data.id} criado com sucesso.`,
+      });
+      await notifyPedidoChange(
+        'Pedido criado',
+        `Pedido #${response.data.id} criado para ${clienteSelecionado?.nome || 'cliente'}.`
+      );
       await marcarRelatoriosComoDesatualizados();
       Alert.alert('Sucesso', 'Pedido criado com sucesso.');
       navigation.goBack();

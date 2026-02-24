@@ -24,6 +24,9 @@
       },
       "package": "com.appemp.mobile"
     },
+    "plugins": [
+      "expo-notifications"
+    ],
     "web": {
       "bundler": "metro"
     },

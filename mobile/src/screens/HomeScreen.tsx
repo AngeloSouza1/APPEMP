@@ -24,7 +24,9 @@ import { clientesApi, pedidosApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { Pedido } from '../types/pedidos';
+import { consumeLatestAppNotification } from '../utils/appNotifications';
 import { formatarData, formatarMoeda } from '../utils/format';
+import { clearSystemBadge } from '../utils/systemNotifications';
 
 type Modulo = {
   key: string;
@@ -252,6 +254,7 @@ export default function HomeScreen() {
     pedidos: null,
     remaneio: null,
   });
+  const [appNotificationMessage, setAppNotificationMessage] = useState<string | null>(null);
   const homeSnapshotRef = useRef<{
     pedidosAssinatura: string;
     remaneioAssinatura: string;
@@ -391,8 +394,21 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      clearSystemBadge().catch(() => undefined);
+    }, [])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
       if (!user || user.perfil === 'motorista') return;
       carregarNotificacoesModulos();
+      consumeLatestAppNotification()
+        .then((notification) => {
+          if (!notification?.message) return;
+          setAppNotificationMessage(notification.message);
+          setTimeout(() => setAppNotificationMessage(null), 5000);
+        })
+        .catch(() => undefined);
       const timer = setInterval(() => {
         carregarNotificacoesModulos();
       }, 15000);
@@ -686,6 +702,11 @@ export default function HomeScreen() {
       <View style={styles.backgroundGlowSoft} />
 
       <View style={[styles.content, { paddingTop: topSafeOffset }]}>
+        {appNotificationMessage ? (
+          <View style={styles.appNotificationBanner}>
+            <Text style={styles.appNotificationText}>{appNotificationMessage}</Text>
+          </View>
+        ) : null}
         <View style={[styles.appBar, { marginBottom: ajuste.appBarMarginBottom }]}>
           <View style={styles.appBarLeft}>
             <View style={styles.avatar}>
@@ -1162,6 +1183,20 @@ const styles = StyleSheet.create({
     color: '#334155',
     marginTop: 1,
     fontSize: 13.86,
+  },
+  appNotificationBanner: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#86efac',
+    backgroundColor: '#ecfdf5',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  appNotificationText: {
+    color: '#065f46',
+    fontSize: 12.71,
+    fontWeight: '700',
   },
   menuWrap: {
     position: 'relative',
