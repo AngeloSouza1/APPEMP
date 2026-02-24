@@ -309,6 +309,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: 16,
+    paddingVertical: 24,
     alignItems: 'center',
   },
   shell: {
@@ -328,7 +329,7 @@ const styles = StyleSheet.create({
   },
   brandPanel: {
     backgroundColor: 'rgba(255,255,255,0.82)',
-    paddingVertical: 20,
+    paddingVertical: 16,
     paddingHorizontal: 18,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(59,130,246,0.10)',
@@ -382,6 +383,8 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: 'rgba(255,255,255,0.78)',
     padding: 20,
+    paddingBottom: 28,
+    minHeight: 340,
     gap: 12,
   },
   previewCard: {
