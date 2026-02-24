@@ -5,6 +5,7 @@ import * as Notifications from 'expo-notifications';
 let initialized = false;
 let permissionGranted: boolean | null = null;
 let cachedExpoPushToken: string | null = null;
+const FALLBACK_EXPO_PROJECT_ID = '7e9272ca-e31d-4584-8a83-0371c33a99bc';
 
 const CHANNEL_ID = 'appemp-pedidos';
 
@@ -83,7 +84,7 @@ export const getExpoPushToken = async (): Promise<string | null> => {
     const projectId =
       Constants?.expoConfig?.extra?.eas?.projectId ||
       Constants?.easConfig?.projectId ||
-      undefined;
+      FALLBACK_EXPO_PROJECT_ID;
     const tokenResult = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
     const token = tokenResult?.data ? String(tokenResult.data) : null;
     cachedExpoPushToken = token;
