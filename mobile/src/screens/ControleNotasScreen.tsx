@@ -284,13 +284,44 @@ export default function ControleNotasScreen() {
         </View>
 
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Pedidos com NF</Text>
-          <Text style={styles.summaryValue}>{pedidos.length}</Text>
-          <Text style={styles.summarySub}>A conferir: {pedidosAConferir.length}</Text>
-          <Text style={styles.summarySub}>Efetivados: {pedidosEfetivados.length}</Text>
-          <Text style={styles.summarySub}>Selecionados: {idsSelecionados.length}</Text>
-          <Text style={styles.summarySub}>Valor selecionado: {formatarMoeda(totalSelecionado)}</Text>
-          <Text style={styles.summarySub}>Somente pedidos com NF válida (não cancelados)</Text>
+          <View style={styles.summaryHeader}>
+            <View>
+              <Text style={styles.summaryTitle}>Pedidos com NF</Text>
+              <Text style={styles.summaryHint}>Somente pedidos com NF válida (não cancelados)</Text>
+            </View>
+            <View style={styles.summaryTotalBadge}>
+              <Text style={styles.summaryTotalLabel}>Total</Text>
+              <Text style={styles.summaryTotalValue}>{pedidos.length}</Text>
+            </View>
+          </View>
+
+          <View style={styles.summaryInlineStats}>
+            <View style={styles.summaryInlineItem}>
+              <Text style={styles.summaryInlineLabel}>A conferir</Text>
+              <Text style={styles.summaryInlineValue}>{pedidosAConferir.length}</Text>
+            </View>
+            <View style={styles.summaryInlineDivider} />
+            <View style={styles.summaryInlineItem}>
+              <Text style={styles.summaryInlineLabel}>Efetivados</Text>
+              <Text style={styles.summaryInlineValue}>{pedidosEfetivados.length}</Text>
+            </View>
+            <View style={styles.summaryInlineDivider} />
+            <View style={styles.summaryInlineItem}>
+              <Text style={styles.summaryInlineLabel}>Selecionados</Text>
+              <Text style={styles.summaryInlineValue}>{idsSelecionados.length}</Text>
+            </View>
+          </View>
+
+          <View style={styles.summaryGrid}>
+            <View style={styles.summaryMetricCard}>
+              <Text style={styles.summaryMetricLabel}>Valor selecionado</Text>
+              <Text style={styles.summaryMetricValueMoney}>{formatarMoeda(totalSelecionado)}</Text>
+            </View>
+            <View style={styles.summaryMetricCard}>
+              <Text style={styles.summaryMetricLabel}>Pronto para efetivar</Text>
+              <Text style={styles.summaryMetricValue}>{idsSelecionados.length > 0 ? 'Sim' : 'Não'}</Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.tabsRow}>
@@ -438,9 +469,66 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginBottom: 10,
   },
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    columnGap: 8,
+  },
   summaryTitle: { color: '#334155', fontSize: 14, fontWeight: '700' },
-  summaryValue: { color: '#0f172a', fontSize: 28, fontWeight: '800', marginTop: 2 },
-  summarySub: { color: '#475569', fontSize: 13, fontWeight: '600', marginTop: 2 },
+  summaryHint: { color: '#64748b', fontSize: 11.5, fontWeight: '600', marginTop: 2 },
+  summaryTotalBadge: {
+    minWidth: 64,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  summaryTotalLabel: { color: '#475569', fontSize: 11, fontWeight: '700' },
+  summaryTotalValue: { color: '#0f172a', fontSize: 21, fontWeight: '900', lineHeight: 23 },
+  summaryGrid: {
+    marginTop: 8,
+    flexDirection: 'row',
+    rowGap: 8,
+    columnGap: 6,
+  },
+  summaryInlineStats: {
+    marginTop: 8,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  summaryInlineItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  summaryInlineDivider: {
+    width: 1,
+    height: 26,
+    backgroundColor: '#e2e8f0',
+  },
+  summaryInlineLabel: { color: '#64748b', fontSize: 11, fontWeight: '700' },
+  summaryInlineValue: { color: '#0f172a', fontSize: 16, fontWeight: '900', marginTop: 1 },
+  summaryMetricCard: {
+    flex: 1,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+  },
+  summaryMetricLabel: { color: '#64748b', fontSize: 11.5, fontWeight: '700' },
+  summaryMetricValue: { color: '#0f172a', fontSize: 17, fontWeight: '800', marginTop: 1 },
+  summaryMetricValueMoney: { color: '#1d4ed8', fontSize: 16, fontWeight: '900', marginTop: 1 },
   tabsRow: {
     flexDirection: 'row',
     columnGap: 8,
