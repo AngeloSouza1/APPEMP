@@ -13,8 +13,9 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { relatoriosApi, RelatorioRotaDetalhadoItem } from '../api/services';
+import { pedidosApi, relatoriosApi, RelatorioRotaDetalhadoItem } from '../api/services';
 import { RootStackParamList } from '../navigation/RootNavigator';
+import { TrocaPedido } from '../types/pedidos';
 import { formatarData, formatarMoeda } from '../utils/format';
 
 type RotaResumoEntrega = {
@@ -34,6 +35,7 @@ type RotaResumoEntrega = {
     cliente_nome: string;
     itens: Array<{
       item_chave: string;
+      produto_id?: number | null;
       produto_nome: string;
       embalagem: string;
       quantidade: number;
@@ -64,6 +66,7 @@ const agruparRotas = (rows: RelatorioRotaDetalhadoItem[]): RotaResumoEntrega[] =
             string,
             {
               item_chave: string;
+              produto_id?: number | null;
               produto_nome: string;
               embalagem: string;
               quantidade: number;
@@ -113,6 +116,7 @@ const agruparRotas = (rows: RelatorioRotaDetalhadoItem[]): RotaResumoEntrega[] =
       if (!pedido.itens.has(itemChave)) {
         pedido.itens.set(itemChave, {
           item_chave: itemChave,
+          produto_id: row.produto_id ?? null,
           produto_nome: row.produto_nome,
           embalagem,
           quantidade: 0,
@@ -162,6 +166,8 @@ export default function EntregasDashboardScreen() {
   const [rotasDetalhado, setRotasDetalhado] = useState<RelatorioRotaDetalhadoItem[]>([]);
   const [rotaExpandidaId, setRotaExpandidaId] = useState<number | null>(null);
   const [pedidoExpandidoKey, setPedidoExpandidoKey] = useState<string | null>(null);
+  const [trocasPorPedido, setTrocasPorPedido] = useState<Record<number, TrocaPedido[]>>({});
+  const [trocasLoadingPorPedido, setTrocasLoadingPorPedido] = useState<Record<number, boolean>>({});
 
   const carregarEntregas = async () => {
     setLoading(true);
@@ -187,10 +193,25 @@ export default function EntregasDashboardScreen() {
 
       setRotasDetalhado([...unicos.values()]);
       setPedidoExpandidoKey(null);
+      setTrocasPorPedido({});
+      setTrocasLoadingPorPedido({});
     } catch {
       setErro('Não foi possível carregar o dashboard de entregas.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const carregarTrocasPedido = async (pedidoId: number) => {
+    if (trocasPorPedido[pedidoId] || trocasLoadingPorPedido[pedidoId]) return;
+    setTrocasLoadingPorPedido((prev) => ({ ...prev, [pedidoId]: true }));
+    try {
+      const response = await pedidosApi.listarTrocas(pedidoId);
+      setTrocasPorPedido((prev) => ({ ...prev, [pedidoId]: response.data || [] }));
+    } catch {
+      setTrocasPorPedido((prev) => ({ ...prev, [pedidoId]: [] }));
+    } finally {
+      setTrocasLoadingPorPedido((prev) => ({ ...prev, [pedidoId]: false }));
     }
   };
 
@@ -295,11 +316,22 @@ export default function EntregasDashboardScreen() {
                         {rota.pedidos.slice(0, 10).map((pedido) => {
                           const keyPedido = `${rota.rota_id}-${pedido.pedido_id}`;
                           const pedidoExpandido = pedidoExpandidoKey === keyPedido;
+                          const trocasPedido = trocasPorPedido[pedido.pedido_id] || [];
+                          const trocasLoading = Boolean(trocasLoadingPorPedido[pedido.pedido_id]);
                           return (
                           <Pressable
                             key={pedido.pedido_id}
                             style={[styles.pedidoCard, pedidoExpandido && styles.pedidoCardActive]}
-                            onPress={() => setPedidoExpandidoKey((prev) => (prev === keyPedido ? null : keyPedido))}
+                            onPress={() => {
+                              const proximoExpandido = pedidoExpandido ? null : keyPedido;
+                              setPedidoExpandidoKey(proximoExpandido);
+                              if (
+                                proximoExpandido &&
+                                (pedido.tem_trocas || Number(pedido.qtd_trocas || 0) > 0)
+                              ) {
+                                carregarTrocasPedido(pedido.pedido_id);
+                              }
+                            }}
                           >
                             <View style={styles.pedidoHeader}>
                               <Text style={styles.pedidoTitle}>
@@ -342,9 +374,39 @@ export default function EntregasDashboardScreen() {
                                     <Text style={styles.pedidoTrocasTitulo}>
                                       Trocas {Number(pedido.qtd_trocas || 0) > 0 ? `(${Number(pedido.qtd_trocas || 0)})` : ''}
                                     </Text>
-                                    <Text style={styles.pedidoTrocasTexto}>
-                                      {pedido.nomes_trocas?.trim() || 'Troca registrada neste pedido.'}
-                                    </Text>
+                                    {trocasLoading ? (
+                                      <Text style={styles.pedidoTrocasTexto}>Carregando trocas...</Text>
+                                    ) : trocasPedido.length > 0 ? (
+                                      trocasPedido.map((troca, trocaIndex) => {
+                                        const itemPedido = pedido.itens.find(
+                                          (item) => Number(item.produto_id || 0) === Number(troca.produto_id || 0)
+                                        );
+                                        return (
+                                          <View
+                                            key={troca.id}
+                                            style={[
+                                              styles.pedidoItemRow,
+                                              trocaIndex % 2 === 1 && styles.pedidoItemRowAlt,
+                                            ]}
+                                          >
+                                            <Text style={styles.pedidoItemNome}>{troca.produto_nome}</Text>
+                                            <View style={styles.pedidoItemMetaRow}>
+                                              <Text style={styles.pedidoItemMeta}>
+                                                Qtd {troca.quantidade}
+                                                {itemPedido?.embalagem ? ` ${itemPedido.embalagem}` : ''}
+                                              </Text>
+                                              <Text style={styles.pedidoItemValor}>
+                                                {formatarMoeda(troca.valor_troca || 0)}
+                                              </Text>
+                                            </View>
+                                          </View>
+                                        );
+                                      })
+                                    ) : (
+                                      <Text style={styles.pedidoTrocasTexto}>
+                                        {pedido.nomes_trocas?.trim() || 'Troca registrada neste pedido.'}
+                                      </Text>
+                                    )}
                                   </View>
                                 ) : null}
                                 {pedido.itens.length > 0 ? (
