@@ -167,25 +167,46 @@ export const notificacoesApi = {
 const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
 const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
-const getMimeTypeFromUri = (uri: string, mimeType?: string | null) => {
-  if (mimeType && mimeType.startsWith('image/')) return mimeType;
-  const ext = uri.split('.').pop()?.toLowerCase();
+const getMimeTypeFromAsset = (asset: {
+  uri: string;
+  mimeType?: string | null;
+  fileName?: string | null;
+}) => {
+  if (asset.mimeType) return asset.mimeType;
+
+  const candidate = (asset.fileName || asset.uri).split('?')[0].toLowerCase();
+  const ext = candidate.split('.').pop();
+  if (ext === 'pdf') return 'application/pdf';
   if (ext === 'png') return 'image/png';
   if (ext === 'webp') return 'image/webp';
   if (ext === 'heic' || ext === 'heif') return 'image/heic';
   return 'image/jpeg';
 };
 
+const getFileExtension = (mimeType: string) => {
+  if (mimeType === 'application/pdf') return 'pdf';
+  if (mimeType === 'image/png') return 'png';
+  if (mimeType === 'image/webp') return 'webp';
+  if (mimeType === 'image/heic') return 'heic';
+  return 'jpg';
+};
+
 export const arquivosApi = {
-  uploadImagemCloudinary: async (asset: { uri: string; base64?: string | null; mimeType?: string | null }) => {
+  uploadImagemCloudinary: async (asset: {
+    uri: string;
+    base64?: string | null;
+    mimeType?: string | null;
+    fileName?: string | null;
+  }) => {
     if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
       throw new Error(
         'Cloudinary não configurado. Defina EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME e EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET.'
       );
     }
 
-    const endpoint = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
-    const mimeType = getMimeTypeFromUri(asset.uri, asset.mimeType);
+    const endpoint = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
+    const mimeType = getMimeTypeFromAsset(asset);
+    const isPdf = mimeType === 'application/pdf';
 
     const parseCloudinaryResponse = async (response: Response, metodo: string) => {
       const data = await response.json();
@@ -221,7 +242,7 @@ export const arquivosApi = {
       const formData = new FormData();
       formData.append('file', {
         uri: asset.uri,
-        name: `nf-${Date.now()}.jpg`,
+        name: `nf-${Date.now()}.${getFileExtension(mimeType)}`,
         type: mimeType,
       } as any);
       formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
@@ -235,7 +256,7 @@ export const arquivosApi = {
     };
 
     try {
-      if (asset.base64) {
+      if (asset.base64 && !isPdf) {
         try {
           return await uploadViaBase64FormData();
         } catch {

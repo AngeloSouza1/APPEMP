@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -21,6 +22,7 @@ import { RootStackParamList } from '../navigation/RootNavigator';
 import { Pedido, TrocaPedido } from '../types/pedidos';
 import { formatarData, formatarMoeda } from '../utils/format';
 import { marcarRelatoriosComoDesatualizados } from '../utils/relatoriosRefresh';
+import { isPdfAttachment } from '../utils/nfAttachment';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PedidoDetalhe'>;
 type TrocaItemOption = {
@@ -88,6 +90,7 @@ export default function PedidoDetalheScreen({ route, navigation }: Props) {
   const [erro, setErro] = useState<string | null>(null);
   const [trocasSectionY, setTrocasSectionY] = useState<number | null>(null);
   const [previewNfVisivel, setPreviewNfVisivel] = useState(false);
+  const [previewNfZoom, setPreviewNfZoom] = useState(1);
   const scrollRef = useRef<ScrollView>(null);
 
   const fetchPedido = useCallback(async () => {
@@ -145,6 +148,7 @@ export default function PedidoDetalheScreen({ route, navigation }: Props) {
     if (!pedido) return [];
     return trocas.filter((troca) => Number(troca.pedido_id) === Number(pedido.id));
   }, [pedido, trocas]);
+  const nfEhPdf = useMemo(() => isPdfAttachment(pedido?.nf_imagem_url), [pedido?.nf_imagem_url]);
 
   const itensVinculadosParaTroca = useMemo(() => {
     if (!pedido) return [] as TrocaItemOption[];
@@ -333,10 +337,23 @@ export default function PedidoDetalheScreen({ route, navigation }: Props) {
             {pedido.nf_numero ? <Text style={styles.nfNumberText}>Número: {pedido.nf_numero}</Text> : null}
             {pedido.nf_imagem_url ? (
               <>
-                <Pressable onPress={() => setPreviewNfVisivel(true)}>
-                  <Image source={{ uri: pedido.nf_imagem_url }} style={styles.nfThumb} resizeMode="cover" />
-                </Pressable>
-                <Text style={styles.nfHint}>Toque na imagem para ampliar</Text>
+                {nfEhPdf ? (
+                  <Pressable style={styles.nfPdfButton} onPress={() => Linking.openURL(pedido.nf_imagem_url!)}>
+                    <Text style={styles.nfPdfButtonText}>Abrir PDF da NF</Text>
+                  </Pressable>
+                ) : (
+                  <>
+                    <Pressable
+                      onPress={() => {
+                        setPreviewNfZoom(1);
+                        setPreviewNfVisivel(true);
+                      }}
+                    >
+                      <Image source={{ uri: pedido.nf_imagem_url }} style={styles.nfThumb} resizeMode="cover" />
+                    </Pressable>
+                    <Text style={styles.nfHint}>Toque na imagem para ampliar</Text>
+                  </>
+                )}
               </>
             ) : (
               <Text style={styles.emptyText}>Imagem da NF não informada.</Text>
@@ -552,13 +569,38 @@ export default function PedidoDetalheScreen({ route, navigation }: Props) {
             )}
         </View>
       </ScrollView>
-      <Modal transparent visible={previewNfVisivel} animationType="fade" onRequestClose={() => setPreviewNfVisivel(false)}>
+      <Modal
+        transparent
+        visible={previewNfVisivel && !nfEhPdf}
+        animationType="fade"
+        onRequestClose={() => setPreviewNfVisivel(false)}
+      >
         <View style={styles.previewOverlay}>
           <Pressable style={styles.previewBackdrop} onPress={() => setPreviewNfVisivel(false)} />
           <View style={styles.previewCard}>
             {pedido.nf_imagem_url ? (
-              <Image source={{ uri: pedido.nf_imagem_url }} style={styles.previewImage} resizeMode="contain" />
+              <Pressable onPress={() => setPreviewNfZoom((atual) => (atual >= 3 ? 1 : atual + 1))}>
+                <Image
+                  source={{ uri: pedido.nf_imagem_url }}
+                  style={[styles.previewImage, { transform: [{ scale: previewNfZoom }] }]}
+                  resizeMode="contain"
+                />
+              </Pressable>
             ) : null}
+            <View style={styles.previewZoomRow}>
+              <Text style={styles.previewZoomText}>Zoom: {previewNfZoom}x (toque na imagem)</Text>
+              <View style={styles.previewZoomActions}>
+                <Pressable style={styles.previewZoomButton} onPress={() => setPreviewNfZoom((atual) => Math.max(1, atual - 1))}>
+                  <Text style={styles.previewZoomButtonText}>-</Text>
+                </Pressable>
+                <Pressable style={styles.previewZoomButton} onPress={() => setPreviewNfZoom(1)}>
+                  <Text style={styles.previewZoomButtonText}>1x</Text>
+                </Pressable>
+                <Pressable style={styles.previewZoomButton} onPress={() => setPreviewNfZoom((atual) => Math.min(3, atual + 1))}>
+                  <Text style={styles.previewZoomButtonText}>+</Text>
+                </Pressable>
+              </View>
+            </View>
             <Pressable style={styles.previewCloseButton} onPress={() => setPreviewNfVisivel(false)}>
               <Text style={styles.previewCloseText}>Fechar</Text>
             </Pressable>
@@ -759,6 +801,20 @@ const styles = StyleSheet.create({
     fontSize: 12.71,
     fontWeight: '600',
   },
+  nfPdfButton: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    backgroundColor: '#eff6ff',
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nfPdfButtonText: {
+    color: '#1e3a8a',
+    fontSize: 13.86,
+    fontWeight: '700',
+  },
   nfNumberText: {
     color: '#0f172a',
     fontSize: 13.2,
@@ -830,6 +886,35 @@ const styles = StyleSheet.create({
     height: 460,
     borderRadius: 10,
     backgroundColor: '#e2e8f0',
+  },
+  previewZoomRow: {
+    gap: 8,
+  },
+  previewZoomText: {
+    color: '#334155',
+    fontSize: 12.71,
+    fontWeight: '700',
+  },
+  previewZoomActions: {
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'flex-end',
+  },
+  previewZoomButton: {
+    minWidth: 34,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#93c5fd',
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewZoomButtonText: {
+    color: '#1e3a8a',
+    fontSize: 12.71,
+    fontWeight: '800',
   },
   previewCloseButton: {
     alignSelf: 'flex-end',

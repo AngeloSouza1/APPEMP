@@ -4,6 +4,7 @@ import {
   Alert,
   FlatList,
   Image,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -19,6 +20,7 @@ import { pedidosApi } from '../api/services';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { Pedido } from '../types/pedidos';
 import { formatarData, formatarMoeda } from '../utils/format';
+import { isPdfAttachment } from '../utils/nfAttachment';
 
 const STATUS_LABEL: Record<string, string> = {
   EM_ESPERA: 'Em espera',
@@ -50,11 +52,13 @@ export default function ControleNotasScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [notaSelecionada, setNotaSelecionada] = useState<string | null>(null);
+  const [notaZoom, setNotaZoom] = useState(1);
   const [cardsExpandidos, setCardsExpandidos] = useState<Record<number, boolean>>({});
   const [selecionados, setSelecionados] = useState<Record<number, boolean>>({});
   const [efetivando, setEfetivando] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState<'conferir' | 'efetivados'>('conferir');
   const ignorarProximoToggleCardRef = useRef(false);
+  const notaSelecionadaEhPdf = useMemo(() => isPdfAttachment(notaSelecionada), [notaSelecionada]);
 
   const carregar = useCallback(async () => {
     try {
@@ -243,10 +247,22 @@ export default function ControleNotasScreen() {
         {expandido ? (
           <>
             {item.nf_imagem_url ? (
-              <Pressable style={styles.imageWrap} onPress={() => setNotaSelecionada(item.nf_imagem_url || null)}>
-                <Image source={{ uri: item.nf_imagem_url }} style={styles.imageThumb} resizeMode="cover" />
-                <Text style={styles.imageHint}>Toque para ampliar</Text>
-              </Pressable>
+              isPdfAttachment(item.nf_imagem_url) ? (
+                <Pressable style={styles.pdfButton} onPress={() => Linking.openURL(item.nf_imagem_url!)}>
+                  <Text style={styles.pdfButtonText}>Abrir PDF da NF</Text>
+                </Pressable>
+              ) : (
+                <Pressable
+                  style={styles.imageWrap}
+                  onPress={() => {
+                    setNotaZoom(1);
+                    setNotaSelecionada(item.nf_imagem_url || null);
+                  }}
+                >
+                  <Image source={{ uri: item.nf_imagem_url }} style={styles.imageThumb} resizeMode="cover" />
+                  <Text style={styles.imageHint}>Toque para ampliar</Text>
+                </Pressable>
+              )
             ) : (
               <View style={styles.emptyNf}>
                 <Text style={styles.emptyNfText}>Sem imagem de NF anexada.</Text>
@@ -387,12 +403,37 @@ export default function ControleNotasScreen() {
         </Pressable>
       </View>
 
-      <Modal visible={Boolean(notaSelecionada)} transparent animationType="fade" onRequestClose={() => setNotaSelecionada(null)}>
+      <Modal
+        visible={Boolean(notaSelecionada) && !notaSelecionadaEhPdf}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setNotaSelecionada(null)}
+      >
         <View style={styles.previewBackdrop}>
           <View style={styles.previewCard}>
             {notaSelecionada ? (
-              <Image source={{ uri: notaSelecionada }} style={styles.previewImage} resizeMode="contain" />
+              <Pressable onPress={() => setNotaZoom((atual) => (atual >= 3 ? 1 : atual + 1))}>
+                <Image
+                  source={{ uri: notaSelecionada }}
+                  style={[styles.previewImage, { transform: [{ scale: notaZoom }] }]}
+                  resizeMode="contain"
+                />
+              </Pressable>
             ) : null}
+            <View style={styles.previewZoomRow}>
+              <Text style={styles.previewZoomText}>Zoom: {notaZoom}x (toque na imagem)</Text>
+              <View style={styles.previewZoomActions}>
+                <Pressable style={styles.previewZoomButton} onPress={() => setNotaZoom((atual) => Math.max(1, atual - 1))}>
+                  <Text style={styles.previewZoomButtonText}>-</Text>
+                </Pressable>
+                <Pressable style={styles.previewZoomButton} onPress={() => setNotaZoom(1)}>
+                  <Text style={styles.previewZoomButtonText}>1x</Text>
+                </Pressable>
+                <Pressable style={styles.previewZoomButton} onPress={() => setNotaZoom((atual) => Math.min(3, atual + 1))}>
+                  <Text style={styles.previewZoomButtonText}>+</Text>
+                </Pressable>
+              </View>
+            </View>
             <Pressable style={styles.previewClose} onPress={() => setNotaSelecionada(null)}>
               <Text style={styles.previewCloseText}>Fechar</Text>
             </Pressable>
@@ -626,6 +667,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 8,
   },
+  pdfButton: {
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 10,
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
+  pdfButtonText: {
+    color: '#1e3a8a',
+    fontSize: 13,
+    fontWeight: '700',
+  },
   emptyNf: {
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -704,6 +759,36 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   previewImage: { width: '100%', height: 420, borderRadius: 10, backgroundColor: '#e5e7eb' },
+  previewZoomRow: {
+    marginTop: 8,
+    gap: 8,
+  },
+  previewZoomText: {
+    color: '#334155',
+    fontSize: 12.71,
+    fontWeight: '700',
+  },
+  previewZoomActions: {
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'flex-end',
+  },
+  previewZoomButton: {
+    minWidth: 34,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#93c5fd',
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewZoomButtonText: {
+    color: '#1e3a8a',
+    fontSize: 12.71,
+    fontWeight: '800',
+  },
   previewClose: {
     marginTop: 10,
     alignSelf: 'flex-end',

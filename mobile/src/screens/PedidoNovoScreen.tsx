@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -28,10 +29,12 @@ import {
   rotasApi,
 } from '../api/services';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { formatarMoeda } from '../utils/format';
 import { pushAppNotification } from '../utils/appNotifications';
 import { marcarRelatoriosComoDesatualizados } from '../utils/relatoriosRefresh';
+import { isPdfAttachment } from '../utils/nfAttachment';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PedidoNovo'>;
 
@@ -84,6 +87,7 @@ export default function PedidoNovoScreen({ navigation }: Props) {
   const [nfImagemUrl, setNfImagemUrl] = useState('');
   const [enviandoNf, setEnviandoNf] = useState(false);
   const [previewNfVisivel, setPreviewNfVisivel] = useState(false);
+  const [previewNfZoom, setPreviewNfZoom] = useState(1);
   const [precoPersonalizadoPorProduto, setPrecoPersonalizadoPorProduto] = useState<Record<number, number>>({});
 
   const [mostrarClientes, setMostrarClientes] = useState(false);
@@ -232,6 +236,7 @@ export default function PedidoNovoScreen({ navigation }: Props) {
     itens.length > 0 &&
     !enviandoNf &&
     (!usaNf || (Boolean(nfImagemUrl.trim()) && Boolean(nfNumero.trim())));
+  const nfEhPdf = useMemo(() => isPdfAttachment(nfImagemUrl), [nfImagemUrl]);
 
   const selecionarCliente = (cliente: ClienteResumo) => {
     setClienteId(cliente.id);
@@ -321,8 +326,21 @@ export default function PedidoNovoScreen({ navigation }: Props) {
     setItemExpandidoKey((atual) => (atual === key ? null : atual));
   };
 
+  const enviarNf = async (asset: { uri: string; base64?: string | null; mimeType?: string | null; fileName?: string | null }) => {
+    setEnviandoNf(true);
+    try {
+      const url = await arquivosApi.uploadImagemCloudinary(asset);
+      setNfImagemUrl(url);
+      Alert.alert('Sucesso', 'Arquivo da NF carregado com sucesso.');
+    } catch (error: any) {
+      Alert.alert('Erro', error?.message || 'Não foi possível enviar o arquivo da NF.');
+    } finally {
+      setEnviandoNf(false);
+    }
+  };
+
   const selecionarImagemNf = () => {
-    Alert.alert('Imagem da NF', 'Escolha a origem da imagem.', [
+    Alert.alert('Arquivo da NF', 'Escolha a origem do arquivo.', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Galeria',
@@ -348,14 +366,9 @@ export default function PedidoNovoScreen({ navigation }: Props) {
               Alert.alert('Seleção cancelada', 'Nenhuma imagem foi selecionada.');
               return;
             }
-            setEnviandoNf(true);
-            const url = await arquivosApi.uploadImagemCloudinary(result.assets[0] as any);
-            setNfImagemUrl(url);
-            Alert.alert('Sucesso', 'Imagem da NF carregada com sucesso.');
+            await enviarNf(result.assets[0] as any);
           } catch (error: any) {
-            Alert.alert('Erro', error?.message || 'Não foi possível enviar a imagem da NF.');
-          } finally {
-            setEnviandoNf(false);
+            Alert.alert('Erro', error?.message || 'Não foi possível enviar o arquivo da NF.');
           }
         },
       },
@@ -383,14 +396,33 @@ export default function PedidoNovoScreen({ navigation }: Props) {
               Alert.alert('Captura cancelada', 'Nenhuma imagem foi capturada.');
               return;
             }
-            setEnviandoNf(true);
-            const url = await arquivosApi.uploadImagemCloudinary(result.assets[0] as any);
-            setNfImagemUrl(url);
-            Alert.alert('Sucesso', 'Imagem da NF carregada com sucesso.');
+            await enviarNf(result.assets[0] as any);
           } catch (error: any) {
-            Alert.alert('Erro', error?.message || 'Não foi possível enviar a imagem da NF.');
-          } finally {
-            setEnviandoNf(false);
+            Alert.alert('Erro', error?.message || 'Não foi possível enviar o arquivo da NF.');
+          }
+        },
+      },
+      {
+        text: 'PDF',
+        onPress: async () => {
+          try {
+            const result = await DocumentPicker.getDocumentAsync({
+              type: 'application/pdf',
+              multiple: false,
+              copyToCacheDirectory: true,
+            });
+            if (result.canceled || !result.assets?.length) {
+              Alert.alert('Seleção cancelada', 'Nenhum PDF foi selecionado.');
+              return;
+            }
+            const doc = result.assets[0];
+            await enviarNf({
+              uri: doc.uri,
+              mimeType: doc.mimeType || 'application/pdf',
+              fileName: doc.name,
+            });
+          } catch (error: any) {
+            Alert.alert('Erro', error?.message || 'Não foi possível enviar o PDF da NF.');
           }
         },
       },
@@ -653,16 +685,27 @@ export default function PedidoNovoScreen({ navigation }: Props) {
                 disabled={enviandoNf}
               >
                 <Text style={styles.nfUploadButtonText}>
-                  {enviandoNf ? 'Enviando imagem...' : nfImagemUrl ? 'Trocar imagem da NF' : 'Selecionar imagem da NF'}
+                  {enviandoNf ? 'Enviando arquivo...' : nfImagemUrl ? 'Trocar arquivo da NF' : 'Selecionar arquivo da NF'}
                 </Text>
               </Pressable>
               {nfImagemUrl ? (
                 <View style={styles.nfPreviewCard}>
-                  <Pressable onPress={() => setPreviewNfVisivel(true)}>
-                    <Image source={{ uri: nfImagemUrl }} style={styles.nfPreviewImage} resizeMode="cover" />
-                  </Pressable>
+                  {nfEhPdf ? (
+                    <Pressable style={styles.nfPdfButton} onPress={() => Linking.openURL(nfImagemUrl)}>
+                      <Text style={styles.nfPdfButtonText}>Abrir PDF da NF</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      onPress={() => {
+                        setPreviewNfZoom(1);
+                        setPreviewNfVisivel(true);
+                      }}
+                    >
+                      <Image source={{ uri: nfImagemUrl }} style={styles.nfPreviewImage} resizeMode="cover" />
+                    </Pressable>
+                  )}
                   <Pressable style={styles.nfRemoveButton} onPress={() => setNfImagemUrl('')}>
-                    <Text style={styles.nfRemoveButtonText}>Remover imagem</Text>
+                    <Text style={styles.nfRemoveButtonText}>Remover arquivo</Text>
                   </Pressable>
                 </View>
               ) : null}
@@ -959,13 +1002,38 @@ export default function PedidoNovoScreen({ navigation }: Props) {
           </View>
         </View>
       </Modal>
-      <Modal transparent visible={previewNfVisivel} animationType="fade" onRequestClose={() => setPreviewNfVisivel(false)}>
+      <Modal
+        transparent
+        visible={previewNfVisivel && !nfEhPdf}
+        animationType="fade"
+        onRequestClose={() => setPreviewNfVisivel(false)}
+      >
         <View style={styles.previewOverlay}>
           <Pressable style={styles.previewBackdrop} onPress={() => setPreviewNfVisivel(false)} />
           <View style={styles.previewCard}>
             {nfImagemUrl ? (
-              <Image source={{ uri: nfImagemUrl }} style={styles.previewImage} resizeMode="contain" />
+              <Pressable onPress={() => setPreviewNfZoom((atual) => (atual >= 3 ? 1 : atual + 1))}>
+                <Image
+                  source={{ uri: nfImagemUrl }}
+                  style={[styles.previewImage, { transform: [{ scale: previewNfZoom }] }]}
+                  resizeMode="contain"
+                />
+              </Pressable>
             ) : null}
+            <View style={styles.previewZoomRow}>
+              <Text style={styles.previewZoomText}>Zoom: {previewNfZoom}x (toque na imagem)</Text>
+              <View style={styles.previewZoomActions}>
+                <Pressable style={styles.previewZoomButton} onPress={() => setPreviewNfZoom((atual) => Math.max(1, atual - 1))}>
+                  <Text style={styles.previewZoomButtonText}>-</Text>
+                </Pressable>
+                <Pressable style={styles.previewZoomButton} onPress={() => setPreviewNfZoom(1)}>
+                  <Text style={styles.previewZoomButtonText}>1x</Text>
+                </Pressable>
+                <Pressable style={styles.previewZoomButton} onPress={() => setPreviewNfZoom((atual) => Math.min(3, atual + 1))}>
+                  <Text style={styles.previewZoomButtonText}>+</Text>
+                </Pressable>
+              </View>
+            </View>
             <Pressable style={styles.previewCloseButton} onPress={() => setPreviewNfVisivel(false)}>
               <Text style={styles.previewCloseText}>Fechar</Text>
             </Pressable>
@@ -1169,6 +1237,20 @@ const styles = StyleSheet.create({
     height: 170,
     borderRadius: 8,
     backgroundColor: '#e2e8f0',
+  },
+  nfPdfButton: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#93c5fd',
+    backgroundColor: '#eff6ff',
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nfPdfButtonText: {
+    color: '#1e3a8a',
+    fontSize: 13.86,
+    fontWeight: '700',
   },
   nfRemoveButton: {
     alignSelf: 'flex-start',
@@ -1801,6 +1883,35 @@ const styles = StyleSheet.create({
     height: 420,
     borderRadius: 10,
     backgroundColor: '#e2e8f0',
+  },
+  previewZoomRow: {
+    gap: 8,
+  },
+  previewZoomText: {
+    color: '#334155',
+    fontSize: 12.71,
+    fontWeight: '700',
+  },
+  previewZoomActions: {
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'flex-end',
+  },
+  previewZoomButton: {
+    minWidth: 34,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#93c5fd',
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewZoomButtonText: {
+    color: '#1e3a8a',
+    fontSize: 12.71,
+    fontWeight: '800',
   },
   previewCloseButton: {
     alignSelf: 'flex-end',
