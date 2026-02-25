@@ -597,19 +597,27 @@ export default function RemaneioScreen() {
         ) : step === 'selecao' ? (
           <>
             <View style={styles.selectionSummaryCard}>
-              <View>
-                <Text style={styles.selectionSummaryText}>
-                  <Text style={styles.selectionSummaryStrong}>{idsSelecionados.length}</Text> pedido(s) selecionado(s)
-                </Text>
-                <Text style={styles.selectionSummaryText}>
-                  Total selecionado: <Text style={styles.selectionSummaryStrong}>{formatarMoeda(totalSelecionado)}</Text>
-                </Text>
+              <View style={styles.selectionSummaryHeader}>
+                <Text style={styles.selectionSummaryTitle}>Resumo da seleção</Text>
+                <Text style={styles.selectionSummaryHint}>Escolha os pedidos para enviar ao remaneio</Text>
               </View>
+
+              <View style={styles.selectionMetricsRow}>
+                <View style={styles.selectionMetricCard}>
+                  <Text style={styles.selectionMetricLabel}>Pedidos</Text>
+                  <Text style={styles.selectionMetricValue}>{idsSelecionados.length}</Text>
+                </View>
+                <View style={styles.selectionMetricCard}>
+                  <Text style={styles.selectionMetricLabel}>Total selecionado</Text>
+                  <Text style={styles.selectionMetricValue}>{formatarMoeda(totalSelecionado)}</Text>
+                </View>
+              </View>
+
               <View style={styles.selectionActionsWrap}>
-                <Pressable style={styles.summaryActionButton} onPress={selecionarTodos}>
+                <Pressable style={[styles.summaryActionButton, styles.summaryActionButtonHalf]} onPress={selecionarTodos}>
                   <Text style={styles.summaryActionButtonText}>Selecionar todos</Text>
                 </Pressable>
-                <Pressable style={styles.summaryActionButton} onPress={limparSelecao}>
+                <Pressable style={[styles.summaryActionButton, styles.summaryActionButtonHalf]} onPress={limparSelecao}>
                   <Text style={styles.summaryActionButtonText}>Limpar seleção</Text>
                 </Pressable>
                 <Pressable
@@ -1203,18 +1211,47 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#fed7aa',
-    backgroundColor: '#fffbeb',
-    padding: 10,
+    backgroundColor: '#fffdf5',
+    paddingHorizontal: 12,
+    paddingVertical: 11,
     marginBottom: 8,
     gap: 10,
   },
-  selectionSummaryText: {
+  selectionSummaryHeader: {
+    gap: 1,
+  },
+  selectionSummaryTitle: {
     color: '#7c2d12',
-    fontSize: 13.86,
+    fontSize: 14.8,
+    fontWeight: '800',
+  },
+  selectionSummaryHint: {
+    color: '#9a3412',
+    fontSize: 12.4,
+    fontWeight: '500',
+  },
+  selectionMetricsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  selectionMetricCard: {
+    flex: 1,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 2,
+  },
+  selectionMetricLabel: {
+    color: '#a16207',
+    fontSize: 11.8,
     fontWeight: '600',
   },
-  selectionSummaryStrong: {
+  selectionMetricValue: {
     color: '#9a3412',
+    fontSize: 16.4,
     fontWeight: '800',
   },
   selectionActionsWrap: {
@@ -1227,25 +1264,35 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#fdba74',
     backgroundColor: '#fff',
+    minHeight: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 7,
+  },
+  summaryActionButtonHalf: {
+    flex: 1,
   },
   summaryActionButtonText: {
     color: '#9a3412',
-    fontSize: 12.71,
+    fontSize: 13,
     fontWeight: '700',
   },
   summaryPrimaryButton: {
+    width: '100%',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#ea580c',
     backgroundColor: '#ea580c',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 40,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
   summaryPrimaryButtonText: {
     color: '#fff',
-    fontSize: 12.71,
+    fontSize: 13.2,
     fontWeight: '800',
   },
   disabledButton: {
