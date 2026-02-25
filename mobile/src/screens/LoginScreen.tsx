@@ -295,12 +295,12 @@ export default function LoginScreen() {
               {biometricLoading ? (
                 <ActivityIndicator color="#1e40af" />
               ) : (
-                <View style={styles.biometricIconButton}>
-                  <View style={styles.biometricIconWrap}>
-                    <Image source={BIOMETRIA_ICON} style={styles.biometricIconImage} resizeMode="contain" />
+                <View style={styles.biometricRowButton}>
+                  <View style={styles.biometricRowIconWrap}>
+                    <Image source={BIOMETRIA_ICON} style={styles.biometricRowIconImage} resizeMode="contain" />
                   </View>
-                  <Text style={styles.biometricLabel}>
-                    {biometricAvailable ? 'Biometria' : 'Configurar biometria'}
+                  <Text style={styles.biometricRowLabel}>
+                    {biometricAvailable ? 'Entrar com biometria' : 'Configurar biometria'}
                   </Text>
                 </View>
               )}
@@ -543,40 +543,48 @@ const styles = StyleSheet.create({
   },
   biometricTouchArea: {
     marginTop: 2,
-    alignItems: 'center',
+    alignItems: 'stretch',
     justifyContent: 'center',
-    borderRadius: 14,
-    paddingVertical: 8,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: 'rgba(37,99,235,0.20)',
-    backgroundColor: 'rgba(239,246,255,0.48)',
+    borderColor: 'rgba(37,99,235,0.35)',
+    backgroundColor: '#eff6ff',
+    shadowColor: '#1e3a8a',
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   biometricTouchAreaPressed: {
-    backgroundColor: 'rgba(191,219,254,0.35)',
+    backgroundColor: '#dbeafe',
   },
-  biometricIconButton: {
+  biometricRowButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 10,
   },
-  biometricIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  biometricRowIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     borderWidth: 1,
-    borderColor: 'rgba(37,99,235,0.20)',
+    borderColor: 'rgba(37,99,235,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: '#ffffff',
   },
-  biometricIconImage: {
-    width: 34,
-    height: 34,
+  biometricRowIconImage: {
+    width: 18,
+    height: 18,
+    tintColor: '#1d4ed8',
   },
-  biometricLabel: {
-    color: '#1e40af',
+  biometricRowLabel: {
+    color: '#1e3a8a',
     fontWeight: '700',
-    fontSize: 12.8,
+    fontSize: 17,
   },
   formError: {
     color: '#be123c',
