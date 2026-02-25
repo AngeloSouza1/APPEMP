@@ -4,7 +4,11 @@ import { authApi, notificacoesApi } from '../api/services';
 import { sessionStorage } from '../api/storage';
 import { setUnauthorizedHandler } from '../api/client';
 import { UsuarioSession } from '../types/auth';
-import { clearCachedExpoPushToken, getExpoPushToken } from '../utils/systemNotifications';
+import {
+  clearCachedExpoPushToken,
+  getExpoPushToken,
+  getExpoPushTokenWithoutPrompt,
+} from '../utils/systemNotifications';
 
 type AuthContextValue = {
   user: UsuarioSession | null;
@@ -64,6 +68,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!token || !user?.id) return;
     let cancelado = false;
 
+    if (user.perfil === 'motorista') {
+      const desativarPushMotorista = async () => {
+        try {
+          const expoPushToken = await getExpoPushTokenWithoutPrompt();
+          if (!expoPushToken || cancelado) return;
+          await notificacoesApi.desativarDispositivo(expoPushToken);
+        } catch (error) {
+          console.error('Falha ao desativar push para motorista:', error);
+        } finally {
+          pushTokenRegistradoRef.current = null;
+        }
+      };
+      desativarPushMotorista();
+      return () => {
+        cancelado = true;
+      };
+    }
+
     const registrarDispositivoComRetry = async (expoPushToken: string) => {
       const atrasos = [0, 2000, 5000, 10000];
       for (let i = 0; i < atrasos.length; i++) {
@@ -97,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelado = true;
     };
-  }, [token, user?.id]);
+  }, [token, user?.id, user?.perfil]);
 
   const login = async (username: string, password: string, rememberMe = true) => {
     const response = await authApi.login(username, password);

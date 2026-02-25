@@ -96,6 +96,27 @@ export const getExpoPushToken = async (): Promise<string | null> => {
   }
 };
 
+export const getExpoPushTokenWithoutPrompt = async (): Promise<string | null> => {
+  if (cachedExpoPushToken) return cachedExpoPushToken;
+
+  const current = await Notifications.getPermissionsAsync();
+  if (!current.granted) return null;
+
+  try {
+    const projectId =
+      Constants?.expoConfig?.extra?.eas?.projectId ||
+      Constants?.easConfig?.projectId ||
+      FALLBACK_EXPO_PROJECT_ID;
+    const tokenResult = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
+    const token = tokenResult?.data ? String(tokenResult.data) : null;
+    cachedExpoPushToken = token;
+    return token;
+  } catch (error) {
+    console.error('Falha ao obter Expo push token sem prompt:', error);
+    return null;
+  }
+};
+
 export const clearCachedExpoPushToken = () => {
   cachedExpoPushToken = null;
 };

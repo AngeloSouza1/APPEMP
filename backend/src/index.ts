@@ -139,7 +139,8 @@ const enviarPushPedidos = async (params: { titulo: string; corpo: string; data?:
        FROM notificacao_dispositivos nd
        INNER JOIN usuarios u ON u.id = nd.usuario_id
        WHERE nd.ativo = true
-         AND u.ativo = true`
+         AND u.ativo = true
+         AND u.perfil <> 'motorista'`
     );
 
     const tokens = tokensResult.rows
@@ -464,6 +465,17 @@ app.post("/notificacoes/dispositivos", autenticarToken, async (req: Authenticate
   }
 
   try {
+    if (req.user?.perfil === "motorista") {
+      await pool.query(
+        `UPDATE notificacao_dispositivos
+         SET ativo = false,
+             atualizado_em = NOW()
+         WHERE expo_push_token = $1 OR usuario_id = $2`,
+        [expoPushToken, req.user?.id]
+      );
+      return res.json({ ok: true });
+    }
+
     await pool.query(
       `INSERT INTO notificacao_dispositivos (usuario_id, expo_push_token, plataforma, ativo, atualizado_em)
        VALUES ($1, $2, $3, true, NOW())
