@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Alert,
   Image,
   Linking,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -88,6 +90,27 @@ export default function PedidoNovoScreen({ navigation }: Props) {
   const [enviandoNf, setEnviandoNf] = useState(false);
   const [previewNfVisivel, setPreviewNfVisivel] = useState(false);
   const [previewNfZoom, setPreviewNfZoom] = useState(1);
+  const previewNfPan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const previewNfZoomRef = useRef(1);
+  const previewNfPanResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_evt, gesture) =>
+        previewNfZoomRef.current > 1 && (Math.abs(gesture.dx) > 2 || Math.abs(gesture.dy) > 2),
+      onPanResponderGrant: () => {
+        previewNfPan.setOffset({
+          x: (previewNfPan.x as any).__getValue(),
+          y: (previewNfPan.y as any).__getValue(),
+        });
+        previewNfPan.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: Animated.event([null, { dx: previewNfPan.x, dy: previewNfPan.y }], {
+        useNativeDriver: false,
+      }),
+      onPanResponderRelease: () => {
+        previewNfPan.flattenOffset();
+      },
+    })
+  ).current;
   const [precoPersonalizadoPorProduto, setPrecoPersonalizadoPorProduto] = useState<Record<number, number>>({});
 
   const [mostrarClientes, setMostrarClientes] = useState(false);
@@ -115,6 +138,13 @@ export default function PedidoNovoScreen({ navigation }: Props) {
       setCarregandoTransicao(false);
     }, 520);
   };
+
+  useEffect(() => {
+    previewNfZoomRef.current = previewNfZoom;
+    if (previewNfZoom <= 1) {
+      previewNfPan.setValue({ x: 0, y: 0 });
+    }
+  }, [previewNfZoom, previewNfPan]);
 
   useEffect(() => {
     const carregar = async () => {
@@ -1012,16 +1042,27 @@ export default function PedidoNovoScreen({ navigation }: Props) {
           <Pressable style={styles.previewBackdrop} onPress={() => setPreviewNfVisivel(false)} />
           <View style={styles.previewCard}>
             {nfImagemUrl ? (
-              <Pressable onPress={() => setPreviewNfZoom((atual) => (atual >= 3 ? 1 : atual + 1))}>
-                <Image
-                  source={{ uri: nfImagemUrl }}
-                  style={[styles.previewImage, { transform: [{ scale: previewNfZoom }] }]}
-                  resizeMode="contain"
-                />
-              </Pressable>
+              <Animated.View
+                style={{
+                  transform: [
+                    { translateX: previewNfPan.x },
+                    { translateY: previewNfPan.y },
+                    { scale: previewNfZoom },
+                  ],
+                }}
+                {...previewNfPanResponder.panHandlers}
+              >
+                <Pressable onPress={() => setPreviewNfZoom((atual) => (atual >= 3 ? 1 : atual + 1))}>
+                  <Image
+                    source={{ uri: nfImagemUrl }}
+                    style={styles.previewImage}
+                    resizeMode="contain"
+                  />
+                </Pressable>
+              </Animated.View>
             ) : null}
             <View style={styles.previewZoomRow}>
-              <Text style={styles.previewZoomText}>Zoom: {previewNfZoom}x (toque na imagem)</Text>
+              <Text style={styles.previewZoomText}>Zoom: {previewNfZoom}x (toque para zoom, arraste para mover)</Text>
               <View style={styles.previewZoomActions}>
                 <Pressable style={styles.previewZoomButton} onPress={() => setPreviewNfZoom((atual) => Math.max(1, atual - 1))}>
                   <Text style={styles.previewZoomButtonText}>-</Text>

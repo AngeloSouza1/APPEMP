@@ -1,11 +1,13 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Alert,
   FlatList,
   Image,
   Linking,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   StatusBar,
@@ -53,12 +55,39 @@ export default function ControleNotasScreen() {
   const [erro, setErro] = useState<string | null>(null);
   const [notaSelecionada, setNotaSelecionada] = useState<string | null>(null);
   const [notaZoom, setNotaZoom] = useState(1);
+  const notaPan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const notaZoomRef = useRef(1);
+  const notaPanResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_evt, gesture) =>
+        notaZoomRef.current > 1 && (Math.abs(gesture.dx) > 2 || Math.abs(gesture.dy) > 2),
+      onPanResponderGrant: () => {
+        notaPan.setOffset({
+          x: (notaPan.x as any).__getValue(),
+          y: (notaPan.y as any).__getValue(),
+        });
+        notaPan.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: Animated.event([null, { dx: notaPan.x, dy: notaPan.y }], {
+        useNativeDriver: false,
+      }),
+      onPanResponderRelease: () => {
+        notaPan.flattenOffset();
+      },
+    })
+  ).current;
   const [cardsExpandidos, setCardsExpandidos] = useState<Record<number, boolean>>({});
   const [selecionados, setSelecionados] = useState<Record<number, boolean>>({});
   const [efetivando, setEfetivando] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState<'conferir' | 'efetivados'>('conferir');
   const ignorarProximoToggleCardRef = useRef(false);
   const notaSelecionadaEhPdf = useMemo(() => isPdfAttachment(notaSelecionada), [notaSelecionada]);
+  useEffect(() => {
+    notaZoomRef.current = notaZoom;
+    if (notaZoom <= 1) {
+      notaPan.setValue({ x: 0, y: 0 });
+    }
+  }, [notaZoom, notaPan]);
 
   const carregar = useCallback(async () => {
     try {
@@ -412,16 +441,23 @@ export default function ControleNotasScreen() {
         <View style={styles.previewBackdrop}>
           <View style={styles.previewCard}>
             {notaSelecionada ? (
-              <Pressable onPress={() => setNotaZoom((atual) => (atual >= 3 ? 1 : atual + 1))}>
-                <Image
-                  source={{ uri: notaSelecionada }}
-                  style={[styles.previewImage, { transform: [{ scale: notaZoom }] }]}
-                  resizeMode="contain"
-                />
-              </Pressable>
+              <Animated.View
+                style={{
+                  transform: [{ translateX: notaPan.x }, { translateY: notaPan.y }, { scale: notaZoom }],
+                }}
+                {...notaPanResponder.panHandlers}
+              >
+                <Pressable onPress={() => setNotaZoom((atual) => (atual >= 3 ? 1 : atual + 1))}>
+                  <Image
+                    source={{ uri: notaSelecionada }}
+                    style={styles.previewImage}
+                    resizeMode="contain"
+                  />
+                </Pressable>
+              </Animated.View>
             ) : null}
             <View style={styles.previewZoomRow}>
-              <Text style={styles.previewZoomText}>Zoom: {notaZoom}x (toque na imagem)</Text>
+              <Text style={styles.previewZoomText}>Zoom: {notaZoom}x (toque para zoom, arraste para mover)</Text>
               <View style={styles.previewZoomActions}>
                 <Pressable style={styles.previewZoomButton} onPress={() => setNotaZoom((atual) => Math.max(1, atual - 1))}>
                   <Text style={styles.previewZoomButtonText}>-</Text>
