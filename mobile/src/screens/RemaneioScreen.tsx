@@ -241,7 +241,6 @@ export default function RemaneioScreen() {
       itinerario,
       '',
       `Total de pedidos: ${pedidosDashboard.length}`,
-      `Valor total: ${formatarMoeda(resumoDashboard.valorTotal)}`,
     ].join('\n');
 
     const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(mensagem)}`;
