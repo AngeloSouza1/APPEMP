@@ -46,6 +46,24 @@ const STATUS_RANK: Record<string, number> = {
   EFETIVADO: 4,
 };
 
+const montarMensagemWhatsApp = (item: Pedido, tipo: 'NF' | 'CANHOTO', url: string) => {
+  const statusLabel = STATUS_LABEL[item.status] || item.status;
+  const dataLabel = formatarData(item.data);
+  return [
+    `APPEMP • ${tipo} DO PEDIDO`,
+    `Pedido: #${item.id}`,
+    `Cliente: ${item.cliente_nome}`,
+    `Data: ${dataLabel}`,
+    `Status: ${statusLabel}`,
+    item.nf_numero ? `NF: ${item.nf_numero}` : null,
+    '',
+    `Link do ${tipo.toLowerCase()}:`,
+    url,
+  ]
+    .filter(Boolean)
+    .join('\n');
+};
+
 export default function ControleNotasScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
@@ -248,7 +266,7 @@ export default function ControleNotasScreen() {
         return;
       }
 
-      const mensagem = `Canhoto do pedido #${item.id} - ${item.cliente_nome}\n${item.canhoto_imagem_url}`;
+      const mensagem = montarMensagemWhatsApp(item, 'CANHOTO', item.canhoto_imagem_url);
       const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(mensagem)}`;
       const fallbackWebUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
 
@@ -371,7 +389,7 @@ export default function ControleNotasScreen() {
       return;
     }
 
-    const mensagem = `NF do pedido #${item.id} - ${item.cliente_nome}\n${item.nf_imagem_url}`;
+    const mensagem = montarMensagemWhatsApp(item, 'NF', item.nf_imagem_url);
     const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(mensagem)}`;
     const fallbackWebUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
 
