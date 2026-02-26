@@ -4,6 +4,7 @@ import {
   Alert,
   FlatList,
   Image,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -213,6 +214,50 @@ export default function RemaneioScreen() {
     ).length;
     return { totalPedidos, valorTotal, pedidosComTroca };
   }, [pedidosDashboard]);
+
+  const enviarDashboardParaWhatsApp = useCallback(async () => {
+    if (!pedidosDashboard.length) {
+      Alert.alert('Remaneio', 'Não há pedidos no dashboard para enviar.');
+      return;
+    }
+
+    const dataOperacao = filtrosAplicados.data
+      ? formatarData(filtrosAplicados.data)
+      : formatarData(pedidosDashboard[0].data);
+
+    const itinerario = pedidosDashboard
+      .map((pedido, index) => {
+        const titulo = `${index + 1}. ${pedido.cliente_nome || 'Cliente'}${pedido.rota_nome ? ` (${pedido.rota_nome})` : ''}`;
+        const link = pedido.cliente_link ? `\n${pedido.cliente_link}` : '';
+        return `🔹 ${titulo}${link}`;
+      })
+      .join('\n\n');
+
+    const mensagem = [
+      `APPEMP • REMANEIO`,
+      `Data da Operação: ${dataOperacao}`,
+      '',
+      `Itinerário da Operação`,
+      itinerario,
+      '',
+      `Total de pedidos: ${pedidosDashboard.length}`,
+      `Valor total: ${formatarMoeda(resumoDashboard.valorTotal)}`,
+    ].join('\n');
+
+    const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(mensagem)}`;
+    const fallbackWebUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+
+    try {
+      const canOpen = await Linking.canOpenURL(whatsappUrl);
+      if (canOpen) {
+        await Linking.openURL(whatsappUrl);
+        return;
+      }
+      await Linking.openURL(fallbackWebUrl);
+    } catch {
+      Alert.alert('Erro', 'Não foi possível abrir o WhatsApp para envio do dashboard.');
+    }
+  }, [filtrosAplicados.data, pedidosDashboard, resumoDashboard.valorTotal]);
 
   const aplicarFiltros = () => {
     setFiltrosAplicados({
@@ -760,6 +805,9 @@ export default function RemaneioScreen() {
               <Text style={styles.kpiLabel}>Valor total</Text>
               <Text style={styles.kpiValueMoney}>{formatarMoeda(resumoDashboard.valorTotal)}</Text>
             </View>
+            <Pressable style={styles.dashboardWhatsappButton} onPress={enviarDashboardParaWhatsApp}>
+              <Text style={styles.dashboardWhatsappButtonText}>Enviar dashboard para WhatsApp</Text>
+            </Pressable>
 
             <Text style={styles.sectionTitle}>Pedidos recentes</Text>
             {pedidosDashboard.length === 0 ? (
@@ -1498,6 +1546,21 @@ const styles = StyleSheet.create({
     color: '#7c2d12',
     fontSize: 20.79,
     fontWeight: '900',
+  },
+  dashboardWhatsappButton: {
+    marginTop: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#16a34a',
+    backgroundColor: '#22c55e',
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dashboardWhatsappButtonText: {
+    color: '#ffffff',
+    fontSize: 13.86,
+    fontWeight: '800',
   },
   sectionTitle: {
     marginTop: 10,

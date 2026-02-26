@@ -27,6 +27,7 @@ export interface Pedido {
   cliente_id: number;
   codigo_cliente: string;
   cliente_nome: string;
+  cliente_link?: string | null;
   rota_id?: number;
   rota_nome?: string;
   tem_trocas?: boolean;

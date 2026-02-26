@@ -1417,6 +1417,7 @@ app.get("/pedidos", async (req, res) => {
         c.id as cliente_id,
         c.codigo_cliente,
         c.nome as cliente_nome,
+        c.link as cliente_link,
         r.id as rota_id,
         r.nome as rota_nome
       FROM pedidos p
@@ -1529,6 +1530,7 @@ app.get("/pedidos/:id", async (req, res, next) => {
         c.id as cliente_id,
         c.codigo_cliente,
         c.nome as cliente_nome,
+        c.link as cliente_link,
         r.id as rota_id,
         r.nome as rota_nome
       FROM pedidos p
@@ -1658,6 +1660,7 @@ app.get("/pedidos/paginado", async (req, res) => {
         c.id as cliente_id,
         c.codigo_cliente,
         c.nome as cliente_nome,
+        c.link as cliente_link,
         r.id as rota_id,
         r.nome as rota_nome
       FROM pedidos p
@@ -2468,6 +2471,7 @@ app.put("/pedidos/:id", async (req: AuthenticatedRequest, res) => {
         c.id as cliente_id,
         c.codigo_cliente,
         c.nome as cliente_nome,
+        c.link as cliente_link,
         r.id as rota_id,
         r.nome as rota_nome
       FROM pedidos p
