@@ -242,6 +242,28 @@ export default function ControleNotasScreen() {
   }, []);
 
   const abrirFluxoCanhoto = useCallback((item: Pedido) => {
+    const enviarCanhotoParaWhatsApp = async () => {
+      if (!item.canhoto_imagem_url) {
+        Alert.alert('Canhoto', 'Nenhum canhoto anexado para enviar.');
+        return;
+      }
+
+      const mensagem = `Canhoto do pedido #${item.id} - ${item.cliente_nome}\n${item.canhoto_imagem_url}`;
+      const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(mensagem)}`;
+      const fallbackWebUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+
+      try {
+        const canOpen = await Linking.canOpenURL(whatsappUrl);
+        if (canOpen) {
+          await Linking.openURL(whatsappUrl);
+          return;
+        }
+        await Linking.openURL(fallbackWebUrl);
+      } catch {
+        Alert.alert('Erro', 'Não foi possível abrir o WhatsApp para envio.');
+      }
+    };
+
     const anexarDaGaleria = async () => {
       const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissao.granted) {
@@ -312,13 +334,17 @@ export default function ControleNotasScreen() {
 
     if (item.canhoto_imagem_url) {
       opcoes.splice(1, 0, {
+        text: 'Enviar p/ WhatsApp',
+        onPress: enviarCanhotoParaWhatsApp,
+      });
+      opcoes.splice(2, 0, {
         text: 'Ver canhoto',
         onPress: () => {
           setNotaZoom(1);
           setNotaSelecionada(item.canhoto_imagem_url || null);
         },
       });
-      opcoes.splice(2, 0, {
+      opcoes.splice(3, 0, {
         text: 'Remover canhoto',
         style: 'destructive',
         onPress: async () => {
@@ -338,6 +364,28 @@ export default function ControleNotasScreen() {
 
     Alert.alert('Canhoto', 'Escolha uma ação para o canhoto.', opcoes);
   }, [atualizarCanhotoPedido]);
+
+  const enviarNotaParaWhatsApp = useCallback(async (item: Pedido) => {
+    if (!item.nf_imagem_url) {
+      Alert.alert('Nota', 'Nenhuma imagem de NF anexada para envio.');
+      return;
+    }
+
+    const mensagem = `NF do pedido #${item.id} - ${item.cliente_nome}\n${item.nf_imagem_url}`;
+    const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(mensagem)}`;
+    const fallbackWebUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+
+    try {
+      const canOpen = await Linking.canOpenURL(whatsappUrl);
+      if (canOpen) {
+        await Linking.openURL(whatsappUrl);
+        return;
+      }
+      await Linking.openURL(fallbackWebUrl);
+    } catch {
+      Alert.alert('Erro', 'Não foi possível abrir o WhatsApp para envio da nota.');
+    }
+  }, []);
 
   const renderItem = ({ item, sectionKey }: { item: Pedido; sectionKey: 'conferir' | 'efetivados' }) => {
     const statusTheme = STATUS_COLOR[item.status] || STATUS_COLOR.EM_ESPERA;
@@ -404,6 +452,15 @@ export default function ControleNotasScreen() {
               </View>
             )}
             <View style={styles.actionsRow}>
+              <Pressable
+                style={styles.actionButton}
+                onPress={(event) => {
+                  event.stopPropagation();
+                  void enviarNotaParaWhatsApp(item);
+                }}
+              >
+                <Text style={styles.actionButtonText}>Nota WhatsApp</Text>
+              </Pressable>
               <Pressable
                 style={[styles.actionButton, enviandoCanhotoId === item.id && styles.actionButtonDisabled]}
                 onPress={(event) => {
