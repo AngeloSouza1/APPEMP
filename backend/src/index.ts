@@ -289,6 +289,7 @@ const ensureImageColumns = async () => {
   await pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS ordem_remaneio INTEGER");
   await pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS usa_nf BOOLEAN NOT NULL DEFAULT false");
   await pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_imagem_url TEXT");
+  await pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS canhoto_imagem_url TEXT");
   await pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_numero TEXT");
   await pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_status TEXT NOT NULL DEFAULT 'PENDENTE'");
   await pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_efetivado_por INTEGER");
@@ -1399,6 +1400,7 @@ app.get("/pedidos", async (req, res) => {
         p.ordem_remaneio,
         p.usa_nf,
         p.nf_imagem_url,
+        p.canhoto_imagem_url,
         p.nf_numero,
         p.nf_status,
         p.nf_efetivado_por_nome,
@@ -1510,6 +1512,7 @@ app.get("/pedidos/:id", async (req, res, next) => {
         p.ordem_remaneio,
         p.usa_nf,
         p.nf_imagem_url,
+        p.canhoto_imagem_url,
         p.nf_numero,
         p.nf_status,
         p.nf_efetivado_por_nome,
@@ -1638,6 +1641,7 @@ app.get("/pedidos/paginado", async (req, res) => {
         p.ordem_remaneio,
         p.usa_nf,
         p.nf_imagem_url,
+        p.canhoto_imagem_url,
         p.nf_numero,
         p.nf_status,
         p.nf_efetivado_por_nome,
@@ -1823,10 +1827,11 @@ app.patch("/pedidos/nf/antecipar", async (req: AuthenticatedRequest, res) => {
 
 // Cria um novo pedido com itens
 app.post("/pedidos", async (req: AuthenticatedRequest, res) => {
-  const { chave_pedido, cliente_id, rota_id, data, status, itens, usa_nf, nf_imagem_url, nf_numero } = req.body;
+  const { chave_pedido, cliente_id, rota_id, data, status, itens, usa_nf, nf_imagem_url, nf_numero, canhoto_imagem_url } = req.body;
   const usuarioId = req.user?.id || null;
   const usaNf = normalizarBoolean(usa_nf);
   const nfImagemUrl = normalizarImagemUrl(nf_imagem_url);
+  const canhotoImagemUrl = normalizarImagemUrl(canhoto_imagem_url);
   const nfNumero = normalizarNfNumero(nf_numero);
   let clienteNome = "Cliente";
 
@@ -1903,9 +1908,9 @@ app.post("/pedidos", async (req: AuthenticatedRequest, res) => {
 
     // Inserir pedido
     const pedidoResult = await client.query(
-      `INSERT INTO pedidos (chave_pedido, cliente_id, rota_id, data, status, valor_total, usa_nf, nf_imagem_url, nf_numero, nf_status, criado_por)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-       RETURNING id, chave_pedido, data, status, valor_total, usa_nf, nf_imagem_url, nf_numero, nf_status`,
+      `INSERT INTO pedidos (chave_pedido, cliente_id, rota_id, data, status, valor_total, usa_nf, nf_imagem_url, canhoto_imagem_url, nf_numero, nf_status, criado_por)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       RETURNING id, chave_pedido, data, status, valor_total, usa_nf, nf_imagem_url, canhoto_imagem_url, nf_numero, nf_status`,
       [
         finalChavePedido,
         cliente_id,
@@ -1915,6 +1920,7 @@ app.post("/pedidos", async (req: AuthenticatedRequest, res) => {
         valorTotal,
         usaNf,
         usaNf ? nfImagemUrl : null,
+        usaNf ? canhotoImagemUrl : null,
         usaNf ? nfNumero : null,
         "PENDENTE",
         usuarioId,
@@ -2277,7 +2283,7 @@ app.delete("/trocas/:id", async (req: AuthenticatedRequest, res) => {
 // Atualiza um pedido completo (incluindo itens)
 app.put("/pedidos/:id", async (req: AuthenticatedRequest, res) => {
   const { id } = req.params;
-  const { rota_id, data, status, itens, usa_nf, nf_imagem_url, nf_numero } = req.body;
+  const { rota_id, data, status, itens, usa_nf, nf_imagem_url, canhoto_imagem_url, nf_numero } = req.body;
   const usuarioId = req.user?.id || null;
 
   const client = await pool.connect();
@@ -2340,6 +2346,10 @@ app.put("/pedidos/:id", async (req: AuthenticatedRequest, res) => {
       updateFields.push(`nf_imagem_url = $${paramIndex}`);
       params.push(usaNf ? nfImagemUrl : null);
       paramIndex++;
+      const canhotoImagemUrl = normalizarImagemUrl(canhoto_imagem_url);
+      updateFields.push(`canhoto_imagem_url = $${paramIndex}`);
+      params.push(usaNf ? canhotoImagemUrl : null);
+      paramIndex++;
       updateFields.push(`nf_numero = $${paramIndex}`);
       params.push(usaNf ? nfNumero : null);
       paramIndex++;
@@ -2358,6 +2368,13 @@ app.put("/pedidos/:id", async (req: AuthenticatedRequest, res) => {
       const nfNumero = normalizarNfNumero(nf_numero);
       updateFields.push(`nf_numero = $${paramIndex}`);
       params.push(nfNumero);
+      paramIndex++;
+    }
+
+    if (canhoto_imagem_url !== undefined) {
+      const canhotoImagemUrl = normalizarImagemUrl(canhoto_imagem_url);
+      updateFields.push(`canhoto_imagem_url = $${paramIndex}`);
+      params.push(canhotoImagemUrl);
       paramIndex++;
     }
 
@@ -2442,6 +2459,7 @@ app.put("/pedidos/:id", async (req: AuthenticatedRequest, res) => {
         p.status,
         p.usa_nf,
         p.nf_imagem_url,
+        p.canhoto_imagem_url,
         p.nf_numero,
         p.nf_status,
         p.nf_efetivado_por_nome,
@@ -3004,6 +3022,7 @@ app.get("/relatorios/notas", async (req, res) => {
         p.valor_total AS pedido_valor_total,
         p.nf_numero,
         p.nf_imagem_url,
+        p.canhoto_imagem_url,
         p.nf_status,
         c.id AS cliente_id,
         c.codigo_cliente,

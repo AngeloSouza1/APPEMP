@@ -307,6 +307,7 @@ export const pedidosApi = {
     status?: string;
     usa_nf?: boolean;
     nf_imagem_url?: string | null;
+    canhoto_imagem_url?: string | null;
     nf_numero?: string | null;
     itens: Omit<ItemPedido, 'id' | 'produto_nome' | 'codigo_produto' | 'valor_total_item'>[];
   }) => api.post<Pedido>('/pedidos', data),
@@ -316,6 +317,7 @@ export const pedidosApi = {
     status?: string;
     usa_nf?: boolean;
     nf_imagem_url?: string | null;
+    canhoto_imagem_url?: string | null;
     nf_numero?: string | null;
     itens?: Omit<ItemPedido, 'id' | 'produto_nome' | 'codigo_produto' | 'valor_total_item'>[];
   }) =>

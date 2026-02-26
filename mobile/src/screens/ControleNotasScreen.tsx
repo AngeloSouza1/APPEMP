@@ -18,7 +18,8 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { pedidosApi } from '../api/services';
+import * as ImagePicker from 'expo-image-picker';
+import { arquivosApi, pedidosApi } from '../api/services';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { Pedido } from '../types/pedidos';
 import { formatarData, formatarMoeda } from '../utils/format';
@@ -79,6 +80,7 @@ export default function ControleNotasScreen() {
   const [cardsExpandidos, setCardsExpandidos] = useState<Record<number, boolean>>({});
   const [selecionados, setSelecionados] = useState<Record<number, boolean>>({});
   const [efetivando, setEfetivando] = useState(false);
+  const [enviandoCanhotoId, setEnviandoCanhotoId] = useState<number | null>(null);
   const [abaAtiva, setAbaAtiva] = useState<'conferir' | 'efetivados'>('conferir');
   const ignorarProximoToggleCardRef = useRef(false);
   const notaSelecionadaEhPdf = useMemo(() => isPdfAttachment(notaSelecionada), [notaSelecionada]);
@@ -233,6 +235,110 @@ export default function ControleNotasScreen() {
     );
   }, [idsSelecionados]);
 
+  const atualizarCanhotoPedido = useCallback((pedidoId: number, canhotoUrl: string | null) => {
+    setPedidos((prev) => prev.map((pedido) => (
+      pedido.id === pedidoId ? { ...pedido, canhoto_imagem_url: canhotoUrl } : pedido
+    )));
+  }, []);
+
+  const abrirFluxoCanhoto = useCallback((item: Pedido) => {
+    const anexarDaGaleria = async () => {
+      const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissao.granted) {
+        Alert.alert(
+          'Permissão negada',
+          permissao.canAskAgain
+            ? 'Permita acesso à galeria para anexar o canhoto.'
+            : 'Acesso à galeria bloqueado. Libere nas configurações do app.'
+        );
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+        base64: true,
+      });
+      if (result.canceled || !result.assets?.length) return;
+      setEnviandoCanhotoId(item.id);
+      try {
+        const url = await arquivosApi.uploadImagemCloudinary(result.assets[0] as any);
+        await pedidosApi.atualizar(item.id, { canhoto_imagem_url: url });
+        atualizarCanhotoPedido(item.id, url);
+        Alert.alert('Sucesso', 'Canhoto anexado com sucesso.');
+      } catch (error: any) {
+        Alert.alert('Erro', error?.message || 'Não foi possível anexar o canhoto.');
+      } finally {
+        setEnviandoCanhotoId(null);
+      }
+    };
+
+    const anexarDaCamera = async () => {
+      const permissao = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permissao.granted) {
+        Alert.alert(
+          'Permissão negada',
+          permissao.canAskAgain
+            ? 'Permita acesso à câmera para capturar o canhoto.'
+            : 'Acesso à câmera bloqueado. Libere nas configurações do app.'
+        );
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+        base64: true,
+      });
+      if (result.canceled || !result.assets?.length) return;
+      setEnviandoCanhotoId(item.id);
+      try {
+        const url = await arquivosApi.uploadImagemCloudinary(result.assets[0] as any);
+        await pedidosApi.atualizar(item.id, { canhoto_imagem_url: url });
+        atualizarCanhotoPedido(item.id, url);
+        Alert.alert('Sucesso', 'Canhoto anexado com sucesso.');
+      } catch (error: any) {
+        Alert.alert('Erro', error?.message || 'Não foi possível anexar o canhoto.');
+      } finally {
+        setEnviandoCanhotoId(null);
+      }
+    };
+
+    const opcoes: Array<{ text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }> = [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Galeria', onPress: anexarDaGaleria },
+      { text: 'Câmera', onPress: anexarDaCamera },
+    ];
+
+    if (item.canhoto_imagem_url) {
+      opcoes.splice(1, 0, {
+        text: 'Ver canhoto',
+        onPress: () => {
+          setNotaZoom(1);
+          setNotaSelecionada(item.canhoto_imagem_url || null);
+        },
+      });
+      opcoes.splice(2, 0, {
+        text: 'Remover canhoto',
+        style: 'destructive',
+        onPress: async () => {
+          setEnviandoCanhotoId(item.id);
+          try {
+            await pedidosApi.atualizar(item.id, { canhoto_imagem_url: null });
+            atualizarCanhotoPedido(item.id, null);
+            Alert.alert('Sucesso', 'Canhoto removido.');
+          } catch {
+            Alert.alert('Erro', 'Não foi possível remover o canhoto.');
+          } finally {
+            setEnviandoCanhotoId(null);
+          }
+        },
+      });
+    }
+
+    Alert.alert('Canhoto', 'Escolha uma ação para o canhoto.', opcoes);
+  }, [atualizarCanhotoPedido]);
+
   const renderItem = ({ item, sectionKey }: { item: Pedido; sectionKey: 'conferir' | 'efetivados' }) => {
     const statusTheme = STATUS_COLOR[item.status] || STATUS_COLOR.EM_ESPERA;
     const statusLabel = STATUS_LABEL[item.status] || item.status;
@@ -297,9 +403,23 @@ export default function ControleNotasScreen() {
                 <Text style={styles.emptyNfText}>Sem imagem de NF anexada.</Text>
               </View>
             )}
-            <Pressable style={styles.detailButton} onPress={() => navigation.navigate('PedidoDetalhe', { id: item.id })}>
-              <Text style={styles.detailButtonText}>Ver pedido</Text>
-            </Pressable>
+            <View style={styles.actionsRow}>
+              <Pressable
+                style={[styles.actionButton, enviandoCanhotoId === item.id && styles.actionButtonDisabled]}
+                onPress={(event) => {
+                  event.stopPropagation();
+                  abrirFluxoCanhoto(item);
+                }}
+                disabled={enviandoCanhotoId === item.id}
+              >
+                <Text style={styles.actionButtonText}>
+                  {enviandoCanhotoId === item.id ? 'Enviando...' : item.canhoto_imagem_url ? 'Canhoto ✓' : 'Canhoto'}
+                </Text>
+              </Pressable>
+              <Pressable style={styles.actionButton} onPress={() => navigation.navigate('PedidoDetalhe', { id: item.id })}>
+                <Text style={styles.actionButtonText}>Ver pedido</Text>
+              </Pressable>
+            </View>
           </>
         ) : null}
       </Pressable>
@@ -731,9 +851,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  detailButton: {
+  actionsRow: {
     marginTop: 10,
-    alignSelf: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  actionButton: {
     borderWidth: 1,
     borderColor: '#93c5fd',
     borderRadius: 8,
@@ -741,7 +865,10 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     backgroundColor: '#eff6ff',
   },
-  detailButtonText: { color: '#1d4ed8', fontSize: 13, fontWeight: '700' },
+  actionButtonDisabled: {
+    opacity: 0.6,
+  },
+  actionButtonText: { color: '#1d4ed8', fontSize: 13, fontWeight: '700' },
   centerCard: {
     borderWidth: 1,
     borderColor: '#cbd5e1',
