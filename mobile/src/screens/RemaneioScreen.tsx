@@ -269,17 +269,22 @@ export default function RemaneioScreen() {
       : formatarData(pedidosDashboard[0].data);
 
     const linhasPedidos = pedidosDashboard.map((pedido, index) => {
+      const itensLista = pedido.itens || [];
+      const totalVolumes = itensLista.reduce((acc, item) => acc + Number(item.quantidade || 0), 0);
       const itens = (pedido.itens || [])
         .map((item) => {
           const qtd = Number(item.quantidade || 0);
           const qtdLabel = Number.isFinite(qtd) ? String(qtd).replace(/\.0+$/, '') : String(item.quantidade || '');
-          return `• ${item.produto_nome || `Produto ${item.produto_id}`}: ${qtdLabel}${item.embalagem ? ` ${item.embalagem}` : ''}`;
+          return `- ${item.produto_nome || `Produto ${item.produto_id}`}\n  ${qtdLabel}${item.embalagem ? ` ${item.embalagem}` : ''}`;
         })
         .join('\n');
 
       return [
-        `${index + 1}. ${pedido.cliente_nome || 'Cliente'} (${formatarData(pedido.data)})`,
-        itens || '• Sem itens',
+        `${index + 1}. ${pedido.cliente_nome || 'Cliente'}`,
+        `Pedido #${pedido.id} • ${formatarData(pedido.data)}`,
+        `Volumes: ${Number.isFinite(totalVolumes) ? String(totalVolumes).replace(/\.0+$/, '') : '0'}`,
+        'Itens:',
+        itens || '- Sem itens',
       ].join('\n');
     });
 
@@ -287,7 +292,8 @@ export default function RemaneioScreen() {
       `APPEMP • PRODUÇÃO`,
       `Data da Operação: ${dataOperacao}`,
       '',
-      `Pedidos para produção`,
+      `Resumo de produção`,
+      `Pedidos: ${pedidosDashboard.length}`,
       linhasPedidos.join('\n\n'),
     ].join('\n');
 
