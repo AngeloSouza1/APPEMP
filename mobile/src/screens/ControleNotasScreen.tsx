@@ -106,6 +106,7 @@ export default function ControleNotasScreen() {
   const [selecionados, setSelecionados] = useState<Record<number, boolean>>({});
   const [efetivando, setEfetivando] = useState(false);
   const [enviandoCanhotoId, setEnviandoCanhotoId] = useState<number | null>(null);
+  const [canhotoPedidoAtivo, setCanhotoPedidoAtivo] = useState<Pedido | null>(null);
   const [abaAtiva, setAbaAtiva] = useState<'conferir' | 'efetivados'>('conferir');
   const ignorarProximoToggleCardRef = useRef(false);
   const notaSelecionadaEhPdf = useMemo(() => isPdfAttachment(notaSelecionada), [notaSelecionada]);
@@ -264,150 +265,124 @@ export default function ControleNotasScreen() {
     setPedidos((prev) => prev.map((pedido) => (
       pedido.id === pedidoId ? { ...pedido, canhoto_imagem_url: canhotoUrl } : pedido
     )));
+    setCanhotoPedidoAtivo((prev) => (
+      prev && prev.id === pedidoId ? { ...prev, canhoto_imagem_url: canhotoUrl } : prev
+    ));
   }, []);
 
   const abrirFluxoCanhoto = useCallback((item: Pedido) => {
-    const enviarCanhotoParaWhatsApp = async () => {
-      if (!item.canhoto_imagem_url) {
-        Alert.alert('Canhoto', 'Nenhum canhoto anexado para enviar.');
-        return;
-      }
+    setCanhotoPedidoAtivo(item);
+  }, []);
 
-      const mensagem = montarMensagemWhatsApp(
-        item,
-        'CANHOTO',
-        `${getShareBaseUrl()}/compartilhar/pedido/${item.id}/canhoto`
-      );
-      const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(mensagem)}`;
-      const fallbackWebUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+  const fecharCanhotoModal = useCallback(() => {
+    if (enviandoCanhotoId) return;
+    setCanhotoPedidoAtivo(null);
+  }, [enviandoCanhotoId]);
 
-      try {
-        const canOpen = await Linking.canOpenURL(whatsappUrl);
-        if (canOpen) {
-          await Linking.openURL(whatsappUrl);
-          return;
-        }
-        await Linking.openURL(fallbackWebUrl);
-      } catch {
-        Alert.alert('Erro', 'Não foi possível abrir o WhatsApp para envio.');
-      }
-    };
-
-    const anexarDaGaleria = async () => {
-      const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permissao.granted) {
-        Alert.alert(
-          'Permissão negada',
-          permissao.canAskAgain
-            ? 'Permita acesso à galeria para anexar o canhoto.'
-            : 'Acesso à galeria bloqueado. Libere nas configurações do app.'
-        );
-        return;
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 0.8,
-        base64: true,
-      });
-      if (result.canceled || !result.assets?.length) return;
-      setEnviandoCanhotoId(item.id);
-      try {
-        const url = await arquivosApi.uploadImagemCloudinary(result.assets[0] as any);
-        await pedidosApi.atualizar(item.id, { canhoto_imagem_url: url });
-        atualizarCanhotoPedido(item.id, url);
-        Alert.alert('Sucesso', 'Canhoto anexado com sucesso.');
-      } catch (error: any) {
-        Alert.alert('Erro', error?.message || 'Não foi possível anexar o canhoto.');
-      } finally {
-        setEnviandoCanhotoId(null);
-      }
-    };
-
-    const anexarDaCamera = async () => {
-      const permissao = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permissao.granted) {
-        Alert.alert(
-          'Permissão negada',
-          permissao.canAskAgain
-            ? 'Permita acesso à câmera para capturar o canhoto.'
-            : 'Acesso à câmera bloqueado. Libere nas configurações do app.'
-        );
-        return;
-      }
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 0.8,
-        base64: true,
-      });
-      if (result.canceled || !result.assets?.length) return;
-      setEnviandoCanhotoId(item.id);
-      try {
-        const url = await arquivosApi.uploadImagemCloudinary(result.assets[0] as any);
-        await pedidosApi.atualizar(item.id, { canhoto_imagem_url: url });
-        atualizarCanhotoPedido(item.id, url);
-        Alert.alert('Sucesso', 'Canhoto anexado com sucesso.');
-      } catch (error: any) {
-        Alert.alert('Erro', error?.message || 'Não foi possível anexar o canhoto.');
-      } finally {
-        setEnviandoCanhotoId(null);
-      }
-    };
-    const removerCanhoto = async () => {
-      setEnviandoCanhotoId(item.id);
-      try {
-        await pedidosApi.atualizar(item.id, { canhoto_imagem_url: null });
-        atualizarCanhotoPedido(item.id, null);
-        Alert.alert('Sucesso', 'Canhoto removido.');
-      } catch {
-        Alert.alert('Erro', 'Não foi possível remover o canhoto.');
-      } finally {
-        setEnviandoCanhotoId(null);
-      }
-    };
-
-    const abrirEscolhaOrigem = () => {
-      Alert.alert('Canhoto', 'Escolha a origem da imagem.', [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Galeria', onPress: anexarDaGaleria },
-        { text: 'Câmera', onPress: anexarDaCamera },
-      ]);
-    };
-
-    const abrirMenuExistente = () => {
-      Alert.alert('Canhoto', 'Escolha uma ação.', [
-        {
-          text: 'Atualizar',
-          onPress: abrirEscolhaOrigem,
-        },
-        {
-          text: 'Ver',
-          onPress: () => {
-            setNotaZoom(1);
-            setNotaSelecionada(item.canhoto_imagem_url || null);
-          },
-        },
-        {
-          text: 'Mais',
-          onPress: () => {
-            Alert.alert('Canhoto', 'Ações adicionais.', [
-              { text: 'Cancelar', style: 'cancel' },
-              { text: 'WhatsApp', onPress: enviarCanhotoParaWhatsApp },
-              { text: 'Excluir', style: 'destructive', onPress: removerCanhoto },
-            ]);
-          },
-        },
-      ]);
-    };
-
-    if (item.canhoto_imagem_url) {
-      abrirMenuExistente();
+  const enviarCanhotoParaWhatsApp = useCallback(async () => {
+    if (!canhotoPedidoAtivo?.canhoto_imagem_url) {
+      Alert.alert('Canhoto', 'Nenhum canhoto anexado para enviar.');
       return;
     }
 
-    abrirEscolhaOrigem();
-  }, [atualizarCanhotoPedido]);
+    const item = canhotoPedidoAtivo;
+    const mensagem = montarMensagemWhatsApp(
+      item,
+      'CANHOTO',
+      `${getShareBaseUrl()}/compartilhar/pedido/${item.id}/canhoto`
+    );
+    const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(mensagem)}`;
+    const fallbackWebUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+
+    try {
+      const canOpen = await Linking.canOpenURL(whatsappUrl);
+      if (canOpen) {
+        await Linking.openURL(whatsappUrl);
+        return;
+      }
+      await Linking.openURL(fallbackWebUrl);
+    } catch {
+      Alert.alert('Erro', 'Não foi possível abrir o WhatsApp para envio.');
+    }
+  }, [canhotoPedidoAtivo]);
+
+  const anexarCanhoto = useCallback(async (origem: 'galeria' | 'camera') => {
+    if (!canhotoPedidoAtivo) return;
+
+    const pedirPermissao =
+      origem === 'galeria'
+        ? ImagePicker.requestMediaLibraryPermissionsAsync
+        : ImagePicker.requestCameraPermissionsAsync;
+    const permissao = await pedirPermissao();
+    if (!permissao.granted) {
+      Alert.alert(
+        'Permissão negada',
+        permissao.canAskAgain
+          ? origem === 'galeria'
+            ? 'Permita acesso à galeria para anexar o canhoto.'
+            : 'Permita acesso à câmera para capturar o canhoto.'
+          : origem === 'galeria'
+            ? 'Acesso à galeria bloqueado. Libere nas configurações do app.'
+            : 'Acesso à câmera bloqueado. Libere nas configurações do app.'
+      );
+      return;
+    }
+
+    const abrirPicker =
+      origem === 'galeria'
+        ? () =>
+            ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true,
+              quality: 0.8,
+              base64: true,
+            })
+        : () =>
+            ImagePicker.launchCameraAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true,
+              quality: 0.8,
+              base64: true,
+            });
+
+    const result = await abrirPicker();
+    if (result.canceled || !result.assets?.length) return;
+
+    setEnviandoCanhotoId(canhotoPedidoAtivo.id);
+    try {
+      const url = await arquivosApi.uploadImagemCloudinary(result.assets[0] as any);
+      await pedidosApi.atualizar(canhotoPedidoAtivo.id, { canhoto_imagem_url: url });
+      atualizarCanhotoPedido(canhotoPedidoAtivo.id, url);
+      Alert.alert('Sucesso', 'Canhoto anexado com sucesso.');
+    } catch (error: any) {
+      Alert.alert('Erro', error?.message || 'Não foi possível anexar o canhoto.');
+    } finally {
+      setEnviandoCanhotoId(null);
+    }
+  }, [atualizarCanhotoPedido, canhotoPedidoAtivo]);
+
+  const visualizarCanhoto = useCallback(() => {
+    if (!canhotoPedidoAtivo?.canhoto_imagem_url) {
+      Alert.alert('Canhoto', 'Nenhum canhoto anexado.');
+      return;
+    }
+    setNotaZoom(1);
+    setNotaSelecionada(canhotoPedidoAtivo.canhoto_imagem_url || null);
+  }, [canhotoPedidoAtivo]);
+
+  const removerCanhoto = useCallback(async () => {
+    if (!canhotoPedidoAtivo) return;
+    setEnviandoCanhotoId(canhotoPedidoAtivo.id);
+    try {
+      await pedidosApi.atualizar(canhotoPedidoAtivo.id, { canhoto_imagem_url: null });
+      atualizarCanhotoPedido(canhotoPedidoAtivo.id, null);
+      Alert.alert('Sucesso', 'Canhoto removido.');
+    } catch {
+      Alert.alert('Erro', 'Não foi possível remover o canhoto.');
+    } finally {
+      setEnviandoCanhotoId(null);
+    }
+  }, [atualizarCanhotoPedido, canhotoPedidoAtivo]);
 
   const enviarNotaParaWhatsApp = useCallback(async (item: Pedido) => {
     if (!item.nf_imagem_url) {
@@ -697,6 +672,78 @@ export default function ControleNotasScreen() {
             </View>
             <Pressable style={styles.previewClose} onPress={() => setNotaSelecionada(null)}>
               <Text style={styles.previewCloseText}>Fechar</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={Boolean(canhotoPedidoAtivo)}
+        transparent
+        animationType="fade"
+        onRequestClose={fecharCanhotoModal}
+      >
+        <View style={styles.previewBackdrop}>
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={fecharCanhotoModal} />
+          <View style={styles.canhotoModalCard}>
+            <Text style={styles.canhotoModalTitle}>
+              Canhoto do pedido #{canhotoPedidoAtivo?.id || '-'}
+            </Text>
+            <Text style={styles.canhotoModalSubtitle}>
+              {canhotoPedidoAtivo?.cliente_nome || 'Selecione uma ação'}
+            </Text>
+
+            <View style={styles.canhotoActionsGrid}>
+              <Pressable
+                style={[styles.canhotoActionButton, enviandoCanhotoId === canhotoPedidoAtivo?.id && styles.actionButtonDisabled]}
+                onPress={() => void anexarCanhoto('galeria')}
+                disabled={enviandoCanhotoId === canhotoPedidoAtivo?.id}
+              >
+                <Text style={styles.canhotoActionButtonText}>Galeria</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.canhotoActionButton, enviandoCanhotoId === canhotoPedidoAtivo?.id && styles.actionButtonDisabled]}
+                onPress={() => void anexarCanhoto('camera')}
+                disabled={enviandoCanhotoId === canhotoPedidoAtivo?.id}
+              >
+                <Text style={styles.canhotoActionButtonText}>Câmera</Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.canhotoActionButton,
+                  !canhotoPedidoAtivo?.canhoto_imagem_url && styles.canhotoActionButtonDisabled,
+                ]}
+                onPress={visualizarCanhoto}
+                disabled={!canhotoPedidoAtivo?.canhoto_imagem_url}
+              >
+                <Text style={styles.canhotoActionButtonText}>Ver</Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.canhotoActionButton,
+                  !canhotoPedidoAtivo?.canhoto_imagem_url && styles.canhotoActionButtonDisabled,
+                ]}
+                onPress={() => void enviarCanhotoParaWhatsApp()}
+                disabled={!canhotoPedidoAtivo?.canhoto_imagem_url}
+              >
+                <Text style={styles.canhotoActionButtonText}>WhatsApp</Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.canhotoActionButton,
+                  styles.canhotoDeleteButton,
+                  (!canhotoPedidoAtivo?.canhoto_imagem_url || enviandoCanhotoId === canhotoPedidoAtivo?.id) &&
+                    styles.canhotoActionButtonDisabled,
+                ]}
+                onPress={() => void removerCanhoto()}
+                disabled={!canhotoPedidoAtivo?.canhoto_imagem_url || enviandoCanhotoId === canhotoPedidoAtivo?.id}
+              >
+                <Text style={styles.canhotoDeleteButtonText}>Excluir</Text>
+              </Pressable>
+            </View>
+
+            <Pressable style={styles.canhotoCloseButton} onPress={fecharCanhotoModal}>
+              <Text style={styles.canhotoCloseButtonText}>Fechar</Text>
             </Pressable>
           </View>
         </View>
@@ -1066,4 +1113,73 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   previewCloseText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  canhotoModalCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#f8fbff',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    padding: 14,
+    zIndex: 2,
+  },
+  canhotoModalTitle: {
+    color: '#0f172a',
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  canhotoModalSubtitle: {
+    marginTop: 4,
+    color: '#475569',
+    fontSize: 12.71,
+    fontWeight: '600',
+  },
+  canhotoActionsGrid: {
+    marginTop: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  canhotoActionButton: {
+    minWidth: '48%',
+    flexGrow: 1,
+    borderWidth: 1,
+    borderColor: '#93c5fd',
+    borderRadius: 10,
+    backgroundColor: '#eff6ff',
+    paddingVertical: 11,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  canhotoActionButtonDisabled: {
+    opacity: 0.45,
+  },
+  canhotoActionButtonText: {
+    color: '#1d4ed8',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  canhotoDeleteButton: {
+    borderColor: '#fecaca',
+    backgroundColor: '#fef2f2',
+  },
+  canhotoDeleteButtonText: {
+    color: '#b91c1c',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  canhotoCloseButton: {
+    marginTop: 14,
+    alignSelf: 'flex-end',
+    backgroundColor: '#1d4ed8',
+    borderRadius: 9,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+  },
+  canhotoCloseButtonText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
 });
