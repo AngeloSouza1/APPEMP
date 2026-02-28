@@ -18,6 +18,7 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { arquivosApi, pedidosApi } from '../api/services';
 import { API_URL } from '../config/env';
@@ -722,7 +723,7 @@ export default function ControleNotasScreen() {
                 disabled={enviandoCanhotoId === canhotoPedidoAtivo?.id}
                 accessibilityLabel="Selecionar canhoto da galeria"
               >
-                <Text style={styles.canhotoActionIconText}>🖼</Text>
+                <MaterialIcons name="photo-library" style={styles.canhotoActionIcon} />
               </Pressable>
               <Pressable
                 style={[styles.canhotoActionButton, enviandoCanhotoId === canhotoPedidoAtivo?.id && styles.actionButtonDisabled]}
@@ -730,7 +731,7 @@ export default function ControleNotasScreen() {
                 disabled={enviandoCanhotoId === canhotoPedidoAtivo?.id}
                 accessibilityLabel="Capturar canhoto com a camera"
               >
-                <Text style={styles.canhotoActionIconText}>📷</Text>
+                <MaterialIcons name="photo-camera" style={styles.canhotoActionIcon} />
               </Pressable>
               <Pressable
                 style={[
@@ -741,7 +742,7 @@ export default function ControleNotasScreen() {
                 disabled={!canhotoPedidoAtivo?.canhoto_imagem_url}
                 accessibilityLabel="Visualizar canhoto"
               >
-                <Text style={styles.canhotoActionIconText}>👁</Text>
+                <MaterialIcons name="visibility" style={styles.canhotoActionIcon} />
               </Pressable>
               <Pressable
                 style={[
@@ -752,7 +753,7 @@ export default function ControleNotasScreen() {
                 disabled={!canhotoPedidoAtivo?.canhoto_imagem_url}
                 accessibilityLabel="Enviar canhoto para WhatsApp"
               >
-                <Text style={styles.canhotoActionIconText}>↗</Text>
+                <MaterialIcons name="share" style={styles.canhotoActionIcon} />
               </Pressable>
               <Pressable
                 style={[
@@ -765,7 +766,7 @@ export default function ControleNotasScreen() {
                 disabled={!canhotoPedidoAtivo?.canhoto_imagem_url || enviandoCanhotoId === canhotoPedidoAtivo?.id}
                 accessibilityLabel="Excluir canhoto"
               >
-                <Text style={styles.canhotoDeleteIconText}>🗑</Text>
+                <MaterialIcons name="delete-outline" style={styles.canhotoDeleteIcon} />
               </Pressable>
             </View>
 
@@ -1182,21 +1183,17 @@ const styles = StyleSheet.create({
   canhotoActionButtonDisabled: {
     opacity: 0.45,
   },
-  canhotoActionIconText: {
+  canhotoActionIcon: {
     color: '#1d4ed8',
-    fontSize: 23,
-    fontWeight: '800',
-    lineHeight: 26,
+    fontSize: 24,
   },
   canhotoDeleteButton: {
     borderColor: '#fecaca',
     backgroundColor: '#fef2f2',
   },
-  canhotoDeleteIconText: {
+  canhotoDeleteIcon: {
     color: '#b91c1c',
-    fontSize: 21,
-    fontWeight: '800',
-    lineHeight: 24,
+    fontSize: 24,
   },
   canhotoCloseButton: {
     marginTop: 14,
