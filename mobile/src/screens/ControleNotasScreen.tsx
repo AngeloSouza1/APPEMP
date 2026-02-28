@@ -47,6 +47,27 @@ const STATUS_RANK: Record<string, number> = {
   EFETIVADO: 4,
 };
 
+const montarMensagemDocumentoWhatsApp = (
+  item: Pedido,
+  tipo: 'Nota' | 'Canhoto',
+  url: string
+) => {
+  const statusLabel = STATUS_LABEL[item.status] || item.status;
+
+  return [
+    `APPEMP • ${tipo}`,
+    `Pedido #${item.id}`,
+    `${item.cliente_nome}`,
+    `${formatarData(item.data)} • ${statusLabel}`,
+    item.nf_numero ? `NF ${item.nf_numero}` : null,
+    '',
+    `Link do ${tipo.toLowerCase()}:`,
+    url,
+  ]
+    .filter(Boolean)
+    .join('\n');
+};
+
 const getShareBaseUrl = () => API_URL.replace(/\/$/, '');
 
 export default function ControleNotasScreen() {
@@ -264,7 +285,11 @@ export default function ControleNotasScreen() {
     }
 
     const item = canhotoPedidoAtivo;
-    const mensagem = `${getShareBaseUrl()}/compartilhar/pedido/${item.id}/canhoto`;
+    const mensagem = montarMensagemDocumentoWhatsApp(
+      item,
+      'Canhoto',
+      `${getShareBaseUrl()}/compartilhar/pedido/${item.id}/canhoto`
+    );
     const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(mensagem)}`;
     const fallbackWebUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
 
@@ -364,7 +389,11 @@ export default function ControleNotasScreen() {
       return;
     }
 
-    const mensagem = `${getShareBaseUrl()}/compartilhar/pedido/${item.id}/nf`;
+    const mensagem = montarMensagemDocumentoWhatsApp(
+      item,
+      'Nota',
+      `${getShareBaseUrl()}/compartilhar/pedido/${item.id}/nf`
+    );
     const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(mensagem)}`;
     const fallbackWebUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
 
