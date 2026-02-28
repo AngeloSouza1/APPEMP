@@ -275,16 +275,18 @@ export default function RemaneioScreen() {
         .map((item) => {
           const qtd = Number(item.quantidade || 0);
           const qtdLabel = Number.isFinite(qtd) ? String(qtd).replace(/\.0+$/, '') : String(item.quantidade || '');
-          return `- ${item.produto_nome || `Produto ${item.produto_id}`}\n  ${qtdLabel}${item.embalagem ? ` ${item.embalagem}` : ''}`;
+          const nomeProduto = item.produto_nome || `Produto ${item.produto_id}`;
+          const quantidadeLinha = `${qtdLabel}${item.embalagem ? ` ${item.embalagem}` : ''}`;
+          return `   - ${nomeProduto}\n     ${quantidadeLinha}`;
         })
         .join('\n');
 
       return [
-        `${index + 1}. ${pedido.cliente_nome || 'Cliente'}`,
-        `Pedido #${pedido.id} • ${formatarData(pedido.data)}`,
+        `*${index + 1}. ${pedido.cliente_nome || 'Cliente'}*`,
+        `Pedido #${pedido.id}  |  ${formatarData(pedido.data)}`,
         `Volumes: ${Number.isFinite(totalVolumes) ? String(totalVolumes).replace(/\.0+$/, '') : '0'}`,
-        'Itens:',
-        itens || '- Sem itens',
+        'Itens',
+        itens || '   - Sem itens',
       ].join('\n');
     });
 
@@ -292,9 +294,10 @@ export default function RemaneioScreen() {
       `APPEMP • PRODUÇÃO`,
       `Data da Operação: ${dataOperacao}`,
       '',
-      `Resumo de produção`,
+      `Resumo`,
       `Pedidos: ${pedidosDashboard.length}`,
-      linhasPedidos.join('\n\n'),
+      '',
+      linhasPedidos.join('\n\n------------\n\n'),
     ].join('\n');
 
     const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(mensagem)}`;
