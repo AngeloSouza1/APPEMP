@@ -750,6 +750,7 @@ export default function RemaneioScreen() {
 
                     <Text style={styles.cardMeta}>Pedido #{item.id}</Text>
                     <Text style={styles.cardMeta}>{item.rota_nome || 'Sem rota'} • {formatarData(item.data)}</Text>
+                    {item.nf_numero ? <Text style={styles.nfNumberText}>NF: {item.nf_numero}</Text> : null}
                     <Text style={styles.cardValue}>{formatarMoeda(Number(item.valor_total || 0))}</Text>
                   </Pressable>
                 );
@@ -782,6 +783,7 @@ export default function RemaneioScreen() {
                 </View>
                 <Text style={styles.cardMeta}>Pedido #{item.id}</Text>
                 <Text style={styles.cardMeta}>{item.rota_nome || 'Sem rota'} • {formatarData(item.data)}</Text>
+                {item.nf_numero ? <Text style={styles.nfNumberText}>NF: {item.nf_numero}</Text> : null}
                 <View style={styles.remaneioActionsRow}>
                   <View style={styles.remaneioValueWrap}>
                     <Text style={styles.cardValue}>{formatarMoeda(Number(item.valor_total || 0))}</Text>
@@ -876,6 +878,7 @@ export default function RemaneioScreen() {
                     <Text style={styles.cardMeta}>#{item.id}</Text>
                   </View>
                   <Text style={styles.cardMeta}>{item.rota_nome || 'Sem rota'} • {formatarData(item.data)}</Text>
+                  {item.nf_numero ? <Text style={styles.nfNumberText}>NF: {item.nf_numero}</Text> : null}
                   <Text style={styles.cardValue}>{formatarMoeda(Number(item.valor_total || 0))}</Text>
                   {(item.tem_trocas || Number(item.qtd_trocas || 0) > 0) ? (
                     <View style={styles.trocaBadge}>
@@ -1441,6 +1444,12 @@ const styles = StyleSheet.create({
     color: '#57534e',
     fontSize: 13.86,
     fontWeight: '600',
+  },
+  nfNumberText: {
+    marginTop: 2,
+    color: '#9a3412',
+    fontSize: 12.71,
+    fontWeight: '700',
   },
   cardValue: {
     marginTop: 6,

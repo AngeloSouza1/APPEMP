@@ -673,6 +673,7 @@ export default function PedidosScreen() {
                   <Text style={styles.metaStrong}>{formatarMoeda(item.valor_total)}</Text>
                   <Text style={styles.metaTitle}>Pedido: #{item.id}</Text>
                   <Text style={styles.metaDate}>{formatarData(item.data)}</Text>
+                  {item.nf_numero ? <Text style={styles.metaNf}>NF: {item.nf_numero}</Text> : null}
                   <View style={styles.cardBottomRow}>
                     <View />
                     <Text style={styles.cardChevron}>{'>'}</Text>
@@ -1288,6 +1289,12 @@ const styles = StyleSheet.create({
     color: '#475569',
     fontSize: 13.86,
     fontWeight: '600',
+  },
+  metaNf: {
+    marginTop: 2,
+    color: '#1e3a8a',
+    fontSize: 12.71,
+    fontWeight: '700',
   },
   meta: {
     marginTop: 3,
