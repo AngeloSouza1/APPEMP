@@ -523,7 +523,7 @@ app.delete("/notificacoes/dispositivos", autenticarToken, async (req: Authentica
   }
 });
 
-app.get(["/compartilhar/pedido/:id/nf", "/nf/:id"], async (req, res) => {
+app.get(["/compartilhar/pedido/:id/nf", "/nf/:id", "/n/:id"], async (req, res) => {
   try {
     const pedidoId = parseInt(String(req.params.id), 10);
     const result = await pool.query(
@@ -546,7 +546,7 @@ app.get(["/compartilhar/pedido/:id/nf", "/nf/:id"], async (req, res) => {
   }
 });
 
-app.get(["/compartilhar/pedido/:id/canhoto", "/canhoto/:id"], async (req, res) => {
+app.get(["/compartilhar/pedido/:id/canhoto", "/canhoto/:id", "/c/:id"], async (req, res) => {
   try {
     const pedidoId = parseInt(String(req.params.id), 10);
     const result = await pool.query(
@@ -592,10 +592,10 @@ app.get(["/compartilhar/pedido/:id", "/pedido/:id"], async (req, res) => {
 
     const pedido = result.rows[0];
     const nfLink = normalizarImagemUrl(pedido.nf_imagem_url)
-      ? `/nf/${pedidoId}`
+      ? `/n/${pedidoId}`
       : null;
     const canhotoLink = normalizarImagemUrl(pedido.canhoto_imagem_url)
-      ? `/canhoto/${pedidoId}`
+      ? `/c/${pedidoId}`
       : null;
 
     const html = `<!doctype html>

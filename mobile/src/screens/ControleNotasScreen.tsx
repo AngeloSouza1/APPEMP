@@ -61,7 +61,7 @@ const montarMensagemDocumentoWhatsApp = (
     `${formatarData(item.data)} • ${statusLabel}`,
     item.nf_numero ? `NF ${item.nf_numero}` : null,
     '',
-    `Link do ${tipo.toLowerCase()}:`,
+    'Abrir aqui:',
     url,
   ]
     .filter(Boolean)
@@ -69,8 +69,8 @@ const montarMensagemDocumentoWhatsApp = (
 };
 
 const getShareBaseUrl = () => API_URL.replace(/\/$/, '');
-const getNotaShareUrl = (pedidoId: number) => `${getShareBaseUrl()}/nf/${pedidoId}`;
-const getCanhotoShareUrl = (pedidoId: number) => `${getShareBaseUrl()}/canhoto/${pedidoId}`;
+const getNotaShareUrl = (pedidoId: number) => `${getShareBaseUrl()}/n/${pedidoId}`;
+const getCanhotoShareUrl = (pedidoId: number) => `${getShareBaseUrl()}/c/${pedidoId}`;
 
 export default function ControleNotasScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();

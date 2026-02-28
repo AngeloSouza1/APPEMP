@@ -427,7 +427,7 @@ app.delete("/notificacoes/dispositivos", autenticarToken, async (req, res) => {
         return res.status(500).json({ error: "Erro ao desativar dispositivo de notificação." });
     }
 });
-app.get(["/compartilhar/pedido/:id/nf", "/nf/:id"], async (req, res) => {
+app.get(["/compartilhar/pedido/:id/nf", "/nf/:id", "/n/:id"], async (req, res) => {
     try {
         const pedidoId = parseInt(String(req.params.id), 10);
         const result = await db_1.pool.query(`SELECT nf_imagem_url
@@ -447,7 +447,7 @@ app.get(["/compartilhar/pedido/:id/nf", "/nf/:id"], async (req, res) => {
         return res.status(500).send("Erro ao abrir NF.");
     }
 });
-app.get(["/compartilhar/pedido/:id/canhoto", "/canhoto/:id"], async (req, res) => {
+app.get(["/compartilhar/pedido/:id/canhoto", "/canhoto/:id", "/c/:id"], async (req, res) => {
     try {
         const pedidoId = parseInt(String(req.params.id), 10);
         const result = await db_1.pool.query(`SELECT canhoto_imagem_url
@@ -486,10 +486,10 @@ app.get(["/compartilhar/pedido/:id", "/pedido/:id"], async (req, res) => {
         }
         const pedido = result.rows[0];
         const nfLink = normalizarImagemUrl(pedido.nf_imagem_url)
-            ? `/nf/${pedidoId}`
+            ? `/n/${pedidoId}`
             : null;
         const canhotoLink = normalizarImagemUrl(pedido.canhoto_imagem_url)
-            ? `/canhoto/${pedidoId}`
+            ? `/c/${pedidoId}`
             : null;
         const html = `<!doctype html>
 <html lang="pt-BR">
