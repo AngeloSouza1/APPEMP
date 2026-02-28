@@ -383,6 +383,27 @@ export default function ControleNotasScreen() {
     }
   }, [atualizarCanhotoPedido, canhotoPedidoAtivo]);
 
+  const confirmarRemocaoCanhoto = useCallback(() => {
+    if (!canhotoPedidoAtivo?.canhoto_imagem_url || enviandoCanhotoId === canhotoPedidoAtivo.id) {
+      return;
+    }
+
+    Alert.alert(
+      'Excluir canhoto',
+      'Realmente deseja excluir o canhoto deste pedido?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: () => {
+            void removerCanhoto();
+          },
+        },
+      ]
+    );
+  }, [canhotoPedidoAtivo, enviandoCanhotoId, removerCanhoto]);
+
   const enviarNotaParaWhatsApp = useCallback(async (item: Pedido) => {
     if (!item.nf_imagem_url) {
       Alert.alert('Nota', 'Nenhuma imagem de NF anexada para envio.');
@@ -734,7 +755,7 @@ export default function ControleNotasScreen() {
                   (!canhotoPedidoAtivo?.canhoto_imagem_url || enviandoCanhotoId === canhotoPedidoAtivo?.id) &&
                     styles.canhotoActionButtonDisabled,
                 ]}
-                onPress={() => void removerCanhoto()}
+                onPress={confirmarRemocaoCanhoto}
                 disabled={!canhotoPedidoAtivo?.canhoto_imagem_url || enviandoCanhotoId === canhotoPedidoAtivo?.id}
               >
                 <Text style={styles.canhotoDeleteButtonText}>Excluir</Text>
