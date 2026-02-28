@@ -258,6 +258,54 @@ export default function RemaneioScreen() {
     }
   }, [filtrosAplicados.data, pedidosDashboard, resumoDashboard.valorTotal]);
 
+  const enviarProducaoParaWhatsApp = useCallback(async () => {
+    if (!pedidosDashboard.length) {
+      Alert.alert('Remaneio', 'Não há pedidos no dashboard para enviar.');
+      return;
+    }
+
+    const dataOperacao = filtrosAplicados.data
+      ? formatarData(filtrosAplicados.data)
+      : formatarData(pedidosDashboard[0].data);
+
+    const linhasPedidos = pedidosDashboard.map((pedido, index) => {
+      const itens = (pedido.itens || [])
+        .map((item) => {
+          const qtd = Number(item.quantidade || 0);
+          const qtdLabel = Number.isFinite(qtd) ? String(qtd).replace(/\.0+$/, '') : String(item.quantidade || '');
+          return `• ${item.produto_nome || `Produto ${item.produto_id}`}: ${qtdLabel}${item.embalagem ? ` ${item.embalagem}` : ''}`;
+        })
+        .join('\n');
+
+      return [
+        `${index + 1}. ${pedido.cliente_nome || 'Cliente'} (${formatarData(pedido.data)})`,
+        itens || '• Sem itens',
+      ].join('\n');
+    });
+
+    const mensagem = [
+      `APPEMP • PRODUÇÃO`,
+      `Data da Operação: ${dataOperacao}`,
+      '',
+      `Pedidos para produção`,
+      linhasPedidos.join('\n\n'),
+    ].join('\n');
+
+    const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(mensagem)}`;
+    const fallbackWebUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+
+    try {
+      const canOpen = await Linking.canOpenURL(whatsappUrl);
+      if (canOpen) {
+        await Linking.openURL(whatsappUrl);
+        return;
+      }
+      await Linking.openURL(fallbackWebUrl);
+    } catch {
+      Alert.alert('Erro', 'Não foi possível abrir o WhatsApp para envio da produção.');
+    }
+  }, [filtrosAplicados.data, pedidosDashboard]);
+
   const aplicarFiltros = () => {
     setFiltrosAplicados({
       q: busca.trim() || undefined,
@@ -806,6 +854,9 @@ export default function RemaneioScreen() {
             </View>
             <Pressable style={styles.dashboardWhatsappButton} onPress={enviarDashboardParaWhatsApp}>
               <Text style={styles.dashboardWhatsappButtonText}>Enviar dashboard para WhatsApp</Text>
+            </Pressable>
+            <Pressable style={styles.dashboardProductionButton} onPress={enviarProducaoParaWhatsApp}>
+              <Text style={styles.dashboardProductionButtonText}>Enviar produção para WhatsApp</Text>
             </Pressable>
 
             <Text style={styles.sectionTitle}>Pedidos recentes</Text>
@@ -1557,6 +1608,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dashboardWhatsappButtonText: {
+    color: '#ffffff',
+    fontSize: 13.86,
+    fontWeight: '800',
+  },
+  dashboardProductionButton: {
+    marginTop: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#1d4ed8',
+    backgroundColor: '#2563eb',
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dashboardProductionButtonText: {
     color: '#ffffff',
     fontSize: 13.86,
     fontWeight: '800',
