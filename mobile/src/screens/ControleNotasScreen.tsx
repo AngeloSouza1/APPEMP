@@ -720,15 +720,17 @@ export default function ControleNotasScreen() {
                 style={[styles.canhotoActionButton, enviandoCanhotoId === canhotoPedidoAtivo?.id && styles.actionButtonDisabled]}
                 onPress={() => void anexarCanhoto('galeria')}
                 disabled={enviandoCanhotoId === canhotoPedidoAtivo?.id}
+                accessibilityLabel="Selecionar canhoto da galeria"
               >
-                <Text style={styles.canhotoActionButtonText}>Galeria</Text>
+                <Text style={styles.canhotoActionIconText}>🖼</Text>
               </Pressable>
               <Pressable
                 style={[styles.canhotoActionButton, enviandoCanhotoId === canhotoPedidoAtivo?.id && styles.actionButtonDisabled]}
                 onPress={() => void anexarCanhoto('camera')}
                 disabled={enviandoCanhotoId === canhotoPedidoAtivo?.id}
+                accessibilityLabel="Capturar canhoto com a camera"
               >
-                <Text style={styles.canhotoActionButtonText}>Câmera</Text>
+                <Text style={styles.canhotoActionIconText}>📷</Text>
               </Pressable>
               <Pressable
                 style={[
@@ -737,8 +739,9 @@ export default function ControleNotasScreen() {
                 ]}
                 onPress={visualizarCanhoto}
                 disabled={!canhotoPedidoAtivo?.canhoto_imagem_url}
+                accessibilityLabel="Visualizar canhoto"
               >
-                <Text style={styles.canhotoActionButtonText}>Ver</Text>
+                <Text style={styles.canhotoActionIconText}>👁</Text>
               </Pressable>
               <Pressable
                 style={[
@@ -747,8 +750,9 @@ export default function ControleNotasScreen() {
                 ]}
                 onPress={() => void enviarCanhotoParaWhatsApp()}
                 disabled={!canhotoPedidoAtivo?.canhoto_imagem_url}
+                accessibilityLabel="Enviar canhoto para WhatsApp"
               >
-                <Text style={styles.canhotoActionButtonText}>WhatsApp</Text>
+                <Text style={styles.canhotoActionIconText}>↗</Text>
               </Pressable>
               <Pressable
                 style={[
@@ -759,8 +763,9 @@ export default function ControleNotasScreen() {
                 ]}
                 onPress={confirmarRemocaoCanhoto}
                 disabled={!canhotoPedidoAtivo?.canhoto_imagem_url || enviandoCanhotoId === canhotoPedidoAtivo?.id}
+                accessibilityLabel="Excluir canhoto"
               >
-                <Text style={styles.canhotoDeleteButtonText}>Excluir</Text>
+                <Text style={styles.canhotoDeleteIconText}>🗑</Text>
               </Pressable>
             </View>
 
@@ -1177,19 +1182,21 @@ const styles = StyleSheet.create({
   canhotoActionButtonDisabled: {
     opacity: 0.45,
   },
-  canhotoActionButtonText: {
+  canhotoActionIconText: {
     color: '#1d4ed8',
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 23,
+    fontWeight: '800',
+    lineHeight: 26,
   },
   canhotoDeleteButton: {
     borderColor: '#fecaca',
     backgroundColor: '#fef2f2',
   },
-  canhotoDeleteButtonText: {
+  canhotoDeleteIconText: {
     color: '#b91c1c',
-    fontSize: 13,
+    fontSize: 21,
     fontWeight: '800',
+    lineHeight: 24,
   },
   canhotoCloseButton: {
     marginTop: 14,
