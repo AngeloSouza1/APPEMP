@@ -354,44 +354,59 @@ export default function ControleNotasScreen() {
         setEnviandoCanhotoId(null);
       }
     };
+    const removerCanhoto = async () => {
+      setEnviandoCanhotoId(item.id);
+      try {
+        await pedidosApi.atualizar(item.id, { canhoto_imagem_url: null });
+        atualizarCanhotoPedido(item.id, null);
+        Alert.alert('Sucesso', 'Canhoto removido.');
+      } catch {
+        Alert.alert('Erro', 'Não foi possível remover o canhoto.');
+      } finally {
+        setEnviandoCanhotoId(null);
+      }
+    };
 
-    const opcoes: Array<{ text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }> = [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Galeria', onPress: anexarDaGaleria },
-      { text: 'Câmera', onPress: anexarDaCamera },
-    ];
+    const abrirEscolhaOrigem = () => {
+      Alert.alert('Canhoto', 'Escolha a origem da imagem.', [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Galeria', onPress: anexarDaGaleria },
+        { text: 'Câmera', onPress: anexarDaCamera },
+      ]);
+    };
+
+    const abrirMenuExistente = () => {
+      Alert.alert('Canhoto', 'Escolha uma ação.', [
+        {
+          text: 'Atualizar',
+          onPress: abrirEscolhaOrigem,
+        },
+        {
+          text: 'Ver',
+          onPress: () => {
+            setNotaZoom(1);
+            setNotaSelecionada(item.canhoto_imagem_url || null);
+          },
+        },
+        {
+          text: 'Mais',
+          onPress: () => {
+            Alert.alert('Canhoto', 'Ações adicionais.', [
+              { text: 'Cancelar', style: 'cancel' },
+              { text: 'WhatsApp', onPress: enviarCanhotoParaWhatsApp },
+              { text: 'Excluir', style: 'destructive', onPress: removerCanhoto },
+            ]);
+          },
+        },
+      ]);
+    };
 
     if (item.canhoto_imagem_url) {
-      opcoes.splice(1, 0, {
-        text: 'Enviar p/ WhatsApp',
-        onPress: enviarCanhotoParaWhatsApp,
-      });
-      opcoes.splice(2, 0, {
-        text: 'Ver canhoto',
-        onPress: () => {
-          setNotaZoom(1);
-          setNotaSelecionada(item.canhoto_imagem_url || null);
-        },
-      });
-      opcoes.splice(3, 0, {
-        text: 'Remover canhoto',
-        style: 'destructive',
-        onPress: async () => {
-          setEnviandoCanhotoId(item.id);
-          try {
-            await pedidosApi.atualizar(item.id, { canhoto_imagem_url: null });
-            atualizarCanhotoPedido(item.id, null);
-            Alert.alert('Sucesso', 'Canhoto removido.');
-          } catch {
-            Alert.alert('Erro', 'Não foi possível remover o canhoto.');
-          } finally {
-            setEnviandoCanhotoId(null);
-          }
-        },
-      });
+      abrirMenuExistente();
+      return;
     }
 
-    Alert.alert('Canhoto', 'Escolha uma ação para o canhoto.', opcoes);
+    abrirEscolhaOrigem();
   }, [atualizarCanhotoPedido]);
 
   const enviarNotaParaWhatsApp = useCallback(async (item: Pedido) => {
