@@ -69,6 +69,8 @@ const montarMensagemDocumentoWhatsApp = (
 };
 
 const getShareBaseUrl = () => API_URL.replace(/\/$/, '');
+const getNotaShareUrl = (pedidoId: number) => `${getShareBaseUrl()}/nf/${pedidoId}`;
+const getCanhotoShareUrl = (pedidoId: number) => `${getShareBaseUrl()}/canhoto/${pedidoId}`;
 
 export default function ControleNotasScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -288,7 +290,7 @@ export default function ControleNotasScreen() {
     const mensagem = montarMensagemDocumentoWhatsApp(
       item,
       'Canhoto',
-      `${getShareBaseUrl()}/compartilhar/pedido/${item.id}/canhoto`
+      getCanhotoShareUrl(item.id)
     );
     const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(mensagem)}`;
     const fallbackWebUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
@@ -413,7 +415,7 @@ export default function ControleNotasScreen() {
     const mensagem = montarMensagemDocumentoWhatsApp(
       item,
       'Nota',
-      `${getShareBaseUrl()}/compartilhar/pedido/${item.id}/nf`
+      getNotaShareUrl(item.id)
     );
     const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(mensagem)}`;
     const fallbackWebUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
