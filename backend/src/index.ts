@@ -109,6 +109,14 @@ const normalizarExpoPushToken = (valor: unknown): string | null => {
   return null;
 };
 
+const escapeHtml = (valor: unknown) =>
+  String(valor ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 const dividirEmBlocos = <T>(itens: T[], tamanho: number): T[][] => {
   const blocos: T[][] = [];
   for (let i = 0; i < itens.length; i += tamanho) {
@@ -512,6 +520,120 @@ app.delete("/notificacoes/dispositivos", autenticarToken, async (req: Authentica
   } catch (error) {
     console.error("Erro ao desativar dispositivo de notificação:", error);
     return res.status(500).json({ error: "Erro ao desativar dispositivo de notificação." });
+  }
+});
+
+app.get("/compartilhar/pedido/:id/nf", async (req, res) => {
+  try {
+    const pedidoId = parseInt(String(req.params.id), 10);
+    const result = await pool.query(
+      `SELECT nf_imagem_url
+       FROM pedidos
+       WHERE id = $1`,
+      [pedidoId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).send("Pedido não encontrado.");
+    }
+    const url = normalizarImagemUrl(result.rows[0].nf_imagem_url);
+    if (!url) {
+      return res.status(404).send("NF não encontrada.");
+    }
+    return res.redirect(url);
+  } catch (error) {
+    console.error("Erro ao compartilhar NF:", error);
+    return res.status(500).send("Erro ao abrir NF.");
+  }
+});
+
+app.get("/compartilhar/pedido/:id/canhoto", async (req, res) => {
+  try {
+    const pedidoId = parseInt(String(req.params.id), 10);
+    const result = await pool.query(
+      `SELECT canhoto_imagem_url
+       FROM pedidos
+       WHERE id = $1`,
+      [pedidoId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).send("Pedido não encontrado.");
+    }
+    const url = normalizarImagemUrl(result.rows[0].canhoto_imagem_url);
+    if (!url) {
+      return res.status(404).send("Canhoto não encontrado.");
+    }
+    return res.redirect(url);
+  } catch (error) {
+    console.error("Erro ao compartilhar canhoto:", error);
+    return res.status(500).send("Erro ao abrir canhoto.");
+  }
+});
+
+app.get("/compartilhar/pedido/:id", async (req, res) => {
+  try {
+    const pedidoId = parseInt(String(req.params.id), 10);
+    const result = await pool.query(
+      `SELECT
+        p.id,
+        p.data,
+        p.status,
+        p.nf_numero,
+        p.nf_imagem_url,
+        p.canhoto_imagem_url,
+        c.nome AS cliente_nome
+      FROM pedidos p
+      INNER JOIN clientes c ON c.id = p.cliente_id
+      WHERE p.id = $1`,
+      [pedidoId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).send("Pedido não encontrado.");
+    }
+
+    const pedido = result.rows[0];
+    const nfLink = normalizarImagemUrl(pedido.nf_imagem_url)
+      ? `/compartilhar/pedido/${pedidoId}/nf`
+      : null;
+    const canhotoLink = normalizarImagemUrl(pedido.canhoto_imagem_url)
+      ? `/compartilhar/pedido/${pedidoId}/canhoto`
+      : null;
+
+    const html = `<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pedido #${escapeHtml(pedido.id)} - APPEMP</title>
+    <style>
+      body { font-family: Arial, sans-serif; background: #eef4ff; color: #0f172a; margin: 0; padding: 24px; }
+      .card { max-width: 560px; margin: 0 auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 16px; padding: 20px; }
+      h1 { margin: 0 0 12px; font-size: 24px; }
+      p { margin: 6px 0; }
+      .links { margin-top: 18px; display: grid; gap: 10px; }
+      a { display: inline-block; text-decoration: none; background: #2563eb; color: #fff; padding: 10px 14px; border-radius: 10px; font-weight: 700; }
+      .secondary { background: #16a34a; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>APPEMP • Pedido #${escapeHtml(pedido.id)}</h1>
+      <p><strong>Cliente:</strong> ${escapeHtml(pedido.cliente_nome)}</p>
+      <p><strong>Data:</strong> ${escapeHtml(pedido.data)}</p>
+      <p><strong>Status:</strong> ${escapeHtml(pedido.status)}</p>
+      ${pedido.nf_numero ? `<p><strong>NF:</strong> ${escapeHtml(pedido.nf_numero)}</p>` : ""}
+      <div class="links">
+        ${nfLink ? `<a href="${nfLink}">Abrir nota fiscal</a>` : ""}
+        ${canhotoLink ? `<a class="secondary" href="${canhotoLink}">Abrir canhoto</a>` : ""}
+      </div>
+    </div>
+  </body>
+</html>`;
+
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    return res.send(html);
+  } catch (error) {
+    console.error("Erro ao compartilhar pedido:", error);
+    return res.status(500).send("Erro ao abrir pedido.");
   }
 });
 
