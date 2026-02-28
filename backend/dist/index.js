@@ -92,6 +92,12 @@ const normalizarExpoPushToken = (valor) => {
     }
     return null;
 };
+const escapeHtml = (valor) => String(valor !== null && valor !== void 0 ? valor : "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 const dividirEmBlocos = (itens, tamanho) => {
     const blocos = [];
     for (let i = 0; i < itens.length; i += tamanho) {
@@ -118,7 +124,8 @@ const enviarPushPedidos = async (params) => {
        FROM notificacao_dispositivos nd
        INNER JOIN usuarios u ON u.id = nd.usuario_id
        WHERE nd.ativo = true
-         AND u.ativo = true`);
+         AND u.ativo = true
+         AND u.perfil <> 'motorista'`);
         const tokens = tokensResult.rows
             .map((row) => normalizarExpoPushToken(row.expo_push_token))
             .filter((value) => Boolean(value));
@@ -239,6 +246,7 @@ const ensureImageColumns = async () => {
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS ordem_remaneio INTEGER");
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS usa_nf BOOLEAN NOT NULL DEFAULT false");
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_imagem_url TEXT");
+    await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS canhoto_imagem_url TEXT");
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_numero TEXT");
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_status TEXT NOT NULL DEFAULT 'PENDENTE'");
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_efetivado_por INTEGER");
@@ -373,20 +381,27 @@ app.post("/auth/change-password", autenticarToken, async (req, res) => {
     }
 });
 app.post("/notificacoes/dispositivos", autenticarToken, async (req, res) => {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e;
     const expoPushToken = normalizarExpoPushToken((_a = req.body) === null || _a === void 0 ? void 0 : _a.expo_push_token);
     const plataforma = String(((_b = req.body) === null || _b === void 0 ? void 0 : _b.plataforma) || "unknown").trim().slice(0, 30) || "unknown";
     if (!expoPushToken) {
         return res.status(400).json({ error: "expo_push_token inválido." });
     }
     try {
+        if (((_c = req.user) === null || _c === void 0 ? void 0 : _c.perfil) === "motorista") {
+            await db_1.pool.query(`UPDATE notificacao_dispositivos
+         SET ativo = false,
+             atualizado_em = NOW()
+         WHERE expo_push_token = $1 OR usuario_id = $2`, [expoPushToken, (_d = req.user) === null || _d === void 0 ? void 0 : _d.id]);
+            return res.json({ ok: true });
+        }
         await db_1.pool.query(`INSERT INTO notificacao_dispositivos (usuario_id, expo_push_token, plataforma, ativo, atualizado_em)
        VALUES ($1, $2, $3, true, NOW())
        ON CONFLICT (expo_push_token) DO UPDATE
        SET usuario_id = EXCLUDED.usuario_id,
            plataforma = EXCLUDED.plataforma,
            ativo = true,
-           atualizado_em = NOW()`, [(_c = req.user) === null || _c === void 0 ? void 0 : _c.id, expoPushToken, plataforma]);
+           atualizado_em = NOW()`, [(_e = req.user) === null || _e === void 0 ? void 0 : _e.id, expoPushToken, plataforma]);
         return res.json({ ok: true });
     }
     catch (error) {
@@ -410,6 +425,108 @@ app.delete("/notificacoes/dispositivos", autenticarToken, async (req, res) => {
     catch (error) {
         console.error("Erro ao desativar dispositivo de notificação:", error);
         return res.status(500).json({ error: "Erro ao desativar dispositivo de notificação." });
+    }
+});
+app.get(["/compartilhar/pedido/:id/nf", "/nf/:id"], async (req, res) => {
+    try {
+        const pedidoId = parseInt(String(req.params.id), 10);
+        const result = await db_1.pool.query(`SELECT nf_imagem_url
+       FROM pedidos
+       WHERE id = $1`, [pedidoId]);
+        if (result.rows.length === 0) {
+            return res.status(404).send("Pedido não encontrado.");
+        }
+        const url = normalizarImagemUrl(result.rows[0].nf_imagem_url);
+        if (!url) {
+            return res.status(404).send("NF não encontrada.");
+        }
+        return res.redirect(url);
+    }
+    catch (error) {
+        console.error("Erro ao compartilhar NF:", error);
+        return res.status(500).send("Erro ao abrir NF.");
+    }
+});
+app.get(["/compartilhar/pedido/:id/canhoto", "/canhoto/:id"], async (req, res) => {
+    try {
+        const pedidoId = parseInt(String(req.params.id), 10);
+        const result = await db_1.pool.query(`SELECT canhoto_imagem_url
+       FROM pedidos
+       WHERE id = $1`, [pedidoId]);
+        if (result.rows.length === 0) {
+            return res.status(404).send("Pedido não encontrado.");
+        }
+        const url = normalizarImagemUrl(result.rows[0].canhoto_imagem_url);
+        if (!url) {
+            return res.status(404).send("Canhoto não encontrado.");
+        }
+        return res.redirect(url);
+    }
+    catch (error) {
+        console.error("Erro ao compartilhar canhoto:", error);
+        return res.status(500).send("Erro ao abrir canhoto.");
+    }
+});
+app.get(["/compartilhar/pedido/:id", "/pedido/:id"], async (req, res) => {
+    try {
+        const pedidoId = parseInt(String(req.params.id), 10);
+        const result = await db_1.pool.query(`SELECT
+        p.id,
+        p.data,
+        p.status,
+        p.nf_numero,
+        p.nf_imagem_url,
+        p.canhoto_imagem_url,
+        c.nome AS cliente_nome
+      FROM pedidos p
+      INNER JOIN clientes c ON c.id = p.cliente_id
+      WHERE p.id = $1`, [pedidoId]);
+        if (result.rows.length === 0) {
+            return res.status(404).send("Pedido não encontrado.");
+        }
+        const pedido = result.rows[0];
+        const nfLink = normalizarImagemUrl(pedido.nf_imagem_url)
+            ? `/nf/${pedidoId}`
+            : null;
+        const canhotoLink = normalizarImagemUrl(pedido.canhoto_imagem_url)
+            ? `/canhoto/${pedidoId}`
+            : null;
+        const html = `<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pedido #${escapeHtml(pedido.id)} - APPEMP</title>
+    <style>
+      body { font-family: Arial, sans-serif; background: #eef4ff; color: #0f172a; margin: 0; padding: 24px; }
+      .card { max-width: 560px; margin: 0 auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 16px; padding: 20px; }
+      h1 { margin: 0 0 12px; font-size: 24px; }
+      p { margin: 6px 0; }
+      .links { margin-top: 18px; display: grid; gap: 10px; }
+      a { display: inline-block; text-decoration: none; background: #2563eb; color: #fff; padding: 10px 14px; border-radius: 10px; font-weight: 700; }
+      .secondary { background: #16a34a; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>APPEMP • Pedido #${escapeHtml(pedido.id)}</h1>
+      <p><strong>Cliente:</strong> ${escapeHtml(pedido.cliente_nome)}</p>
+      <p><strong>Data:</strong> ${escapeHtml(pedido.data)}</p>
+      <p><strong>Status:</strong> ${escapeHtml(pedido.status)}</p>
+      ${pedido.nf_numero ? `<p><strong>NF:</strong> ${escapeHtml(pedido.nf_numero)}</p>` : ""}
+      <div class="links">
+        ${nfLink ? `<a href="${nfLink}">Abrir nota fiscal</a>` : ""}
+        ${canhotoLink ? `<a class="secondary" href="${canhotoLink}">Abrir canhoto</a>` : ""}
+      </div>
+    </div>
+  </body>
+</html>`;
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        return res.send(html);
+    }
+    catch (error) {
+        console.error("Erro ao compartilhar pedido:", error);
+        return res.status(500).send("Erro ao abrir pedido.");
     }
 });
 app.use(autenticarToken);
@@ -1148,6 +1265,7 @@ app.get("/pedidos", async (req, res) => {
         p.ordem_remaneio,
         p.usa_nf,
         p.nf_imagem_url,
+        p.canhoto_imagem_url,
         p.nf_numero,
         p.nf_status,
         p.nf_efetivado_por_nome,
@@ -1164,6 +1282,7 @@ app.get("/pedidos", async (req, res) => {
         c.id as cliente_id,
         c.codigo_cliente,
         c.nome as cliente_nome,
+        c.link as cliente_link,
         r.id as rota_id,
         r.nome as rota_nome
       FROM pedidos p
@@ -1246,6 +1365,7 @@ app.get("/pedidos/:id", async (req, res, next) => {
         p.ordem_remaneio,
         p.usa_nf,
         p.nf_imagem_url,
+        p.canhoto_imagem_url,
         p.nf_numero,
         p.nf_status,
         p.nf_efetivado_por_nome,
@@ -1262,6 +1382,7 @@ app.get("/pedidos/:id", async (req, res, next) => {
         c.id as cliente_id,
         c.codigo_cliente,
         c.nome as cliente_nome,
+        c.link as cliente_link,
         r.id as rota_id,
         r.nome as rota_nome
       FROM pedidos p
@@ -1353,6 +1474,7 @@ app.get("/pedidos/paginado", async (req, res) => {
         p.ordem_remaneio,
         p.usa_nf,
         p.nf_imagem_url,
+        p.canhoto_imagem_url,
         p.nf_numero,
         p.nf_status,
         p.nf_efetivado_por_nome,
@@ -1369,6 +1491,7 @@ app.get("/pedidos/paginado", async (req, res) => {
         c.id as cliente_id,
         c.codigo_cliente,
         c.nome as cliente_nome,
+        c.link as cliente_link,
         r.id as rota_id,
         r.nome as rota_nome
       FROM pedidos p
@@ -1507,10 +1630,11 @@ app.patch("/pedidos/nf/antecipar", async (req, res) => {
 // Cria um novo pedido com itens
 app.post("/pedidos", async (req, res) => {
     var _a, _b, _c, _d, _e;
-    const { chave_pedido, cliente_id, rota_id, data, status, itens, usa_nf, nf_imagem_url, nf_numero } = req.body;
+    const { chave_pedido, cliente_id, rota_id, data, status, itens, usa_nf, nf_imagem_url, nf_numero, canhoto_imagem_url } = req.body;
     const usuarioId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.id) || null;
     const usaNf = normalizarBoolean(usa_nf);
     const nfImagemUrl = normalizarImagemUrl(nf_imagem_url);
+    const canhotoImagemUrl = normalizarImagemUrl(canhoto_imagem_url);
     const nfNumero = normalizarNfNumero(nf_numero);
     let clienteNome = "Cliente";
     if (!cliente_id || !data || !itens || !Array.isArray(itens) || itens.length === 0) {
@@ -1569,9 +1693,9 @@ app.post("/pedidos", async (req, res) => {
             throw new Error(`Status inválido. Valores permitidos: ${STATUS_PERMITIDOS.join(", ")}`);
         }
         // Inserir pedido
-        const pedidoResult = await client.query(`INSERT INTO pedidos (chave_pedido, cliente_id, rota_id, data, status, valor_total, usa_nf, nf_imagem_url, nf_numero, nf_status, criado_por)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-       RETURNING id, chave_pedido, data, status, valor_total, usa_nf, nf_imagem_url, nf_numero, nf_status`, [
+        const pedidoResult = await client.query(`INSERT INTO pedidos (chave_pedido, cliente_id, rota_id, data, status, valor_total, usa_nf, nf_imagem_url, canhoto_imagem_url, nf_numero, nf_status, criado_por)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       RETURNING id, chave_pedido, data, status, valor_total, usa_nf, nf_imagem_url, canhoto_imagem_url, nf_numero, nf_status`, [
             finalChavePedido,
             cliente_id,
             rota_id || null,
@@ -1580,6 +1704,7 @@ app.post("/pedidos", async (req, res) => {
             valorTotal,
             usaNf,
             usaNf ? nfImagemUrl : null,
+            usaNf ? canhotoImagemUrl : null,
             usaNf ? nfNumero : null,
             "PENDENTE",
             usuarioId,
@@ -1865,7 +1990,7 @@ app.delete("/trocas/:id", async (req, res) => {
 app.put("/pedidos/:id", async (req, res) => {
     var _a, _b, _c, _d, _e, _f, _g;
     const { id } = req.params;
-    const { rota_id, data, status, itens, usa_nf, nf_imagem_url, nf_numero } = req.body;
+    const { rota_id, data, status, itens, usa_nf, nf_imagem_url, canhoto_imagem_url, nf_numero } = req.body;
     const usuarioId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.id) || null;
     const client = await db_1.pool.connect();
     try {
@@ -1915,6 +2040,10 @@ app.put("/pedidos/:id", async (req, res) => {
             updateFields.push(`nf_imagem_url = $${paramIndex}`);
             params.push(usaNf ? nfImagemUrl : null);
             paramIndex++;
+            const canhotoImagemUrl = normalizarImagemUrl(canhoto_imagem_url);
+            updateFields.push(`canhoto_imagem_url = $${paramIndex}`);
+            params.push(usaNf ? canhotoImagemUrl : null);
+            paramIndex++;
             updateFields.push(`nf_numero = $${paramIndex}`);
             params.push(usaNf ? nfNumero : null);
             paramIndex++;
@@ -1935,6 +2064,12 @@ app.put("/pedidos/:id", async (req, res) => {
             const nfNumero = normalizarNfNumero(nf_numero);
             updateFields.push(`nf_numero = $${paramIndex}`);
             params.push(nfNumero);
+            paramIndex++;
+        }
+        if (canhoto_imagem_url !== undefined) {
+            const canhotoImagemUrl = normalizarImagemUrl(canhoto_imagem_url);
+            updateFields.push(`canhoto_imagem_url = $${paramIndex}`);
+            params.push(canhotoImagemUrl);
             paramIndex++;
         }
         // Se itens foram fornecidos, atualizar itens
@@ -1998,6 +2133,7 @@ app.put("/pedidos/:id", async (req, res) => {
         p.status,
         p.usa_nf,
         p.nf_imagem_url,
+        p.canhoto_imagem_url,
         p.nf_numero,
         p.nf_status,
         p.nf_efetivado_por_nome,
@@ -2006,6 +2142,7 @@ app.put("/pedidos/:id", async (req, res) => {
         c.id as cliente_id,
         c.codigo_cliente,
         c.nome as cliente_nome,
+        c.link as cliente_link,
         r.id as rota_id,
         r.nome as rota_nome
       FROM pedidos p
@@ -2502,6 +2639,7 @@ app.get("/relatorios/notas", async (req, res) => {
         p.valor_total AS pedido_valor_total,
         p.nf_numero,
         p.nf_imagem_url,
+        p.canhoto_imagem_url,
         p.nf_status,
         c.id AS cliente_id,
         c.codigo_cliente,
