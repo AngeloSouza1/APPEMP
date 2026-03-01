@@ -98,8 +98,8 @@ android {
         applicationId "com.appemp.mobile"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 15
-        versionName "0.1.21"
+        versionCode 16
+        versionName "0.1.22"
     }
     signingConfigs {
         debug {
