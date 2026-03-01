@@ -230,6 +230,26 @@ export default function ControleNotasScreen() {
     setSelecionados((prev) => ({ ...prev, [id]: !prev[id] }));
   }, []);
 
+  const selecionarTodosPedidos = useCallback(() => {
+    setSelecionados((prev) => {
+      const prox = { ...prev };
+      pedidosAConferir.forEach((pedido) => {
+        prox[pedido.id] = true;
+      });
+      return prox;
+    });
+  }, [pedidosAConferir]);
+
+  const limparSelecaoPedidos = useCallback(() => {
+    setSelecionados((prev) => {
+      const prox = { ...prev };
+      pedidosAConferir.forEach((pedido) => {
+        delete prox[pedido.id];
+      });
+      return prox;
+    });
+  }, [pedidosAConferir]);
+
   const efetivarNotas = useCallback(() => {
     if (!idsSelecionados.length) {
       Alert.alert('Seleção vazia', 'Selecione ao menos uma nota para efetivar.');
@@ -611,6 +631,17 @@ export default function ControleNotasScreen() {
           </Pressable>
         </View>
 
+        {abaAtiva === 'conferir' ? (
+          <View style={styles.bulkActionsRow}>
+            <Pressable style={styles.bulkActionButton} onPress={selecionarTodosPedidos}>
+              <Text style={styles.bulkActionButtonText}>Selecionar todos</Text>
+            </Pressable>
+            <Pressable style={[styles.bulkActionButton, styles.bulkActionButtonSecondary]} onPress={limparSelecaoPedidos}>
+              <Text style={[styles.bulkActionButtonText, styles.bulkActionButtonTextSecondary]}>Limpar</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         {loading ? (
           <View style={styles.centerCard}>
             <ActivityIndicator />
@@ -933,6 +964,33 @@ const styles = StyleSheet.create({
   tabButtonTextActive: {
     color: '#1e3a8a',
     fontWeight: '800',
+  },
+  bulkActionsRow: {
+    flexDirection: 'row',
+    columnGap: 8,
+    marginBottom: 8,
+  },
+  bulkActionButton: {
+    flex: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#93c5fd',
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  bulkActionButtonSecondary: {
+    borderColor: '#cbd5e1',
+    backgroundColor: '#f8fafc',
+  },
+  bulkActionButtonText: {
+    color: '#1d4ed8',
+    fontSize: 12.8,
+    fontWeight: '700',
+  },
+  bulkActionButtonTextSecondary: {
+    color: '#475569',
   },
   listContent: { paddingBottom: 24, rowGap: 10 },
   card: {
