@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import jwt, { JwtPayload, SignOptions } from "jsonwebtoken";
 import nodemailer from "nodemailer";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { pool } from "./db";
 
 dotenv.config();
@@ -60,6 +62,9 @@ const CLOUDINARY_MONITOR_INTERVAL_MINUTES = Number(process.env.CLOUDINARY_MONITO
 const CLOUDINARY_ALERT_COOLDOWN_MINUTES = Number(process.env.CLOUDINARY_ALERT_COOLDOWN_MINUTES || 1440);
 const CLOUDINARY_ALERT_EMAIL_TO = process.env.CLOUDINARY_ALERT_EMAIL_TO || "";
 const CLOUDINARY_ALERT_EMAIL_FROM = process.env.CLOUDINARY_ALERT_EMAIL_FROM || process.env.SMTP_USER || "";
+const CLOUDINARY_BACKUP_DIR = process.env.CLOUDINARY_BACKUP_DIR || "backups/cloudinary";
+const CLOUDINARY_BACKUP_MIN_AGE_DAYS = Number(process.env.CLOUDINARY_BACKUP_MIN_AGE_DAYS || 30);
+const CLOUDINARY_BACKUP_BATCH_LIMIT = Number(process.env.CLOUDINARY_BACKUP_BATCH_LIMIT || 100);
 const BREVO_API_KEY = process.env.BREVO_API_KEY || "";
 const SMTP_HOST = process.env.SMTP_HOST || "";
 const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
@@ -144,6 +149,34 @@ const formatarBytes = (bytes: number) => {
     indice += 1;
   }
   return `${valor >= 100 ? valor.toFixed(0) : valor.toFixed(2)} ${unidades[indice]}`;
+};
+
+const normalizarNomeArquivo = (valor: string) =>
+  valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9-_]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase()
+    .slice(0, 60) || "arquivo";
+
+const resolverExtensaoArquivo = (url: string, contentType?: string | null) => {
+  const lowerType = String(contentType || "").toLowerCase();
+  if (lowerType.includes("pdf")) return ".pdf";
+  if (lowerType.includes("png")) return ".png";
+  if (lowerType.includes("jpeg") || lowerType.includes("jpg")) return ".jpg";
+  if (lowerType.includes("webp")) return ".webp";
+
+  try {
+    const pathname = new URL(url).pathname;
+    const ext = path.extname(pathname);
+    if (ext) return ext.toLowerCase();
+  } catch {
+    // Ignora URL inválida e usa fallback abaixo.
+  }
+
+  return ".bin";
 };
 
 const escapeHtml = (valor: unknown) =>
@@ -328,6 +361,30 @@ const enviarEmailViaBrevoApi = async (params: { subject: string; text: string })
   }
 };
 
+const enviarEmailTexto = async (params: { subject: string; text: string }) => {
+  const mode = getEmailTransportMode();
+  if (mode === "none") {
+    throw new Error("E-mail não configurado por completo.");
+  }
+
+  if (mode === "brevo-api") {
+    await enviarEmailViaBrevoApi(params);
+    return;
+  }
+
+  const transporter = criarTransporterSmtp();
+  try {
+    await transporter.sendMail({
+      from: CLOUDINARY_ALERT_EMAIL_FROM,
+      to: CLOUDINARY_ALERT_EMAIL_TO,
+      subject: params.subject,
+      text: params.text,
+    });
+  } finally {
+    transporter.close();
+  }
+};
+
 const buscarUsoCloudinary = async () => {
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
     throw new Error("Cloudinary não configurado para monitoramento.");
@@ -394,22 +451,7 @@ const enviarAlertaCloudinaryPorEmail = async (dados: {
     .filter(Boolean)
     .join("\n");
 
-  if (brevoApiHabilitada()) {
-    await enviarEmailViaBrevoApi({ subject, text });
-    return;
-  }
-
-  const transporter = criarTransporterSmtp();
-  try {
-    await transporter.sendMail({
-      from: CLOUDINARY_ALERT_EMAIL_FROM,
-      to: CLOUDINARY_ALERT_EMAIL_TO,
-      subject,
-      text,
-    });
-  } finally {
-    transporter.close();
-  }
+  await enviarEmailTexto({ subject, text });
 };
 
 const enviarEmailTesteSmtp = async () => {
@@ -433,22 +475,176 @@ const enviarEmailTesteSmtp = async () => {
     .filter(Boolean)
     .join("\n");
 
-  if (mode === "brevo-api") {
-    await enviarEmailViaBrevoApi({ subject, text });
-    return;
+  await enviarEmailTexto({ subject, text });
+};
+
+const baixarArquivoCloudinaryParaBackup = async (params: {
+  url: string;
+  tipo: "nf" | "canhoto";
+  pedidoId: number;
+  clienteNome: string;
+  batchDir: string;
+}) => {
+  const response = await fetch(params.url, { method: "GET" });
+  if (!response.ok) {
+    throw new Error(`Falha ao baixar arquivo (${response.status})`);
   }
 
-  const transporter = criarTransporterSmtp();
-  try {
-    await transporter.sendMail({
-      from: CLOUDINARY_ALERT_EMAIL_FROM,
-      to: CLOUDINARY_ALERT_EMAIL_TO,
-      subject,
-      text,
-    });
-  } finally {
-    transporter.close();
+  const bytes = Buffer.from(await response.arrayBuffer());
+  const ext = resolverExtensaoArquivo(params.url, response.headers.get("content-type"));
+  const subdir = path.join(params.batchDir, params.tipo);
+  await mkdir(subdir, { recursive: true });
+
+  const nomeBase = normalizarNomeArquivo(params.clienteNome);
+  const fileName = `${String(params.pedidoId).padStart(6, "0")}-${params.tipo}-${nomeBase}${ext}`;
+  const absolutePath = path.join(subdir, fileName);
+  await writeFile(absolutePath, bytes);
+
+  return {
+    fileName,
+    absolutePath,
+    bytes: bytes.length,
+  };
+};
+
+const executarBackupCloudinary = async (options?: {
+  olderThanDays?: number;
+  limit?: number;
+  sendEmail?: boolean;
+}) => {
+  const olderThanDays = Math.max(Number(options?.olderThanDays || CLOUDINARY_BACKUP_MIN_AGE_DAYS), 0);
+  const limit = Math.max(Math.min(Number(options?.limit || CLOUDINARY_BACKUP_BATCH_LIMIT), 500), 1);
+  const sendEmail = options?.sendEmail !== false;
+
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+  const cutoffIso = cutoffDate.toISOString().slice(0, 10);
+
+  const result = await pool.query(
+    `SELECT
+      p.id,
+      p.data,
+      c.nome AS cliente_nome,
+      p.nf_imagem_url,
+      p.canhoto_imagem_url
+     FROM pedidos p
+     INNER JOIN clientes c ON c.id = p.cliente_id
+     WHERE p.status <> 'CANCELADO'
+       AND p.data <= $1
+       AND (p.nf_imagem_url IS NOT NULL OR p.canhoto_imagem_url IS NOT NULL)
+     ORDER BY p.data ASC, p.id ASC
+     LIMIT $2`,
+    [cutoffIso, limit]
+  );
+
+  const rows = result.rows as Array<{
+    id: number;
+    data: string;
+    cliente_nome: string;
+    nf_imagem_url: string | null;
+    canhoto_imagem_url: string | null;
+  }>;
+
+  const batchKey = new Date().toISOString().replace(/[:.]/g, "-");
+  const backupRoot = path.resolve(process.cwd(), CLOUDINARY_BACKUP_DIR, batchKey);
+  await mkdir(backupRoot, { recursive: true });
+
+  const arquivos: Array<{
+    pedidoId: number;
+    tipo: "nf" | "canhoto";
+    sourceUrl: string;
+    fileName?: string;
+    bytes?: number;
+    error?: string;
+  }> = [];
+
+  for (const row of rows) {
+    const anexos = [
+      { tipo: "nf" as const, url: normalizarImagemUrl(row.nf_imagem_url) },
+      { tipo: "canhoto" as const, url: normalizarImagemUrl(row.canhoto_imagem_url) },
+    ].filter((item) => Boolean(item.url));
+
+    for (const anexo of anexos) {
+      try {
+        const salvo = await baixarArquivoCloudinaryParaBackup({
+          url: anexo.url!,
+          tipo: anexo.tipo,
+          pedidoId: row.id,
+          clienteNome: row.cliente_nome || `pedido-${row.id}`,
+          batchDir: backupRoot,
+        });
+        arquivos.push({
+          pedidoId: row.id,
+          tipo: anexo.tipo,
+          sourceUrl: anexo.url!,
+          fileName: salvo.fileName,
+          bytes: salvo.bytes,
+        });
+      } catch (error: any) {
+        arquivos.push({
+          pedidoId: row.id,
+          tipo: anexo.tipo,
+          sourceUrl: anexo.url!,
+          error: error?.message || "Falha ao baixar arquivo.",
+        });
+      }
+    }
   }
+
+  const sucesso = arquivos.filter((item) => !item.error);
+  const falhas = arquivos.filter((item) => item.error);
+  const totalBytes = sucesso.reduce((acc, item) => acc + Number(item.bytes || 0), 0);
+
+  const manifest = {
+    createdAt: new Date().toISOString(),
+    backupRoot,
+    olderThanDays,
+    cutoffDate: cutoffIso,
+    limit,
+    rowsScanned: rows.length,
+    filesBackedUp: sucesso.length,
+    filesFailed: falhas.length,
+    totalBytes,
+    files: arquivos,
+  };
+
+  await writeFile(
+    path.join(backupRoot, "manifest.json"),
+    JSON.stringify(manifest, null, 2),
+    "utf-8"
+  );
+
+  let emailSent = false;
+  if (sendEmail && getEmailTransportMode() !== "none") {
+    const subject = `[APPEMP] Backup Cloudinary gerado (${sucesso.length} arquivo(s))`;
+    const text = [
+      "Backup Cloudinary - APPEMP",
+      "",
+      `Pasta: ${backupRoot}`,
+      `Critério: pedidos com data até ${cutoffIso} (${olderThanDays} dia(s) ou mais)`,
+      `Pedidos analisados: ${rows.length}`,
+      `Arquivos salvos: ${sucesso.length}`,
+      `Falhas: ${falhas.length}`,
+      `Tamanho total: ${formatarBytes(totalBytes)}`,
+    ].join("\n");
+
+    await enviarEmailTexto({ subject, text });
+    emailSent = true;
+  }
+
+  return {
+    ok: true,
+    backupRoot,
+    olderThanDays,
+    cutoffDate: cutoffIso,
+    rowsScanned: rows.length,
+    filesBackedUp: sucesso.length,
+    filesFailed: falhas.length,
+    totalBytes,
+    totalBytesFormatted: formatarBytes(totalBytes),
+    emailSent,
+    files: arquivos,
+  };
 };
 
 const verificarUsoCloudinary = async (options?: { manual?: boolean; forceEmail?: boolean }) => {
@@ -964,6 +1160,26 @@ app.post("/admin/monitoramento/cloudinary/verificar", async (req: AuthenticatedR
   }
 
   return res.json(resultado);
+});
+
+app.post("/admin/monitoramento/cloudinary/backup", async (req: AuthenticatedRequest, res) => {
+  if (req.user?.perfil !== "admin" && req.user?.perfil !== "backoffice") {
+    return res.status(403).json({ error: "Sem permissão para executar o backup." });
+  }
+
+  try {
+    const resultado = await executarBackupCloudinary({
+      olderThanDays: Number(req.body?.older_than_days || CLOUDINARY_BACKUP_MIN_AGE_DAYS),
+      limit: Number(req.body?.limit || CLOUDINARY_BACKUP_BATCH_LIMIT),
+      sendEmail: req.body?.send_email === undefined ? true : normalizarBoolean(req.body?.send_email),
+    });
+    return res.json(resultado);
+  } catch (error: any) {
+    return res.status(400).json({
+      ok: false,
+      reason: error?.message || "Falha ao executar o backup do Cloudinary.",
+    });
+  }
 });
 
 app.post("/admin/monitoramento/email/testar", async (req: AuthenticatedRequest, res) => {
