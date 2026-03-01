@@ -498,7 +498,9 @@ const baixarArquivoCloudinaryParaBackup = async (params: {
 }) => {
   const response = await fetch(params.url, { method: "GET" });
   if (!response.ok) {
-    throw new Error(`Falha ao baixar arquivo (${response.status})`);
+    const error = new Error(`Falha ao baixar arquivo (${response.status})`) as Error & { status?: number };
+    error.status = response.status;
+    throw error;
   }
 
   const bytes = Buffer.from(await response.arrayBuffer());
@@ -922,6 +924,7 @@ const executarBackupCloudinary = async (options?: {
     fileName?: string;
     bytes?: number;
     error?: string;
+    bancoAtualizado?: boolean;
   }> = [];
 
   for (const row of rows) {
@@ -947,11 +950,24 @@ const executarBackupCloudinary = async (options?: {
           bytes: salvo.bytes,
         });
       } catch (error: any) {
+        let bancoAtualizado = false;
+        if (error?.status === 404) {
+          const coluna = anexo.tipo === "canhoto" ? "canhoto_imagem_url" : "nf_imagem_url";
+          await pool.query(
+            `UPDATE pedidos
+             SET ${coluna} = NULL
+             WHERE id = $1`,
+            [row.id]
+          );
+          bancoAtualizado = true;
+        }
+
         arquivos.push({
           pedidoId: row.id,
           tipo: anexo.tipo,
           sourceUrl: anexo.url!,
           error: error?.message || "Falha ao baixar arquivo.",
+          bancoAtualizado,
         });
       }
     }
@@ -959,6 +975,7 @@ const executarBackupCloudinary = async (options?: {
 
   const sucesso = arquivos.filter((item) => !item.error);
   const falhas = arquivos.filter((item) => item.error);
+  const brokenUrlsCleaned = falhas.filter((item) => item.bancoAtualizado).length;
   const totalBytes = sucesso.reduce((acc, item) => acc + Number(item.bytes || 0), 0);
 
   const manifest = {
@@ -970,6 +987,7 @@ const executarBackupCloudinary = async (options?: {
     rowsScanned: rows.length,
     filesBackedUp: sucesso.length,
     filesFailed: falhas.length,
+    brokenUrlsCleaned,
     totalBytes,
     files: arquivos,
   };
@@ -1028,6 +1046,7 @@ const executarBackupCloudinary = async (options?: {
       `Pedidos analisados: ${rows.length}`,
       `Arquivos salvos: ${sucesso.length}`,
       `Falhas: ${falhas.length}`,
+      `URLs quebradas removidas do banco: ${brokenUrlsCleaned}`,
       `Tamanho total: ${formatarBytes(totalBytes)}`,
       `Tamanho do .zip: ${formatarBytes(archiveBytes)}`,
       driveUpload?.ok ? `Google Drive (visualizar): ${driveUpload.webViewLink}` : null,
@@ -1056,6 +1075,7 @@ const executarBackupCloudinary = async (options?: {
     rowsScanned: rows.length,
     filesBackedUp: sucesso.length,
     filesFailed: falhas.length,
+    brokenUrlsCleaned,
     totalBytes,
     totalBytesFormatted: formatarBytes(totalBytes),
     emailSent,
