@@ -69,7 +69,11 @@ const CLOUDINARY_BACKUP_MIN_AGE_DAYS = Number(process.env.CLOUDINARY_BACKUP_MIN_
 const CLOUDINARY_BACKUP_BATCH_LIMIT = Number(process.env.CLOUDINARY_BACKUP_BATCH_LIMIT || 100);
 const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || "";
 const GOOGLE_SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || "";
-const GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY = (process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || "").replace(/\\n/g, "\n");
+const GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY = (() => {
+  const rawValue = String(process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || "").trim();
+  const semAspas = rawValue.replace(/^"(.*)"$/s, "$1").replace(/^'(.*)'$/s, "$1");
+  return semAspas.replace(/\\n/g, "\n").trim();
+})();
 const GOOGLE_DRIVE_SHARE_PUBLIC = String(process.env.GOOGLE_DRIVE_SHARE_PUBLIC || "false").trim().toLowerCase() === "true";
 const BREVO_API_KEY = process.env.BREVO_API_KEY || "";
 const SMTP_HOST = process.env.SMTP_HOST || "";
