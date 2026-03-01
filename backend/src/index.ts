@@ -1464,6 +1464,78 @@ app.post("/admin/monitoramento/cloudinary/verificar", async (req: AuthenticatedR
   return res.json(resultado);
 });
 
+app.get("/admin/monitoramento/cloudinary/status", async (req: AuthenticatedRequest, res) => {
+  if (req.user?.perfil !== "admin" && req.user?.perfil !== "backoffice") {
+    return res.status(403).json({ error: "Sem permissão para consultar o status do armazenamento." });
+  }
+
+  if (!cloudinaryMonitoramentoHabilitado()) {
+    return res.status(400).json({
+      ok: false,
+      enabled: false,
+      reason: "Monitoramento do Cloudinary não configurado por completo.",
+    });
+  }
+
+  try {
+    const [dados, contadores] = await Promise.all([
+      buscarUsoCloudinary(),
+      pool.query(
+        `SELECT
+          (SELECT COUNT(*) FROM usuarios) AS usuarios,
+          (SELECT COUNT(*) FROM clientes) AS clientes,
+          (SELECT COUNT(*) FROM produtos) AS produtos,
+          (SELECT COUNT(*) FROM pedidos) AS pedidos,
+          (
+            SELECT COUNT(*)
+            FROM pedidos
+            WHERE status <> 'CANCELADO'
+              AND (COALESCE(nf_imagem_url, '') <> '' OR COALESCE(canhoto_imagem_url, '') <> '')
+          ) AS pedidos_com_anexos,
+          (
+            SELECT
+              SUM(
+                CASE WHEN COALESCE(nf_imagem_url, '') <> '' THEN 1 ELSE 0 END
+                + CASE WHEN COALESCE(canhoto_imagem_url, '') <> '' THEN 1 ELSE 0 END
+              )
+            FROM pedidos
+            WHERE status <> 'CANCELADO'
+          ) AS anexos_cadastrados`
+      ),
+    ]);
+
+    const remainingBytes = Math.max(dados.limitBytes - dados.usageBytes, 0);
+    const remainingPercent = dados.limitBytes > 0 ? Math.max(100 - dados.usagePercent, 0) : 0;
+    const row = contadores.rows[0] || {};
+
+    return res.json({
+      ok: true,
+      enabled: true,
+      thresholdPercent: CLOUDINARY_ALERT_THRESHOLD_PERCENT,
+      remainingBytes,
+      remainingPercent,
+      remainingBytesFormatted: formatarBytes(remainingBytes),
+      usageBytesFormatted: formatarBytes(dados.usageBytes),
+      limitBytesFormatted: formatarBytes(dados.limitBytes),
+      dbSummary: {
+        usuarios: Number(row.usuarios || 0),
+        clientes: Number(row.clientes || 0),
+        produtos: Number(row.produtos || 0),
+        pedidos: Number(row.pedidos || 0),
+        pedidosComAnexos: Number(row.pedidos_com_anexos || 0),
+        anexosCadastrados: Number(row.anexos_cadastrados || 0),
+      },
+      ...dados,
+    });
+  } catch (error: any) {
+    return res.status(400).json({
+      ok: false,
+      enabled: true,
+      reason: error?.message || "Falha ao consultar o status do armazenamento.",
+    });
+  }
+});
+
 app.post("/admin/monitoramento/cloudinary/backup", async (req: AuthenticatedRequest, res) => {
   if (req.user?.perfil !== "admin" && req.user?.perfil !== "backoffice") {
     return res.status(403).json({ error: "Sem permissão para executar o backup." });

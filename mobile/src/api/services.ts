@@ -148,6 +148,31 @@ export type RelatorioNotaItem = {
   rota_nome?: string | null;
 };
 
+export type CloudinaryStatusResumo = {
+  ok: boolean;
+  enabled: boolean;
+  thresholdPercent: number;
+  usageBytes: number;
+  limitBytes: number;
+  usagePercent: number;
+  remainingBytes: number;
+  remainingPercent: number;
+  remainingBytesFormatted: string;
+  usageBytesFormatted: string;
+  limitBytesFormatted: string;
+  resources: number;
+  plan: string;
+  lastUpdated?: string | null;
+  dbSummary: {
+    usuarios: number;
+    clientes: number;
+    produtos: number;
+    pedidos: number;
+    pedidosComAnexos: number;
+    anexosCadastrados: number;
+  };
+};
+
 export const authApi = {
   login: (username: string, password: string) =>
     api.post<LoginResponse>('/auth/login', { username, password }),
@@ -162,6 +187,10 @@ export const notificacoesApi = {
     api.post<{ ok: boolean }>('/notificacoes/dispositivos', { expo_push_token, plataforma }),
   desativarDispositivo: (expo_push_token: string) =>
     api.delete<{ ok: boolean }>('/notificacoes/dispositivos', { expo_push_token }),
+};
+
+export const monitoramentoApi = {
+  statusCloudinary: () => api.get<CloudinaryStatusResumo>('/admin/monitoramento/cloudinary/status'),
 };
 
 const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;

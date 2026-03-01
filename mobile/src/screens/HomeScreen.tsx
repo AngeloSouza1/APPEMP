@@ -20,7 +20,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Constants from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { clientesApi, pedidosApi } from '../api/services';
+import { clientesApi, monitoramentoApi, type CloudinaryStatusResumo, pedidosApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { Pedido } from '../types/pedidos';
@@ -239,6 +239,10 @@ export default function HomeScreen() {
   const moduleColumns = 2;
   const [menuAberto, setMenuAberto] = useState(false);
   const [mostrarSobreApp, setMostrarSobreApp] = useState(false);
+  const [mostrarStatusBanco, setMostrarStatusBanco] = useState(false);
+  const [carregandoStatusBanco, setCarregandoStatusBanco] = useState(false);
+  const [erroStatusBanco, setErroStatusBanco] = useState<string | null>(null);
+  const [statusBanco, setStatusBanco] = useState<CloudinaryStatusResumo | null>(null);
   const [acaoRodapeAtiva, setAcaoRodapeAtiva] = useState<'home' | 'pedidos' | 'producao' | 'relatorios'>('home');
   const [carregandoRodape, setCarregandoRodape] = useState(false);
   const [ultimaSync, setUltimaSync] = useState<Date | null>(new Date());
@@ -439,6 +443,11 @@ export default function HomeScreen() {
     return user.perfil === 'admin' || user.perfil === 'backoffice' || user.perfil === 'vendedor';
   }, [user]);
 
+  const podeAcessarStatusBanco = useMemo(() => {
+    if (!user) return false;
+    return user.perfil === 'admin' || user.perfil === 'backoffice';
+  }, [user]);
+
   const resumoMotorista = useMemo(() => {
     const totalPedidos = pedidosMotorista.length;
     const valorTotal = pedidosMotorista.reduce((acc, pedido) => acc + Number(pedido.valor_total || 0), 0);
@@ -513,6 +522,38 @@ export default function HomeScreen() {
   const abrirSobreApp = () => {
     setMostrarSobreApp(true);
   };
+
+  const carregarStatusBanco = useCallback(async () => {
+    setCarregandoStatusBanco(true);
+    try {
+      const response = await monitoramentoApi.statusCloudinary();
+      setStatusBanco(response.data);
+      setErroStatusBanco(null);
+    } catch (error: any) {
+      const mensagem =
+        error?.response?.data && typeof error.response.data === 'object' && 'error' in error.response.data
+          ? String((error.response.data as { error?: string }).error || 'Não foi possível carregar o status do banco.')
+          : error?.response?.data && typeof error.response.data === 'object' && 'reason' in error.response.data
+          ? String((error.response.data as { reason?: string }).reason || 'Não foi possível carregar o status do banco.')
+          : 'Não foi possível carregar o status do banco.';
+      setErroStatusBanco(mensagem);
+      setStatusBanco(null);
+    } finally {
+      setCarregandoStatusBanco(false);
+    }
+  }, []);
+
+  const abrirStatusBanco = useCallback(() => {
+    if (!podeAcessarStatusBanco) {
+      setMenuAberto(false);
+      Alert.alert('Acesso negado', 'Apenas admin e backoffice podem acessar o status do banco.');
+      return;
+    }
+    setMenuAberto(false);
+    setMostrarSobreApp(false);
+    setMostrarStatusBanco(true);
+    carregarStatusBanco();
+  }, [carregarStatusBanco, podeAcessarStatusBanco]);
 
   const abrirOrcamento = () => {
     if (!podeAcessarOrcamento) {
@@ -756,6 +797,18 @@ export default function HomeScreen() {
                       <Text style={styles.menuLinkIcon}>🗂️</Text>
                     </View>
                     <Text style={styles.menuLinkText}>Controle de Notas</Text>
+                    <Text style={styles.menuLinkChevron}>{'▸'}</Text>
+                  </Pressable>
+                ) : null}
+                {podeAcessarStatusBanco ? (
+                  <Pressable
+                    style={[styles.menuLink, mostrarStatusBanco && styles.menuLinkActive]}
+                    onPress={abrirStatusBanco}
+                  >
+                    <View style={styles.menuLinkIconWrap}>
+                      <Text style={styles.menuLinkIcon}>📊</Text>
+                    </View>
+                    <Text style={styles.menuLinkText}>Status do Banco</Text>
                     <Text style={styles.menuLinkChevron}>{'▸'}</Text>
                   </Pressable>
                 ) : null}
@@ -1063,6 +1116,118 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
+      <Modal transparent visible={mostrarStatusBanco} animationType="fade" onRequestClose={() => setMostrarStatusBanco(false)}>
+        <View style={styles.loadingOverlay}>
+          <View style={styles.statusModalCard}>
+            <View style={styles.aboutModalHeader}>
+              <Text style={styles.aboutModalTitle}>Status do Banco</Text>
+              <Pressable style={styles.aboutModalClose} onPress={() => setMostrarStatusBanco(false)}>
+                <Text style={styles.aboutModalCloseText}>×</Text>
+              </Pressable>
+            </View>
+            {carregandoStatusBanco ? (
+              <View style={styles.statusLoadingWrap}>
+                <ActivityIndicator size="small" color="#1d4ed8" />
+                <Text style={styles.statusLoadingText}>Carregando status...</Text>
+              </View>
+            ) : erroStatusBanco ? (
+              <View style={styles.statusSectionCard}>
+                <Text style={styles.statusErrorText}>{erroStatusBanco}</Text>
+                <Pressable style={styles.statusRefreshButton} onPress={carregarStatusBanco}>
+                  <Text style={styles.statusRefreshButtonText}>Tentar novamente</Text>
+                </Pressable>
+              </View>
+            ) : statusBanco ? (
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.statusModalScroll}>
+                <View style={styles.statusSectionCard}>
+                  <View style={styles.statusSectionHeader}>
+                    <Text style={styles.statusSectionTitle}>Armazenamento Cloudinary</Text>
+                    <Text style={styles.statusSectionBadge}>{statusBanco.plan}</Text>
+                  </View>
+                  <View style={styles.statusProgressTrack}>
+                    <View
+                      style={[
+                        styles.statusProgressUsed,
+                        { width: `${Math.max(Math.min(statusBanco.usagePercent, 100), 4)}%` },
+                      ]}
+                    />
+                  </View>
+                  <View style={styles.statusProgressLegendRow}>
+                    <View style={styles.statusLegendItem}>
+                      <View style={[styles.statusLegendDot, styles.statusLegendDotUsed]} />
+                      <Text style={styles.statusLegendText}>Usado {statusBanco.usagePercent.toFixed(1)}%</Text>
+                    </View>
+                    <View style={styles.statusLegendItem}>
+                      <View style={[styles.statusLegendDot, styles.statusLegendDotRemaining]} />
+                      <Text style={styles.statusLegendText}>Livre {statusBanco.remainingPercent.toFixed(1)}%</Text>
+                    </View>
+                  </View>
+                  <View style={styles.statusKpiGrid}>
+                    <View style={styles.statusKpiCard}>
+                      <Text style={styles.statusKpiLabel}>Uso atual</Text>
+                      <Text style={styles.statusKpiValue}>{statusBanco.usageBytesFormatted}</Text>
+                    </View>
+                    <View style={styles.statusKpiCard}>
+                      <Text style={styles.statusKpiLabel}>Restante</Text>
+                      <Text style={styles.statusKpiValue}>{statusBanco.remainingBytesFormatted}</Text>
+                    </View>
+                    <View style={styles.statusKpiCard}>
+                      <Text style={styles.statusKpiLabel}>Limite</Text>
+                      <Text style={styles.statusKpiValue}>{statusBanco.limitBytesFormatted}</Text>
+                    </View>
+                    <View style={styles.statusKpiCard}>
+                      <Text style={styles.statusKpiLabel}>Alerta</Text>
+                      <Text style={styles.statusKpiValue}>{statusBanco.thresholdPercent}%</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.statusSectionCard}>
+                  <View style={styles.statusSectionHeader}>
+                    <Text style={styles.statusSectionTitle}>Dados no Banco</Text>
+                    <Text style={styles.statusSectionBadge}>{statusBanco.resources} arquivos</Text>
+                  </View>
+                  <View style={styles.statusKpiGrid}>
+                    <View style={styles.statusKpiCard}>
+                      <Text style={styles.statusKpiLabel}>Usuários</Text>
+                      <Text style={styles.statusKpiValue}>{statusBanco.dbSummary.usuarios}</Text>
+                    </View>
+                    <View style={styles.statusKpiCard}>
+                      <Text style={styles.statusKpiLabel}>Clientes</Text>
+                      <Text style={styles.statusKpiValue}>{statusBanco.dbSummary.clientes}</Text>
+                    </View>
+                    <View style={styles.statusKpiCard}>
+                      <Text style={styles.statusKpiLabel}>Produtos</Text>
+                      <Text style={styles.statusKpiValue}>{statusBanco.dbSummary.produtos}</Text>
+                    </View>
+                    <View style={styles.statusKpiCard}>
+                      <Text style={styles.statusKpiLabel}>Pedidos</Text>
+                      <Text style={styles.statusKpiValue}>{statusBanco.dbSummary.pedidos}</Text>
+                    </View>
+                    <View style={styles.statusKpiCard}>
+                      <Text style={styles.statusKpiLabel}>Com anexos</Text>
+                      <Text style={styles.statusKpiValue}>{statusBanco.dbSummary.pedidosComAnexos}</Text>
+                    </View>
+                    <View style={styles.statusKpiCard}>
+                      <Text style={styles.statusKpiLabel}>Anexos</Text>
+                      <Text style={styles.statusKpiValue}>{statusBanco.dbSummary.anexosCadastrados}</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.statusFooterRow}>
+                  <Text style={styles.statusFooterText}>
+                    Última leitura: <Text style={styles.menuAboutValue}>{statusBanco.lastUpdated || 'N/D'}</Text>
+                  </Text>
+                  <Pressable style={styles.statusRefreshButton} onPress={carregarStatusBanco}>
+                    <Text style={styles.statusRefreshButtonText}>Atualizar</Text>
+                  </Pressable>
+                </View>
+              </ScrollView>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
       <Modal transparent visible={carregandoRodape} animationType="fade">
         <View style={styles.loadingOverlay}>
           <View style={styles.loadingCard}>
@@ -1354,6 +1519,163 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     rowGap: 2,
+  },
+  statusModalCard: {
+    width: '90%',
+    maxWidth: 420,
+    maxHeight: '82%',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    backgroundColor: '#ffffff',
+    padding: 12,
+    rowGap: 10,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  statusModalScroll: {
+    rowGap: 10,
+  },
+  statusLoadingWrap: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    backgroundColor: '#f8fafc',
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    rowGap: 8,
+  },
+  statusLoadingText: {
+    color: '#475569',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  statusSectionCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    backgroundColor: '#f8fafc',
+    padding: 12,
+    rowGap: 10,
+  },
+  statusSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    columnGap: 10,
+  },
+  statusSectionTitle: {
+    color: '#0f172a',
+    fontSize: 14.5,
+    fontWeight: '800',
+    flex: 1,
+  },
+  statusSectionBadge: {
+    color: '#1d4ed8',
+    fontSize: 11.5,
+    fontWeight: '800',
+    backgroundColor: '#dbeafe',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  statusProgressTrack: {
+    height: 14,
+    borderRadius: 999,
+    backgroundColor: '#dbeafe',
+    overflow: 'hidden',
+  },
+  statusProgressUsed: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: '#2563eb',
+  },
+  statusProgressLegendRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    columnGap: 10,
+    flexWrap: 'wrap',
+  },
+  statusLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 6,
+  },
+  statusLegendDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 999,
+  },
+  statusLegendDotUsed: {
+    backgroundColor: '#2563eb',
+  },
+  statusLegendDotRemaining: {
+    backgroundColor: '#93c5fd',
+  },
+  statusLegendText: {
+    color: '#475569',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  statusKpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  statusKpiCard: {
+    minWidth: '31%',
+    flexGrow: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    rowGap: 3,
+  },
+  statusKpiLabel: {
+    color: '#64748b',
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  statusKpiValue: {
+    color: '#0f172a',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  statusFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    columnGap: 10,
+  },
+  statusFooterText: {
+    color: '#64748b',
+    fontSize: 12,
+    fontWeight: '600',
+    flex: 1,
+  },
+  statusRefreshButton: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    backgroundColor: '#dbeafe',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  statusRefreshButtonText: {
+    color: '#1d4ed8',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  statusErrorText: {
+    color: '#b91c1c',
+    fontSize: 12.5,
+    fontWeight: '700',
   },
   menuAboutCard: {
     borderRadius: 8,
