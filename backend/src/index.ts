@@ -4,7 +4,9 @@ import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import jwt, { JwtPayload, SignOptions } from "jsonwebtoken";
 import nodemailer from "nodemailer";
-import { mkdir, writeFile } from "node:fs/promises";
+import { createSign } from "node:crypto";
+import { execFile } from "node:child_process";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pool } from "./db";
 
@@ -65,6 +67,10 @@ const CLOUDINARY_ALERT_EMAIL_FROM = process.env.CLOUDINARY_ALERT_EMAIL_FROM || p
 const CLOUDINARY_BACKUP_DIR = process.env.CLOUDINARY_BACKUP_DIR || "backups/cloudinary";
 const CLOUDINARY_BACKUP_MIN_AGE_DAYS = Number(process.env.CLOUDINARY_BACKUP_MIN_AGE_DAYS || 30);
 const CLOUDINARY_BACKUP_BATCH_LIMIT = Number(process.env.CLOUDINARY_BACKUP_BATCH_LIMIT || 100);
+const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || "";
+const GOOGLE_SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || "";
+const GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY = (process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || "").replace(/\\n/g, "\n");
+const GOOGLE_DRIVE_SHARE_PUBLIC = String(process.env.GOOGLE_DRIVE_SHARE_PUBLIC || "false").trim().toLowerCase() === "true";
 const BREVO_API_KEY = process.env.BREVO_API_KEY || "";
 const SMTP_HOST = process.env.SMTP_HOST || "";
 const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
@@ -507,6 +513,173 @@ const baixarArquivoCloudinaryParaBackup = async (params: {
   };
 };
 
+const compactarLoteBackupCloudinary = async (backupRoot: string, batchKey: string) => {
+  const archivePath = path.resolve(process.cwd(), CLOUDINARY_BACKUP_DIR, `${batchKey}.zip`);
+
+  await new Promise<void>((resolve, reject) => {
+    execFile(
+      "zip",
+      ["-rq", archivePath, "."],
+      { cwd: backupRoot },
+      (error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve();
+      }
+    );
+  });
+
+  const archiveStats = await stat(archivePath);
+
+  return {
+    archivePath,
+    archiveBytes: archiveStats.size,
+  };
+};
+
+const googleDriveHabilitado = () =>
+  Boolean(
+    GOOGLE_DRIVE_FOLDER_ID
+    && GOOGLE_SERVICE_ACCOUNT_EMAIL
+    && GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
+  );
+
+const base64UrlEncode = (value: Buffer | string) =>
+  Buffer.from(value)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+
+const obterAccessTokenGoogleDrive = async () => {
+  if (!googleDriveHabilitado()) {
+    throw new Error("Google Drive não configurado por completo.");
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: "RS256", typ: "JWT" };
+  const claimSet = {
+    iss: GOOGLE_SERVICE_ACCOUNT_EMAIL,
+    scope: "https://www.googleapis.com/auth/drive.file",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+  };
+
+  const unsignedJwt = `${base64UrlEncode(JSON.stringify(header))}.${base64UrlEncode(JSON.stringify(claimSet))}`;
+  const signer = createSign("RSA-SHA256");
+  signer.update(unsignedJwt);
+  signer.end();
+  const signature = signer.sign(GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY);
+  const assertion = `${unsignedJwt}.${base64UrlEncode(signature)}`;
+
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Accept: "application/json",
+    },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OAuth Google ${response.status}: ${errorText}`);
+  }
+
+  const payload = (await response.json()) as { access_token?: string };
+  if (!payload.access_token) {
+    throw new Error("OAuth Google sem access token.");
+  }
+
+  return payload.access_token;
+};
+
+const enviarArquivoZipParaGoogleDrive = async (params: {
+  archivePath: string;
+  batchKey: string;
+}) => {
+  const accessToken = await obterAccessTokenGoogleDrive();
+  const fileBytes = await readFile(params.archivePath);
+  const boundary = `appeemp-${Date.now()}`;
+  const metadata = {
+    name: `${params.batchKey}.zip`,
+    parents: [GOOGLE_DRIVE_FOLDER_ID],
+  };
+  const multipartBody = Buffer.concat([
+    Buffer.from(
+      `--${boundary}\r\n`
+      + "Content-Type: application/json; charset=UTF-8\r\n\r\n"
+      + `${JSON.stringify(metadata)}\r\n`
+      + `--${boundary}\r\n`
+      + "Content-Type: application/zip\r\n\r\n"
+    ),
+    fileBytes,
+    Buffer.from(`\r\n--${boundary}--\r\n`),
+  ]);
+
+  const uploadResponse = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink,webContentLink", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": `multipart/related; boundary=${boundary}`,
+      Accept: "application/json",
+    },
+    body: multipartBody,
+  });
+
+  if (!uploadResponse.ok) {
+    const errorText = await uploadResponse.text();
+    throw new Error(`Google Drive upload ${uploadResponse.status}: ${errorText}`);
+  }
+
+  const uploaded = (await uploadResponse.json()) as {
+    id?: string;
+    name?: string;
+    webViewLink?: string;
+    webContentLink?: string;
+  };
+
+  if (!uploaded.id) {
+    throw new Error("Google Drive não retornou o ID do arquivo.");
+  }
+
+  if (GOOGLE_DRIVE_SHARE_PUBLIC) {
+    const permissionResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${uploaded.id}/permissions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        role: "reader",
+        type: "anyone",
+      }),
+    });
+
+    if (!permissionResponse.ok) {
+      const errorText = await permissionResponse.text();
+      throw new Error(`Google Drive permissão ${permissionResponse.status}: ${errorText}`);
+    }
+  }
+
+  const webViewLink = uploaded.webViewLink || `https://drive.google.com/file/d/${uploaded.id}/view`;
+  const webContentLink = uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}&export=download`;
+
+  return {
+    id: uploaded.id,
+    name: uploaded.name || `${params.batchKey}.zip`,
+    webViewLink,
+    webContentLink,
+  };
+};
+
 const executarBackupCloudinary = async (options?: {
   olderThanDays?: number;
   limit?: number;
@@ -614,6 +787,39 @@ const executarBackupCloudinary = async (options?: {
     "utf-8"
   );
 
+  const { archivePath, archiveBytes } = await compactarLoteBackupCloudinary(backupRoot, batchKey);
+  let driveUpload:
+    | {
+        ok: true;
+        id: string;
+        name: string;
+        webViewLink: string;
+        webContentLink: string;
+      }
+    | {
+        ok: false;
+        reason: string;
+      }
+    | null = null;
+
+  if (googleDriveHabilitado()) {
+    try {
+      const uploaded = await enviarArquivoZipParaGoogleDrive({
+        archivePath,
+        batchKey,
+      });
+      driveUpload = {
+        ok: true,
+        ...uploaded,
+      };
+    } catch (error: any) {
+      driveUpload = {
+        ok: false,
+        reason: error?.message || "Falha ao enviar backup para o Google Drive.",
+      };
+    }
+  }
+
   let emailSent = false;
   if (sendEmail && getEmailTransportMode() !== "none") {
     const subject = `[APPEMP] Backup Cloudinary gerado (${sucesso.length} arquivo(s))`;
@@ -621,12 +827,19 @@ const executarBackupCloudinary = async (options?: {
       "Backup Cloudinary - APPEMP",
       "",
       `Pasta: ${backupRoot}`,
+      `Arquivo compactado: ${archivePath}`,
       `Critério: pedidos com data até ${cutoffIso} (${olderThanDays} dia(s) ou mais)`,
       `Pedidos analisados: ${rows.length}`,
       `Arquivos salvos: ${sucesso.length}`,
       `Falhas: ${falhas.length}`,
       `Tamanho total: ${formatarBytes(totalBytes)}`,
-    ].join("\n");
+      `Tamanho do .zip: ${formatarBytes(archiveBytes)}`,
+      driveUpload?.ok ? `Google Drive (visualizar): ${driveUpload.webViewLink}` : null,
+      driveUpload?.ok ? `Google Drive (download): ${driveUpload.webContentLink}` : null,
+      driveUpload && !driveUpload.ok ? `Google Drive: ${driveUpload.reason}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
 
     await enviarEmailTexto({ subject, text });
     emailSent = true;
@@ -635,6 +848,10 @@ const executarBackupCloudinary = async (options?: {
   return {
     ok: true,
     backupRoot,
+    archivePath,
+    archiveBytes,
+    archiveBytesFormatted: formatarBytes(archiveBytes),
+    driveUpload,
     olderThanDays,
     cutoffDate: cutoffIso,
     rowsScanned: rows.length,
