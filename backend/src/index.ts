@@ -65,6 +65,7 @@ const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
 const SMTP_USER = process.env.SMTP_USER || "";
 const SMTP_PASS = process.env.SMTP_PASS || "";
 const SMTP_SECURE_ENV = process.env.SMTP_SECURE;
+const SMTP_TIMEOUT_MS = Number(process.env.SMTP_TIMEOUT_MS || 10000);
 
 let cloudinaryMonitorTimer: NodeJS.Timeout | null = null;
 let cloudinaryLastAlertAt = 0;
@@ -312,6 +313,9 @@ const enviarAlertaCloudinaryPorEmail = async (dados: {
     host: SMTP_HOST,
     port: SMTP_PORT,
     secure: SMTP_SECURE,
+    connectionTimeout: Math.max(SMTP_TIMEOUT_MS, 1000),
+    greetingTimeout: Math.max(SMTP_TIMEOUT_MS, 1000),
+    socketTimeout: Math.max(SMTP_TIMEOUT_MS, 1000),
     auth: {
       user: SMTP_USER,
       pass: SMTP_PASS,
@@ -336,12 +340,16 @@ const enviarAlertaCloudinaryPorEmail = async (dados: {
     .filter(Boolean)
     .join("\n");
 
-  await transporter.sendMail({
-    from: CLOUDINARY_ALERT_EMAIL_FROM,
-    to: CLOUDINARY_ALERT_EMAIL_TO,
-    subject,
-    text,
-  });
+  try {
+    await transporter.sendMail({
+      from: CLOUDINARY_ALERT_EMAIL_FROM,
+      to: CLOUDINARY_ALERT_EMAIL_TO,
+      subject,
+      text,
+    });
+  } finally {
+    transporter.close();
+  }
 };
 
 const verificarUsoCloudinary = async (options?: { manual?: boolean; forceEmail?: boolean }) => {
