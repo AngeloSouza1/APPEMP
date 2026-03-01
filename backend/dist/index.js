@@ -425,8 +425,9 @@ const baixarArquivoCloudinaryParaBackup = async (params) => {
     };
 };
 const executarBackupCloudinary = async (options) => {
-    const olderThanDays = Math.max(Number((options === null || options === void 0 ? void 0 : options.olderThanDays) || CLOUDINARY_BACKUP_MIN_AGE_DAYS), 0);
-    const limit = Math.max(Math.min(Number((options === null || options === void 0 ? void 0 : options.limit) || CLOUDINARY_BACKUP_BATCH_LIMIT), 500), 1);
+    var _a, _b;
+    const olderThanDays = Math.max(Number((_a = options === null || options === void 0 ? void 0 : options.olderThanDays) !== null && _a !== void 0 ? _a : CLOUDINARY_BACKUP_MIN_AGE_DAYS), 0);
+    const limit = Math.max(Math.min(Number((_b = options === null || options === void 0 ? void 0 : options.limit) !== null && _b !== void 0 ? _b : CLOUDINARY_BACKUP_BATCH_LIMIT), 500), 1);
     const sendEmail = (options === null || options === void 0 ? void 0 : options.sendEmail) !== false;
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
@@ -948,15 +949,15 @@ app.post("/admin/monitoramento/cloudinary/verificar", async (req, res) => {
     return res.json(resultado);
 });
 app.post("/admin/monitoramento/cloudinary/backup", async (req, res) => {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     if (((_a = req.user) === null || _a === void 0 ? void 0 : _a.perfil) !== "admin" && ((_b = req.user) === null || _b === void 0 ? void 0 : _b.perfil) !== "backoffice") {
         return res.status(403).json({ error: "Sem permissão para executar o backup." });
     }
     try {
         const resultado = await executarBackupCloudinary({
-            olderThanDays: Number(((_c = req.body) === null || _c === void 0 ? void 0 : _c.older_than_days) || CLOUDINARY_BACKUP_MIN_AGE_DAYS),
-            limit: Number(((_d = req.body) === null || _d === void 0 ? void 0 : _d.limit) || CLOUDINARY_BACKUP_BATCH_LIMIT),
-            sendEmail: ((_e = req.body) === null || _e === void 0 ? void 0 : _e.send_email) === undefined ? true : normalizarBoolean((_f = req.body) === null || _f === void 0 ? void 0 : _f.send_email),
+            olderThanDays: Number((_d = (_c = req.body) === null || _c === void 0 ? void 0 : _c.older_than_days) !== null && _d !== void 0 ? _d : CLOUDINARY_BACKUP_MIN_AGE_DAYS),
+            limit: Number((_f = (_e = req.body) === null || _e === void 0 ? void 0 : _e.limit) !== null && _f !== void 0 ? _f : CLOUDINARY_BACKUP_BATCH_LIMIT),
+            sendEmail: ((_g = req.body) === null || _g === void 0 ? void 0 : _g.send_email) === undefined ? true : normalizarBoolean((_h = req.body) === null || _h === void 0 ? void 0 : _h.send_email),
         });
         return res.json(resultado);
     }

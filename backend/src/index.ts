@@ -512,8 +512,8 @@ const executarBackupCloudinary = async (options?: {
   limit?: number;
   sendEmail?: boolean;
 }) => {
-  const olderThanDays = Math.max(Number(options?.olderThanDays || CLOUDINARY_BACKUP_MIN_AGE_DAYS), 0);
-  const limit = Math.max(Math.min(Number(options?.limit || CLOUDINARY_BACKUP_BATCH_LIMIT), 500), 1);
+  const olderThanDays = Math.max(Number(options?.olderThanDays ?? CLOUDINARY_BACKUP_MIN_AGE_DAYS), 0);
+  const limit = Math.max(Math.min(Number(options?.limit ?? CLOUDINARY_BACKUP_BATCH_LIMIT), 500), 1);
   const sendEmail = options?.sendEmail !== false;
 
   const cutoffDate = new Date();
@@ -1169,8 +1169,8 @@ app.post("/admin/monitoramento/cloudinary/backup", async (req: AuthenticatedRequ
 
   try {
     const resultado = await executarBackupCloudinary({
-      olderThanDays: Number(req.body?.older_than_days || CLOUDINARY_BACKUP_MIN_AGE_DAYS),
-      limit: Number(req.body?.limit || CLOUDINARY_BACKUP_BATCH_LIMIT),
+      olderThanDays: Number(req.body?.older_than_days ?? CLOUDINARY_BACKUP_MIN_AGE_DAYS),
+      limit: Number(req.body?.limit ?? CLOUDINARY_BACKUP_BATCH_LIMIT),
       sendEmail: req.body?.send_email === undefined ? true : normalizarBoolean(req.body?.send_email),
     });
     return res.json(resultado);
