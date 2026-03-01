@@ -454,6 +454,123 @@ const compactarLoteBackupCloudinary = async (backupRoot, batchKey) => {
 };
 const montarDownloadPathBackupCloudinary = (batchKey) => `/admin/monitoramento/cloudinary/backup/${encodeURIComponent(batchKey)}/download`;
 const montarDownloadUrlBackupCloudinary = (batchKey) => `${APP_BASE_URL}${montarDownloadPathBackupCloudinary(batchKey)}`;
+const validarBatchKeyBackupCloudinary = (value) => {
+    const batchKey = String(value || "").trim();
+    if (!batchKey || !/^[0-9TZ-]+$/.test(batchKey)) {
+        throw new Error("Lote de backup inválido.");
+    }
+    return batchKey;
+};
+const resolverArquivosLoteBackupCloudinary = (batchKey) => {
+    const backupRoot = node_path_1.default.resolve(process.cwd(), CLOUDINARY_BACKUP_DIR, batchKey);
+    const archivePath = node_path_1.default.resolve(process.cwd(), CLOUDINARY_BACKUP_DIR, `${batchKey}.zip`);
+    const manifestPath = node_path_1.default.join(backupRoot, "manifest.json");
+    return {
+        backupRoot,
+        archivePath,
+        manifestPath,
+    };
+};
+const extrairReferenciaCloudinary = (sourceUrl) => {
+    const parsedUrl = new URL(sourceUrl);
+    const pathSegments = parsedUrl.pathname.split("/").filter(Boolean);
+    if (pathSegments[0] !== CLOUDINARY_CLOUD_NAME) {
+        throw new Error("URL não pertence à conta configurada do Cloudinary.");
+    }
+    const resourceType = pathSegments[1] || "image";
+    const uploadIndex = pathSegments.findIndex((segment, index) => index >= 2 && segment === "upload");
+    if (uploadIndex === -1) {
+        throw new Error("URL do Cloudinary sem segmento upload.");
+    }
+    const publicIdSegments = pathSegments.slice(uploadIndex + 1);
+    if (publicIdSegments[0] && /^v\d+$/.test(publicIdSegments[0])) {
+        publicIdSegments.shift();
+    }
+    if (!publicIdSegments.length) {
+        throw new Error("Não foi possível identificar o public_id do Cloudinary.");
+    }
+    const lastIndex = publicIdSegments.length - 1;
+    publicIdSegments[lastIndex] = publicIdSegments[lastIndex].replace(/\.[^.]+$/, "");
+    const publicId = publicIdSegments.join("/");
+    return {
+        resourceType,
+        publicId,
+    };
+};
+const excluirArquivoCloudinary = async (params) => {
+    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
+        throw new Error("Cloudinary não configurado para exclusão.");
+    }
+    const { resourceType, publicId } = extrairReferenciaCloudinary(params.sourceUrl);
+    const auth = Buffer.from(`${CLOUDINARY_API_KEY}:${CLOUDINARY_API_SECRET}`).toString("base64");
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/destroy`, {
+        method: "POST",
+        headers: {
+            Authorization: `Basic ${auth}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+            Accept: "application/json",
+        },
+        body: new URLSearchParams({
+            public_id: publicId,
+            invalidate: "true",
+        }),
+    });
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Cloudinary destroy ${response.status}: ${errorText}`);
+    }
+    const payload = (await response.json());
+    return {
+        resourceType,
+        publicId,
+        result: payload.result || "unknown",
+    };
+};
+const executarLimpezaCloudinaryPorLote = async (batchKey) => {
+    const { manifestPath } = resolverArquivosLoteBackupCloudinary(batchKey);
+    const manifestRaw = await (0, promises_1.readFile)(manifestPath, "utf-8");
+    const manifest = JSON.parse(manifestRaw);
+    const files = Array.isArray(manifest.files) ? manifest.files : [];
+    const candidatos = files.filter((item) => (item === null || item === void 0 ? void 0 : item.sourceUrl) && !(item === null || item === void 0 ? void 0 : item.error));
+    const results = [];
+    for (const item of candidatos) {
+        try {
+            const deleted = await excluirArquivoCloudinary({
+                sourceUrl: item.sourceUrl,
+            });
+            results.push({
+                pedidoId: item.pedidoId,
+                tipo: item.tipo,
+                sourceUrl: item.sourceUrl,
+                publicId: deleted.publicId,
+                resourceType: deleted.resourceType,
+                result: deleted.result,
+            });
+        }
+        catch (error) {
+            results.push({
+                pedidoId: item.pedidoId,
+                tipo: item.tipo,
+                sourceUrl: item.sourceUrl,
+                error: (error === null || error === void 0 ? void 0 : error.message) || "Falha ao excluir arquivo do Cloudinary.",
+            });
+        }
+    }
+    const deleted = results.filter((item) => !item.error && item.result === "ok");
+    const notFound = results.filter((item) => !item.error && item.result === "not found");
+    const failed = results.filter((item) => item.error);
+    return {
+        ok: true,
+        batchKey,
+        manifestPath,
+        filesListed: files.length,
+        filesEligible: candidatos.length,
+        deletedCount: deleted.length,
+        notFoundCount: notFound.length,
+        failedCount: failed.length,
+        results,
+    };
+};
 const googleDriveHabilitado = () => Boolean(GOOGLE_DRIVE_FOLDER_ID
     && GOOGLE_SERVICE_ACCOUNT_EMAIL
     && GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY);
@@ -1150,11 +1267,8 @@ app.get("/admin/monitoramento/cloudinary/backup/:batchKey/download", async (req,
         return res.status(403).json({ error: "Sem permissão para baixar o backup." });
     }
     try {
-        const batchKey = String(req.params.batchKey || "").trim();
-        if (!batchKey || !/^[0-9TZ-]+$/.test(batchKey)) {
-            return res.status(400).json({ error: "Lote de backup inválido." });
-        }
-        const archivePath = node_path_1.default.resolve(process.cwd(), CLOUDINARY_BACKUP_DIR, `${batchKey}.zip`);
+        const batchKey = validarBatchKeyBackupCloudinary(req.params.batchKey);
+        const { archivePath } = resolverArquivosLoteBackupCloudinary(batchKey);
         const archiveStats = await (0, promises_1.stat)(archivePath);
         if (!archiveStats.isFile()) {
             return res.status(404).json({ error: "Arquivo de backup não encontrado." });
@@ -1167,6 +1281,29 @@ app.get("/admin/monitoramento/cloudinary/backup/:batchKey/download", async (req,
         }
         return res.status(400).json({
             error: (error === null || error === void 0 ? void 0 : error.message) || "Falha ao baixar o arquivo de backup.",
+        });
+    }
+});
+app.post("/admin/monitoramento/cloudinary/limpar", async (req, res) => {
+    var _a, _b, _c;
+    if (((_a = req.user) === null || _a === void 0 ? void 0 : _a.perfil) !== "admin" && ((_b = req.user) === null || _b === void 0 ? void 0 : _b.perfil) !== "backoffice") {
+        return res.status(403).json({ error: "Sem permissão para limpar arquivos do Cloudinary." });
+    }
+    try {
+        const batchKey = validarBatchKeyBackupCloudinary((_c = req.body) === null || _c === void 0 ? void 0 : _c.batch_key);
+        const resultado = await executarLimpezaCloudinaryPorLote(batchKey);
+        return res.json(resultado);
+    }
+    catch (error) {
+        if ((error === null || error === void 0 ? void 0 : error.code) === "ENOENT") {
+            return res.status(404).json({
+                ok: false,
+                reason: "Manifesto do lote de backup não encontrado.",
+            });
+        }
+        return res.status(400).json({
+            ok: false,
+            reason: (error === null || error === void 0 ? void 0 : error.message) || "Falha ao limpar arquivos do Cloudinary.",
         });
     }
 });
