@@ -261,6 +261,29 @@ const cloudinaryMonitoramentoHabilitado = () =>
     && SMTP_PASS
   );
 
+const smtpHabilitado = () =>
+  Boolean(
+    CLOUDINARY_ALERT_EMAIL_TO
+    && CLOUDINARY_ALERT_EMAIL_FROM
+    && SMTP_HOST
+    && SMTP_USER
+    && SMTP_PASS
+  );
+
+const criarTransporterSmtp = () =>
+  nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE,
+    connectionTimeout: Math.max(SMTP_TIMEOUT_MS, 1000),
+    greetingTimeout: Math.max(SMTP_TIMEOUT_MS, 1000),
+    socketTimeout: Math.max(SMTP_TIMEOUT_MS, 1000),
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASS,
+    },
+  });
+
 const buscarUsoCloudinary = async () => {
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
     throw new Error("Cloudinary não configurado para monitoramento.");
@@ -309,18 +332,7 @@ const enviarAlertaCloudinaryPorEmail = async (dados: {
   plan: string;
   lastUpdated: string | null;
 }) => {
-  const transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: SMTP_PORT,
-    secure: SMTP_SECURE,
-    connectionTimeout: Math.max(SMTP_TIMEOUT_MS, 1000),
-    greetingTimeout: Math.max(SMTP_TIMEOUT_MS, 1000),
-    socketTimeout: Math.max(SMTP_TIMEOUT_MS, 1000),
-    auth: {
-      user: SMTP_USER,
-      pass: SMTP_PASS,
-    },
-  });
+  const transporter = criarTransporterSmtp();
 
   const usagePercentLabel = dados.usagePercent.toFixed(2);
   const subject = `[APPEMP] Alerta de armazenamento Cloudinary (${usagePercentLabel}%)`;
@@ -339,6 +351,35 @@ const enviarAlertaCloudinaryPorEmail = async (dados: {
   ]
     .filter(Boolean)
     .join("\n");
+
+  try {
+    await transporter.sendMail({
+      from: CLOUDINARY_ALERT_EMAIL_FROM,
+      to: CLOUDINARY_ALERT_EMAIL_TO,
+      subject,
+      text,
+    });
+  } finally {
+    transporter.close();
+  }
+};
+
+const enviarEmailTesteSmtp = async () => {
+  if (!smtpHabilitado()) {
+    throw new Error("SMTP não configurado por completo.");
+  }
+
+  const transporter = criarTransporterSmtp();
+  const subject = "[APPEMP] Teste de SMTP";
+  const text = [
+    "Teste de envio SMTP - APPEMP",
+    "",
+    `Host: ${SMTP_HOST}:${SMTP_PORT}`,
+    `Usuário: ${SMTP_USER}`,
+    `Data: ${new Date().toISOString()}`,
+    "",
+    "Se este e-mail chegou, o SMTP está funcionando.",
+  ].join("\n");
 
   try {
     await transporter.sendMail({
@@ -865,6 +906,33 @@ app.post("/admin/monitoramento/cloudinary/verificar", async (req: AuthenticatedR
   }
 
   return res.json(resultado);
+});
+
+app.post("/admin/monitoramento/email/testar", async (req: AuthenticatedRequest, res) => {
+  if (req.user?.perfil !== "admin" && req.user?.perfil !== "backoffice") {
+    return res.status(403).json({ error: "Sem permissão para testar o SMTP." });
+  }
+
+  try {
+    await enviarEmailTesteSmtp();
+    return res.json({
+      ok: true,
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_SECURE,
+      to: CLOUDINARY_ALERT_EMAIL_TO,
+      from: CLOUDINARY_ALERT_EMAIL_FROM,
+      message: "E-mail de teste enviado com sucesso.",
+    });
+  } catch (error: any) {
+    return res.status(400).json({
+      ok: false,
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_SECURE,
+      reason: error?.message || "Falha ao enviar e-mail de teste.",
+    });
+  }
 });
 
 // --------- USUARIOS ----------
