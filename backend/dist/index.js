@@ -40,6 +40,7 @@ app.use((0, cors_1.default)({
 }));
 app.use(express_1.default.json());
 const PORT = process.env.PORT || 3000;
+const APP_BASE_URL = (process.env.APP_BASE_URL || "https://appemp.onrender.com").replace(/\/+$/, "");
 const STATUS_PERMITIDOS = ["EM_ESPERA", "CONFERIR", "EFETIVADO", "CANCELADO"];
 const PERFIS_PERMITIDOS = ["admin", "backoffice", "vendedor", "motorista"];
 const AUTH_USER = process.env.AUTH_USER || "admin";
@@ -451,6 +452,8 @@ const compactarLoteBackupCloudinary = async (backupRoot, batchKey) => {
         archiveBytes: archiveStats.size,
     };
 };
+const montarDownloadPathBackupCloudinary = (batchKey) => `/admin/monitoramento/cloudinary/backup/${encodeURIComponent(batchKey)}/download`;
+const montarDownloadUrlBackupCloudinary = (batchKey) => `${APP_BASE_URL}${montarDownloadPathBackupCloudinary(batchKey)}`;
 const googleDriveHabilitado = () => Boolean(GOOGLE_DRIVE_FOLDER_ID
     && GOOGLE_SERVICE_ACCOUNT_EMAIL
     && GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY);
@@ -635,6 +638,8 @@ const executarBackupCloudinary = async (options) => {
     };
     await (0, promises_1.writeFile)(node_path_1.default.join(backupRoot, "manifest.json"), JSON.stringify(manifest, null, 2), "utf-8");
     const { archivePath, archiveBytes } = await compactarLoteBackupCloudinary(backupRoot, batchKey);
+    const downloadPath = montarDownloadPathBackupCloudinary(batchKey);
+    const downloadUrl = montarDownloadUrlBackupCloudinary(batchKey);
     let driveUpload = null;
     if (googleDriveHabilitado()) {
         try {
@@ -662,6 +667,7 @@ const executarBackupCloudinary = async (options) => {
             "",
             `Pasta: ${backupRoot}`,
             `Arquivo compactado: ${archivePath}`,
+            `Download pela API: ${downloadUrl}`,
             `Critério: pedidos com data até ${cutoffIso} (${olderThanDays} dia(s) ou mais)`,
             `Pedidos analisados: ${rows.length}`,
             `Arquivos salvos: ${sucesso.length}`,
@@ -680,9 +686,12 @@ const executarBackupCloudinary = async (options) => {
     return {
         ok: true,
         backupRoot,
+        batchKey,
         archivePath,
         archiveBytes,
         archiveBytesFormatted: formatarBytes(archiveBytes),
+        downloadPath,
+        downloadUrl,
         driveUpload,
         olderThanDays,
         cutoffDate: cutoffIso,
@@ -1132,6 +1141,32 @@ app.post("/admin/monitoramento/cloudinary/backup", async (req, res) => {
         return res.status(400).json({
             ok: false,
             reason: (error === null || error === void 0 ? void 0 : error.message) || "Falha ao executar o backup do Cloudinary.",
+        });
+    }
+});
+app.get("/admin/monitoramento/cloudinary/backup/:batchKey/download", async (req, res) => {
+    var _a, _b;
+    if (((_a = req.user) === null || _a === void 0 ? void 0 : _a.perfil) !== "admin" && ((_b = req.user) === null || _b === void 0 ? void 0 : _b.perfil) !== "backoffice") {
+        return res.status(403).json({ error: "Sem permissão para baixar o backup." });
+    }
+    try {
+        const batchKey = String(req.params.batchKey || "").trim();
+        if (!batchKey || !/^[0-9TZ-]+$/.test(batchKey)) {
+            return res.status(400).json({ error: "Lote de backup inválido." });
+        }
+        const archivePath = node_path_1.default.resolve(process.cwd(), CLOUDINARY_BACKUP_DIR, `${batchKey}.zip`);
+        const archiveStats = await (0, promises_1.stat)(archivePath);
+        if (!archiveStats.isFile()) {
+            return res.status(404).json({ error: "Arquivo de backup não encontrado." });
+        }
+        return res.download(archivePath, `${batchKey}.zip`);
+    }
+    catch (error) {
+        if ((error === null || error === void 0 ? void 0 : error.code) === "ENOENT") {
+            return res.status(404).json({ error: "Arquivo de backup não encontrado." });
+        }
+        return res.status(400).json({
+            error: (error === null || error === void 0 ? void 0 : error.message) || "Falha ao baixar o arquivo de backup.",
         });
     }
 });
