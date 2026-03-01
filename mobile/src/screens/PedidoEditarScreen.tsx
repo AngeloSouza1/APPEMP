@@ -341,92 +341,98 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
   };
 
   const selecionarImagemNf = () => {
-    Alert.alert('Arquivo da NF', 'Escolha a origem do arquivo.', [
+    const selecionarImagem = () => {
+      Alert.alert('Imagem da NF', 'Escolha a origem da imagem.', [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Galeria',
+          onPress: async () => {
+            const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!permissao.granted) {
+              Alert.alert(
+                'Permissão negada',
+                permissao.canAskAgain
+                  ? 'Permita acesso à galeria para selecionar a imagem da NF.'
+                  : 'Acesso à galeria bloqueado. Libere nas configurações do app.'
+              );
+              return;
+            }
+            try {
+              const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                quality: 0.7,
+                base64: true,
+              });
+              if (result.canceled || !result.assets?.length) {
+                Alert.alert('Seleção cancelada', 'Nenhuma imagem foi selecionada.');
+                return;
+              }
+              await enviarNf(result.assets[0] as any);
+            } catch (error: any) {
+              Alert.alert('Erro', error?.message || 'Não foi possível enviar o arquivo da NF.');
+            }
+          },
+        },
+        {
+          text: 'Câmera',
+          onPress: async () => {
+            const permissao = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permissao.granted) {
+              Alert.alert(
+                'Permissão negada',
+                permissao.canAskAgain
+                  ? 'Permita acesso à câmera para capturar a imagem da NF.'
+                  : 'Acesso à câmera bloqueado. Libere nas configurações do app.'
+              );
+              return;
+            }
+            try {
+              const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                quality: 0.7,
+                base64: true,
+              });
+              if (result.canceled || !result.assets?.length) {
+                Alert.alert('Captura cancelada', 'Nenhuma imagem foi capturada.');
+                return;
+              }
+              await enviarNf(result.assets[0] as any);
+            } catch (error: any) {
+              Alert.alert('Erro', error?.message || 'Não foi possível enviar o arquivo da NF.');
+            }
+          },
+        },
+      ]);
+    };
+
+    const selecionarPdf = async () => {
+      try {
+        const result = await DocumentPicker.getDocumentAsync({
+          type: 'application/pdf',
+          multiple: false,
+          copyToCacheDirectory: true,
+        });
+        if (result.canceled || !result.assets?.length) {
+          Alert.alert('Seleção cancelada', 'Nenhum PDF foi selecionado.');
+          return;
+        }
+        const doc = result.assets[0];
+        await enviarNf({
+          uri: doc.uri,
+          mimeType: doc.mimeType || 'application/pdf',
+          fileName: doc.name,
+        });
+      } catch (error: any) {
+        Alert.alert('Erro', error?.message || 'Não foi possível enviar o PDF da NF.');
+      }
+    };
+
+    Alert.alert('Arquivo da NF', 'Escolha o tipo do arquivo.', [
       { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Galeria',
-        onPress: async () => {
-          const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
-          if (!permissao.granted) {
-            Alert.alert(
-              'Permissão negada',
-              permissao.canAskAgain
-                ? 'Permita acesso à galeria para selecionar a imagem da NF.'
-                : 'Acesso à galeria bloqueado. Libere nas configurações do app.'
-            );
-            return;
-          }
-          try {
-            const result = await ImagePicker.launchImageLibraryAsync({
-              mediaTypes: ImagePicker.MediaTypeOptions.Images,
-              allowsEditing: true,
-              quality: 0.7,
-              base64: true,
-            });
-            if (result.canceled || !result.assets?.length) {
-              Alert.alert('Seleção cancelada', 'Nenhuma imagem foi selecionada.');
-              return;
-            }
-            await enviarNf(result.assets[0] as any);
-          } catch (error: any) {
-            Alert.alert('Erro', error?.message || 'Não foi possível enviar o arquivo da NF.');
-          }
-        },
-      },
-      {
-        text: 'Câmera',
-        onPress: async () => {
-          const permissao = await ImagePicker.requestCameraPermissionsAsync();
-          if (!permissao.granted) {
-            Alert.alert(
-              'Permissão negada',
-              permissao.canAskAgain
-                ? 'Permita acesso à câmera para capturar a imagem da NF.'
-                : 'Acesso à câmera bloqueado. Libere nas configurações do app.'
-            );
-            return;
-          }
-          try {
-            const result = await ImagePicker.launchCameraAsync({
-              mediaTypes: ImagePicker.MediaTypeOptions.Images,
-              allowsEditing: true,
-              quality: 0.7,
-              base64: true,
-            });
-            if (result.canceled || !result.assets?.length) {
-              Alert.alert('Captura cancelada', 'Nenhuma imagem foi capturada.');
-              return;
-            }
-            await enviarNf(result.assets[0] as any);
-          } catch (error: any) {
-            Alert.alert('Erro', error?.message || 'Não foi possível enviar o arquivo da NF.');
-          }
-        },
-      },
-      {
-        text: 'PDF',
-        onPress: async () => {
-          try {
-            const result = await DocumentPicker.getDocumentAsync({
-              type: 'application/pdf',
-              multiple: false,
-              copyToCacheDirectory: true,
-            });
-            if (result.canceled || !result.assets?.length) {
-              Alert.alert('Seleção cancelada', 'Nenhum PDF foi selecionado.');
-              return;
-            }
-            const doc = result.assets[0];
-            await enviarNf({
-              uri: doc.uri,
-              mimeType: doc.mimeType || 'application/pdf',
-              fileName: doc.name,
-            });
-          } catch (error: any) {
-            Alert.alert('Erro', error?.message || 'Não foi possível enviar o PDF da NF.');
-          }
-        },
-      },
+      { text: 'Imagem', onPress: selecionarImagem },
+      { text: 'PDF', onPress: () => void selecionarPdf() },
     ]);
   };
 
