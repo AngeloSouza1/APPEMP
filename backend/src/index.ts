@@ -60,6 +60,7 @@ const CLOUDINARY_MONITOR_INTERVAL_MINUTES = Number(process.env.CLOUDINARY_MONITO
 const CLOUDINARY_ALERT_COOLDOWN_MINUTES = Number(process.env.CLOUDINARY_ALERT_COOLDOWN_MINUTES || 1440);
 const CLOUDINARY_ALERT_EMAIL_TO = process.env.CLOUDINARY_ALERT_EMAIL_TO || "";
 const CLOUDINARY_ALERT_EMAIL_FROM = process.env.CLOUDINARY_ALERT_EMAIL_FROM || process.env.SMTP_USER || "";
+const BREVO_API_KEY = process.env.BREVO_API_KEY || "";
 const SMTP_HOST = process.env.SMTP_HOST || "";
 const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
 const SMTP_USER = process.env.SMTP_USER || "";
@@ -256,9 +257,7 @@ const cloudinaryMonitoramentoHabilitado = () =>
     && CLOUDINARY_API_SECRET
     && CLOUDINARY_ALERT_EMAIL_TO
     && CLOUDINARY_ALERT_EMAIL_FROM
-    && SMTP_HOST
-    && SMTP_USER
-    && SMTP_PASS
+    && (BREVO_API_KEY || (SMTP_HOST && SMTP_USER && SMTP_PASS))
   );
 
 const smtpHabilitado = () =>
@@ -269,6 +268,19 @@ const smtpHabilitado = () =>
     && SMTP_USER
     && SMTP_PASS
   );
+
+const brevoApiHabilitada = () =>
+  Boolean(
+    BREVO_API_KEY
+    && CLOUDINARY_ALERT_EMAIL_TO
+    && CLOUDINARY_ALERT_EMAIL_FROM
+  );
+
+const getEmailTransportMode = (): "brevo-api" | "smtp" | "none" => {
+  if (brevoApiHabilitada()) return "brevo-api";
+  if (smtpHabilitado()) return "smtp";
+  return "none";
+};
 
 const criarTransporterSmtp = () =>
   nodemailer.createTransport({
@@ -283,6 +295,38 @@ const criarTransporterSmtp = () =>
       pass: SMTP_PASS,
     },
   });
+
+const enviarEmailViaBrevoApi = async (params: { subject: string; text: string }) => {
+  if (!brevoApiHabilitada()) {
+    throw new Error("Brevo API não configurada por completo.");
+  }
+
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "api-key": BREVO_API_KEY,
+    },
+    body: JSON.stringify({
+      sender: {
+        email: CLOUDINARY_ALERT_EMAIL_FROM,
+      },
+      to: [
+        {
+          email: CLOUDINARY_ALERT_EMAIL_TO,
+        },
+      ],
+      subject: params.subject,
+      textContent: params.text,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Brevo API ${response.status}: ${errorText}`);
+  }
+};
 
 const buscarUsoCloudinary = async () => {
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
@@ -332,8 +376,6 @@ const enviarAlertaCloudinaryPorEmail = async (dados: {
   plan: string;
   lastUpdated: string | null;
 }) => {
-  const transporter = criarTransporterSmtp();
-
   const usagePercentLabel = dados.usagePercent.toFixed(2);
   const subject = `[APPEMP] Alerta de armazenamento Cloudinary (${usagePercentLabel}%)`;
   const text = [
@@ -352,6 +394,12 @@ const enviarAlertaCloudinaryPorEmail = async (dados: {
     .filter(Boolean)
     .join("\n");
 
+  if (brevoApiHabilitada()) {
+    await enviarEmailViaBrevoApi({ subject, text });
+    return;
+  }
+
+  const transporter = criarTransporterSmtp();
   try {
     await transporter.sendMail({
       from: CLOUDINARY_ALERT_EMAIL_FROM,
@@ -365,22 +413,32 @@ const enviarAlertaCloudinaryPorEmail = async (dados: {
 };
 
 const enviarEmailTesteSmtp = async () => {
-  if (!smtpHabilitado()) {
-    throw new Error("SMTP não configurado por completo.");
+  const mode = getEmailTransportMode();
+  if (mode === "none") {
+    throw new Error("E-mail não configurado por completo.");
+  }
+
+  const subject = mode === "brevo-api" ? "[APPEMP] Teste de e-mail (Brevo API)" : "[APPEMP] Teste de SMTP";
+  const text = [
+    mode === "brevo-api" ? "Teste de envio via Brevo API - APPEMP" : "Teste de envio SMTP - APPEMP",
+    "",
+    mode === "brevo-api" ? "Transporte: Brevo API" : `Host: ${SMTP_HOST}:${SMTP_PORT}`,
+    mode === "brevo-api" ? null : `Usuário: ${SMTP_USER}`,
+    `Data: ${new Date().toISOString()}`,
+    "",
+    mode === "brevo-api"
+      ? "Se este e-mail chegou, a API da Brevo está funcionando."
+      : "Se este e-mail chegou, o SMTP está funcionando.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  if (mode === "brevo-api") {
+    await enviarEmailViaBrevoApi({ subject, text });
+    return;
   }
 
   const transporter = criarTransporterSmtp();
-  const subject = "[APPEMP] Teste de SMTP";
-  const text = [
-    "Teste de envio SMTP - APPEMP",
-    "",
-    `Host: ${SMTP_HOST}:${SMTP_PORT}`,
-    `Usuário: ${SMTP_USER}`,
-    `Data: ${new Date().toISOString()}`,
-    "",
-    "Se este e-mail chegou, o SMTP está funcionando.",
-  ].join("\n");
-
   try {
     await transporter.sendMail({
       from: CLOUDINARY_ALERT_EMAIL_FROM,
@@ -917,6 +975,7 @@ app.post("/admin/monitoramento/email/testar", async (req: AuthenticatedRequest, 
     await enviarEmailTesteSmtp();
     return res.json({
       ok: true,
+      mode: getEmailTransportMode(),
       host: SMTP_HOST,
       port: SMTP_PORT,
       secure: SMTP_SECURE,
@@ -927,6 +986,7 @@ app.post("/admin/monitoramento/email/testar", async (req: AuthenticatedRequest, 
   } catch (error: any) {
     return res.status(400).json({
       ok: false,
+      mode: getEmailTransportMode(),
       host: SMTP_HOST,
       port: SMTP_PORT,
       secure: SMTP_SECURE,
