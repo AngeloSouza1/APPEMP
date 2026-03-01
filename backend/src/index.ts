@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import jwt, { JwtPayload, SignOptions } from "jsonwebtoken";
+import nodemailer from "nodemailer";
 import { pool } from "./db";
 
 dotenv.config();
@@ -47,6 +48,26 @@ const JWT_SECRET = process.env.JWT_SECRET || "appemp-dev-secret-change-me";
 const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || "8h") as SignOptions["expiresIn"];
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 const EXPO_PUSH_ACCESS_TOKEN = process.env.EXPO_PUSH_ACCESS_TOKEN || "";
+const CLOUDINARY_CLOUD_NAME =
+  process.env.CLOUDINARY_CLOUD_NAME
+  || process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME
+  || "";
+const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || "";
+const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || "";
+const CLOUDINARY_STORAGE_LIMIT_BYTES = Number(process.env.CLOUDINARY_STORAGE_LIMIT_BYTES || 1024 * 1024 * 1024);
+const CLOUDINARY_ALERT_THRESHOLD_PERCENT = Number(process.env.CLOUDINARY_ALERT_THRESHOLD_PERCENT || 80);
+const CLOUDINARY_MONITOR_INTERVAL_MINUTES = Number(process.env.CLOUDINARY_MONITOR_INTERVAL_MINUTES || 360);
+const CLOUDINARY_ALERT_COOLDOWN_MINUTES = Number(process.env.CLOUDINARY_ALERT_COOLDOWN_MINUTES || 1440);
+const CLOUDINARY_ALERT_EMAIL_TO = process.env.CLOUDINARY_ALERT_EMAIL_TO || "";
+const CLOUDINARY_ALERT_EMAIL_FROM = process.env.CLOUDINARY_ALERT_EMAIL_FROM || process.env.SMTP_USER || "";
+const SMTP_HOST = process.env.SMTP_HOST || "";
+const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
+const SMTP_USER = process.env.SMTP_USER || "";
+const SMTP_PASS = process.env.SMTP_PASS || "";
+const SMTP_SECURE_ENV = process.env.SMTP_SECURE;
+
+let cloudinaryMonitorTimer: NodeJS.Timeout | null = null;
+let cloudinaryLastAlertAt = 0;
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -100,6 +121,8 @@ const normalizarBoolean = (valor: unknown): boolean => {
   return false;
 };
 
+const SMTP_SECURE = normalizarBoolean(SMTP_SECURE_ENV) || SMTP_PORT === 465;
+
 const normalizarExpoPushToken = (valor: unknown): string | null => {
   const token = String(valor ?? "").trim();
   if (!token) return null;
@@ -107,6 +130,18 @@ const normalizarExpoPushToken = (valor: unknown): string | null => {
     return token;
   }
   return null;
+};
+
+const formatarBytes = (bytes: number) => {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  const unidades = ["B", "KB", "MB", "GB", "TB"];
+  let valor = bytes;
+  let indice = 0;
+  while (valor >= 1024 && indice < unidades.length - 1) {
+    valor /= 1024;
+    indice += 1;
+  }
+  return `${valor >= 100 ? valor.toFixed(0) : valor.toFixed(2)} ${unidades[indice]}`;
 };
 
 const escapeHtml = (valor: unknown) =>
@@ -211,6 +246,174 @@ const enviarPushPedidos = async (params: { titulo: string; corpo: string; data?:
   } catch (error) {
     console.error("Erro ao enviar push de pedidos:", error);
   }
+};
+
+const cloudinaryMonitoramentoHabilitado = () =>
+  Boolean(
+    CLOUDINARY_CLOUD_NAME
+    && CLOUDINARY_API_KEY
+    && CLOUDINARY_API_SECRET
+    && CLOUDINARY_ALERT_EMAIL_TO
+    && CLOUDINARY_ALERT_EMAIL_FROM
+    && SMTP_HOST
+    && SMTP_USER
+    && SMTP_PASS
+  );
+
+const buscarUsoCloudinary = async () => {
+  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
+    throw new Error("Cloudinary não configurado para monitoramento.");
+  }
+
+  const auth = Buffer.from(`${CLOUDINARY_API_KEY}:${CLOUDINARY_API_SECRET}`).toString("base64");
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/usage`, {
+    method: "GET",
+    headers: {
+      Authorization: `Basic ${auth}`,
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Falha ao consultar Cloudinary (${response.status}): ${errorText}`);
+  }
+
+  const payload = (await response.json()) as {
+    storage?: { usage?: number; limit?: number };
+    resources?: number;
+    plan?: string;
+    last_updated?: string;
+  };
+
+  const usageBytes = Number(payload.storage?.usage || 0);
+  const limitBytes = Number(payload.storage?.limit || CLOUDINARY_STORAGE_LIMIT_BYTES);
+  const usagePercent = limitBytes > 0 ? (usageBytes / limitBytes) * 100 : 0;
+
+  return {
+    usageBytes,
+    limitBytes,
+    usagePercent,
+    resources: Number(payload.resources || 0),
+    plan: payload.plan || "N/A",
+    lastUpdated: payload.last_updated || null,
+  };
+};
+
+const enviarAlertaCloudinaryPorEmail = async (dados: {
+  usageBytes: number;
+  limitBytes: number;
+  usagePercent: number;
+  resources: number;
+  plan: string;
+  lastUpdated: string | null;
+}) => {
+  const transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE,
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASS,
+    },
+  });
+
+  const usagePercentLabel = dados.usagePercent.toFixed(2);
+  const subject = `[APPEMP] Alerta de armazenamento Cloudinary (${usagePercentLabel}%)`;
+  const text = [
+    "Monitoramento Cloudinary - APPEMP",
+    "",
+    `Conta: ${CLOUDINARY_CLOUD_NAME}`,
+    `Plano: ${dados.plan}`,
+    `Uso atual: ${formatarBytes(dados.usageBytes)} (${usagePercentLabel}%)`,
+    `Limite: ${formatarBytes(dados.limitBytes)}`,
+    `Recursos: ${dados.resources}`,
+    dados.lastUpdated ? `Atualizado em: ${dados.lastUpdated}` : null,
+    "",
+    `Limite de alerta configurado: ${CLOUDINARY_ALERT_THRESHOLD_PERCENT}%`,
+    "Ação sugerida: preparar backup/arquivamento antes de atingir o limite total.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  await transporter.sendMail({
+    from: CLOUDINARY_ALERT_EMAIL_FROM,
+    to: CLOUDINARY_ALERT_EMAIL_TO,
+    subject,
+    text,
+  });
+};
+
+const verificarUsoCloudinary = async (options?: { manual?: boolean; forceEmail?: boolean }) => {
+  const manual = options?.manual === true;
+  const forceEmail = options?.forceEmail === true;
+
+  if (!cloudinaryMonitoramentoHabilitado()) {
+    return {
+      ok: false,
+      enabled: false,
+      reason: "Monitoramento do Cloudinary não configurado por completo.",
+    };
+  }
+
+  try {
+    const dados = await buscarUsoCloudinary();
+    const acimaDoLimite = dados.usagePercent >= CLOUDINARY_ALERT_THRESHOLD_PERCENT;
+    const cooldownMs = Math.max(CLOUDINARY_ALERT_COOLDOWN_MINUTES, 1) * 60 * 1000;
+    const emCooldown = Date.now() - cloudinaryLastAlertAt < cooldownMs;
+    const deveEnviarEmail = forceEmail || (acimaDoLimite && !emCooldown);
+
+    if (deveEnviarEmail) {
+      await enviarAlertaCloudinaryPorEmail(dados);
+      cloudinaryLastAlertAt = Date.now();
+    }
+
+    if (manual || acimaDoLimite) {
+      console.log(
+        `[Cloudinary] uso ${dados.usagePercent.toFixed(2)}% (${formatarBytes(dados.usageBytes)} de ${formatarBytes(dados.limitBytes)})`
+      );
+    }
+
+    return {
+      ok: true,
+      enabled: true,
+      alertSent: deveEnviarEmail,
+      aboveThreshold: acimaDoLimite,
+      cooldownActive: emCooldown && !forceEmail,
+      ...dados,
+    };
+  } catch (error: any) {
+    console.error("Erro no monitoramento do Cloudinary:", error);
+    return {
+      ok: false,
+      enabled: true,
+      reason: error?.message || "Erro ao verificar uso do Cloudinary.",
+    };
+  }
+};
+
+const iniciarMonitoramentoCloudinary = () => {
+  if (!cloudinaryMonitoramentoHabilitado()) {
+    console.log("[Cloudinary] Monitoramento desabilitado: faltam variáveis de ambiente.");
+    return;
+  }
+
+  const intervaloMs = Math.max(CLOUDINARY_MONITOR_INTERVAL_MINUTES, 5) * 60 * 1000;
+  if (cloudinaryMonitorTimer) {
+    clearInterval(cloudinaryMonitorTimer);
+  }
+
+  setTimeout(() => {
+    void verificarUsoCloudinary();
+  }, 10_000);
+
+  cloudinaryMonitorTimer = setInterval(() => {
+    void verificarUsoCloudinary();
+  }, intervaloMs);
+
+  console.log(
+    `[Cloudinary] Monitoramento ativo a cada ${Math.max(CLOUDINARY_MONITOR_INTERVAL_MINUTES, 5)} minuto(s).`
+  );
 };
 
 const gerarToken = (user: AuthenticatedRequest["user"]) => {
@@ -638,6 +841,23 @@ app.get(["/compartilhar/pedido/:id", "/pedido/:id"], async (req, res) => {
 });
 
 app.use(autenticarToken);
+
+app.post("/admin/monitoramento/cloudinary/verificar", async (req: AuthenticatedRequest, res) => {
+  if (req.user?.perfil !== "admin" && req.user?.perfil !== "backoffice") {
+    return res.status(403).json({ error: "Sem permissão para verificar o monitoramento." });
+  }
+
+  const resultado = await verificarUsoCloudinary({
+    manual: true,
+    forceEmail: normalizarBoolean(req.body?.force_email),
+  });
+
+  if (!resultado.ok) {
+    return res.status(400).json(resultado);
+  }
+
+  return res.json(resultado);
+});
 
 // --------- USUARIOS ----------
 
@@ -3176,6 +3396,7 @@ const startServer = async () => {
     await ensureDefaultAdminUser();
     app.listen(PORT, () => {
       console.log(`APPEMP backend ouvindo na porta ${PORT}`);
+      iniciarMonitoramentoCloudinary();
     });
   } catch (error) {
     console.error("Falha ao inicializar backend:", error);
