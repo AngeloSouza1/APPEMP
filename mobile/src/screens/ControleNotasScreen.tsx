@@ -507,7 +507,11 @@ export default function ControleNotasScreen() {
                     }
                   }}
                 >
-                  <Text style={styles.pdfButtonText}>NF em PDF • Abrir arquivo</Text>
+                  <View style={styles.pdfBadge}>
+                    <Text style={styles.pdfBadgeText}>PDF</Text>
+                  </View>
+                  <Text style={styles.pdfButtonText}>Nota fiscal em PDF</Text>
+                  <Text style={styles.pdfButtonHint}>Toque para abrir o arquivo</Text>
                 </Pressable>
               ) : (
                 <Pressable
@@ -1077,12 +1081,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#eff6ff',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
+    gap: 6,
+  },
+  pdfBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: '#dbeafe',
+    borderWidth: 1,
+    borderColor: '#93c5fd',
+  },
+  pdfBadgeText: {
+    color: '#1d4ed8',
+    fontSize: 11,
+    fontWeight: '800',
   },
   pdfButtonText: {
     color: '#1e3a8a',
     fontSize: 13,
     fontWeight: '700',
+  },
+  pdfButtonHint: {
+    color: '#475569',
+    fontSize: 12,
+    fontWeight: '600',
   },
   emptyNf: {
     borderWidth: 1,

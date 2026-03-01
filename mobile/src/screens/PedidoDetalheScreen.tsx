@@ -378,7 +378,11 @@ export default function PedidoDetalheScreen({ route, navigation }: Props) {
                       }
                     }}
                   >
-                    <Text style={styles.nfPdfButtonText}>NF em PDF • Abrir arquivo</Text>
+                    <View style={styles.nfPdfBadge}>
+                      <Text style={styles.nfPdfBadgeText}>PDF</Text>
+                    </View>
+                    <Text style={styles.nfPdfButtonText}>Nota fiscal em PDF</Text>
+                    <Text style={styles.nfPdfButtonHint}>Toque para abrir o arquivo</Text>
                   </Pressable>
                 ) : (
                   <>
@@ -856,14 +860,33 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#bfdbfe',
     backgroundColor: '#eff6ff',
-    paddingVertical: 12,
+    paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
+  },
+  nfPdfBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: '#dbeafe',
+    borderWidth: 1,
+    borderColor: '#93c5fd',
+  },
+  nfPdfBadgeText: {
+    color: '#1d4ed8',
+    fontSize: 11.5,
+    fontWeight: '800',
   },
   nfPdfButtonText: {
     color: '#1e3a8a',
     fontSize: 13.86,
     fontWeight: '700',
+  },
+  nfPdfButtonHint: {
+    color: '#475569',
+    fontSize: 12.4,
+    fontWeight: '600',
   },
   nfNumberText: {
     color: '#0f172a',
