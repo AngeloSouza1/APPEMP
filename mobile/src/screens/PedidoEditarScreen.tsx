@@ -27,7 +27,7 @@ import { Pedido } from '../types/pedidos';
 import { formatarMoeda } from '../utils/format';
 import { pushAppNotification } from '../utils/appNotifications';
 import { marcarRelatoriosComoDesatualizados } from '../utils/relatoriosRefresh';
-import { getAttachmentOpenUrl, isPdfAttachment } from '../utils/nfAttachment';
+import { openPdfAttachment, isPdfAttachment } from '../utils/nfAttachment';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PedidoEditar'>;
 
@@ -646,7 +646,16 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
               {nfImagemUrl ? (
                 <View style={styles.nfPreviewCard}>
                   {nfEhPdf ? (
-                    <Pressable style={styles.nfPdfButton} onPress={() => Linking.openURL(getAttachmentOpenUrl(nfImagemUrl))}>
+                    <Pressable
+                      style={styles.nfPdfButton}
+                      onPress={async () => {
+                        try {
+                          await openPdfAttachment(nfImagemUrl, `pedido-${pedido?.id || 'edicao'}-nf`);
+                        } catch (error: any) {
+                          Alert.alert('PDF da NF', error?.message || 'Não foi possível abrir o PDF da NF.');
+                        }
+                      }}
+                    >
                       <Text style={styles.nfPdfButtonText}>NF em PDF • Abrir arquivo</Text>
                     </Pressable>
                   ) : (

@@ -1,3 +1,6 @@
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+
 export const isPdfAttachment = (url?: string | null) => {
   if (!url) return false;
   const normalized = String(url).toLowerCase();
@@ -15,4 +18,38 @@ export const getAttachmentOpenUrl = (url?: string | null) => {
   }
 
   return normalized;
+};
+
+export const openPdfAttachment = async (url?: string | null, fileLabel = 'nf') => {
+  const resolvedUrl = getAttachmentOpenUrl(url);
+  if (!resolvedUrl) {
+    throw new Error('Arquivo PDF não informado.');
+  }
+
+  const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+  if (!cacheDir) {
+    throw new Error('Não foi possível preparar o armazenamento temporário do PDF.');
+  }
+
+  const safeLabel = String(fileLabel)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'nf';
+  const localUri = `${cacheDir}${safeLabel}-${Date.now()}.pdf`;
+
+  const result = await FileSystem.downloadAsync(resolvedUrl, localUri);
+  if (!result?.uri) {
+    throw new Error('Não foi possível baixar o PDF.');
+  }
+
+  const canShare = await Sharing.isAvailableAsync();
+  if (!canShare) {
+    throw new Error('Nenhum visualizador compatível com PDF está disponível neste aparelho.');
+  }
+
+  await Sharing.shareAsync(result.uri, {
+    mimeType: 'application/pdf',
+    dialogTitle: 'Abrir PDF da NF',
+    UTI: 'com.adobe.pdf',
+  });
 };

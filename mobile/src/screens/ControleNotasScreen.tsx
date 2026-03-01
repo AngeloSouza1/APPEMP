@@ -25,7 +25,7 @@ import { API_URL } from '../config/env';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { Pedido } from '../types/pedidos';
 import { formatarData, formatarMoeda } from '../utils/format';
-import { getAttachmentOpenUrl, isPdfAttachment } from '../utils/nfAttachment';
+import { openPdfAttachment, isPdfAttachment } from '../utils/nfAttachment';
 
 const STATUS_LABEL: Record<string, string> = {
   EM_ESPERA: 'Em espera',
@@ -497,7 +497,16 @@ export default function ControleNotasScreen() {
           <>
             {item.nf_imagem_url ? (
               isPdfAttachment(item.nf_imagem_url) ? (
-                <Pressable style={styles.pdfButton} onPress={() => Linking.openURL(getAttachmentOpenUrl(item.nf_imagem_url))}>
+                <Pressable
+                  style={styles.pdfButton}
+                  onPress={async () => {
+                    try {
+                      await openPdfAttachment(item.nf_imagem_url, `pedido-${item.id}-nf`);
+                    } catch (error: any) {
+                      Alert.alert('PDF da NF', error?.message || 'Não foi possível abrir o PDF da NF.');
+                    }
+                  }}
+                >
                   <Text style={styles.pdfButtonText}>NF em PDF • Abrir arquivo</Text>
                 </Pressable>
               ) : (
