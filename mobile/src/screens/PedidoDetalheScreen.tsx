@@ -24,7 +24,7 @@ import { RootStackParamList } from '../navigation/RootNavigator';
 import { Pedido, TrocaPedido } from '../types/pedidos';
 import { formatarData, formatarMoeda } from '../utils/format';
 import { marcarRelatoriosComoDesatualizados } from '../utils/relatoriosRefresh';
-import { isPdfAttachment } from '../utils/nfAttachment';
+import { getAttachmentOpenUrl, isPdfAttachment } from '../utils/nfAttachment';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PedidoDetalhe'>;
 type TrocaItemOption = {
@@ -368,8 +368,8 @@ export default function PedidoDetalheScreen({ route, navigation }: Props) {
             {pedido.nf_imagem_url ? (
               <>
                 {nfEhPdf ? (
-                  <Pressable style={styles.nfPdfButton} onPress={() => Linking.openURL(pedido.nf_imagem_url!)}>
-                    <Text style={styles.nfPdfButtonText}>Abrir PDF da NF</Text>
+                  <Pressable style={styles.nfPdfButton} onPress={() => Linking.openURL(getAttachmentOpenUrl(pedido.nf_imagem_url))}>
+                    <Text style={styles.nfPdfButtonText}>NF em PDF • Abrir arquivo</Text>
                   </Pressable>
                 ) : (
                   <>

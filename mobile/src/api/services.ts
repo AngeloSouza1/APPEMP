@@ -233,9 +233,9 @@ export const arquivosApi = {
       );
     }
 
-    const endpoint = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
     const mimeType = getMimeTypeFromAsset(asset);
     const isPdf = mimeType === 'application/pdf';
+    const endpoint = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${isPdf ? 'raw' : 'auto'}/upload`;
 
     const parseCloudinaryResponse = async (response: Response, metodo: string) => {
       const data = await response.json();

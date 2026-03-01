@@ -27,7 +27,7 @@ import { Pedido } from '../types/pedidos';
 import { formatarMoeda } from '../utils/format';
 import { pushAppNotification } from '../utils/appNotifications';
 import { marcarRelatoriosComoDesatualizados } from '../utils/relatoriosRefresh';
-import { isPdfAttachment } from '../utils/nfAttachment';
+import { getAttachmentOpenUrl, isPdfAttachment } from '../utils/nfAttachment';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PedidoEditar'>;
 
@@ -646,8 +646,8 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
               {nfImagemUrl ? (
                 <View style={styles.nfPreviewCard}>
                   {nfEhPdf ? (
-                    <Pressable style={styles.nfPdfButton} onPress={() => Linking.openURL(nfImagemUrl)}>
-                      <Text style={styles.nfPdfButtonText}>Abrir PDF da NF</Text>
+                    <Pressable style={styles.nfPdfButton} onPress={() => Linking.openURL(getAttachmentOpenUrl(nfImagemUrl))}>
+                      <Text style={styles.nfPdfButtonText}>NF em PDF • Abrir arquivo</Text>
                     </Pressable>
                   ) : (
                     <Pressable
@@ -662,6 +662,7 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
                   <Pressable style={styles.nfRemoveButton} onPress={() => setNfImagemUrl('')}>
                     <Text style={styles.nfRemoveButtonText}>Remover arquivo</Text>
                   </Pressable>
+                  {nfEhPdf ? <Text style={styles.nfFileHint}>Arquivo salvo como PDF.</Text> : null}
                 </View>
               ) : null}
             </>
@@ -1211,6 +1212,11 @@ const styles = StyleSheet.create({
     color: '#b91c1c',
     fontSize: 12.71,
     fontWeight: '700',
+  },
+  nfFileHint: {
+    color: '#475569',
+    fontSize: 12.4,
+    fontWeight: '600',
   },
   input: {
     borderWidth: 1,
