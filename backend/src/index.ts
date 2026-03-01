@@ -686,6 +686,17 @@ const executarLimpezaCloudinary = async (params: {
       const deleted = await excluirArquivoCloudinary({
         sourceUrl: item.sourceUrl,
       });
+
+      if (deleted.result === "ok") {
+        const coluna = item.tipo === "canhoto" ? "canhoto_imagem_url" : "nf_imagem_url";
+        await pool.query(
+          `UPDATE pedidos
+           SET ${coluna} = NULL
+           WHERE id = $1`,
+          [item.pedidoId]
+        );
+      }
+
       results.push({
         pedidoId: item.pedidoId,
         tipo: item.tipo,
