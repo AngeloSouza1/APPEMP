@@ -64,6 +64,9 @@ const CLOUDINARY_ALERT_EMAIL_FROM = process.env.CLOUDINARY_ALERT_EMAIL_FROM || p
 const CLOUDINARY_BACKUP_DIR = process.env.CLOUDINARY_BACKUP_DIR || "backups/cloudinary";
 const CLOUDINARY_BACKUP_MIN_AGE_DAYS = Number(process.env.CLOUDINARY_BACKUP_MIN_AGE_DAYS || 30);
 const CLOUDINARY_BACKUP_BATCH_LIMIT = Number(process.env.CLOUDINARY_BACKUP_BATCH_LIMIT || 100);
+const CLOUDINARY_AUTO_BACKUP_ENABLED = String(process.env.CLOUDINARY_AUTO_BACKUP_ENABLED || "true").trim().toLowerCase() !== "false";
+const CLOUDINARY_AUTO_BACKUP_MIN_AGE_DAYS = Number(process.env.CLOUDINARY_AUTO_BACKUP_MIN_AGE_DAYS || CLOUDINARY_BACKUP_MIN_AGE_DAYS);
+const CLOUDINARY_AUTO_BACKUP_BATCH_LIMIT = Number(process.env.CLOUDINARY_AUTO_BACKUP_BATCH_LIMIT || CLOUDINARY_BACKUP_BATCH_LIMIT);
 const BREVO_API_KEY = process.env.BREVO_API_KEY || "";
 const SMTP_HOST = process.env.SMTP_HOST || "";
 const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
@@ -73,6 +76,7 @@ const SMTP_SECURE_ENV = process.env.SMTP_SECURE;
 const SMTP_TIMEOUT_MS = Number(process.env.SMTP_TIMEOUT_MS || 10000);
 let cloudinaryMonitorTimer = null;
 let cloudinaryLastAlertAt = 0;
+let cloudinaryAutoBackupRunning = false;
 const normalizarStatus = (status) => {
     const valorNormalizado = status.trim().toUpperCase().replace(/\s+/g, "_");
     const valorMapeado = valorNormalizado === "OK" ? "EFETIVADO" : valorNormalizado;
@@ -366,7 +370,7 @@ const buscarUsoCloudinary = async () => {
         lastUpdated: payload.last_updated || null,
     };
 };
-const enviarAlertaCloudinaryPorEmail = async (dados) => {
+const enviarAlertaCloudinaryPorEmail = async (dados, backup) => {
     const usagePercentLabel = dados.usagePercent.toFixed(2);
     const subject = `[APPEMP] Alerta de armazenamento Cloudinary (${usagePercentLabel}%)`;
     const text = [
@@ -381,6 +385,14 @@ const enviarAlertaCloudinaryPorEmail = async (dados) => {
         "",
         `Limite de alerta configurado: ${CLOUDINARY_ALERT_THRESHOLD_PERCENT}%`,
         "Ação sugerida: preparar backup/arquivamento antes de atingir o limite total.",
+        backup ? "" : null,
+        backup ? "Backup automático do alerta" : null,
+        (backup === null || backup === void 0 ? void 0 : backup.batchKey) ? `Lote: ${backup.batchKey}` : null,
+        typeof (backup === null || backup === void 0 ? void 0 : backup.filesBackedUp) === "number" ? `Arquivos salvos: ${backup.filesBackedUp}` : null,
+        typeof (backup === null || backup === void 0 ? void 0 : backup.filesFailed) === "number" ? `Falhas: ${backup.filesFailed}` : null,
+        typeof (backup === null || backup === void 0 ? void 0 : backup.brokenUrlsCleaned) === "number" ? `URLs quebradas removidas do banco: ${backup.brokenUrlsCleaned}` : null,
+        (backup === null || backup === void 0 ? void 0 : backup.totalBytesFormatted) ? `Tamanho total: ${backup.totalBytesFormatted}` : null,
+        (backup === null || backup === void 0 ? void 0 : backup.downloadUrl) ? `Download do backup: ${backup.downloadUrl}` : null,
     ]
         .filter(Boolean)
         .join("\n");
@@ -707,6 +719,22 @@ const executarBackupCloudinary = async (options) => {
         files: arquivos,
     };
 };
+const executarBackupAutomaticoCloudinary = async () => {
+    if (!CLOUDINARY_AUTO_BACKUP_ENABLED || cloudinaryAutoBackupRunning) {
+        return null;
+    }
+    cloudinaryAutoBackupRunning = true;
+    try {
+        return await executarBackupCloudinary({
+            olderThanDays: CLOUDINARY_AUTO_BACKUP_MIN_AGE_DAYS,
+            limit: CLOUDINARY_AUTO_BACKUP_BATCH_LIMIT,
+            sendEmail: false,
+        });
+    }
+    finally {
+        cloudinaryAutoBackupRunning = false;
+    }
+};
 const verificarUsoCloudinary = async (options) => {
     const manual = (options === null || options === void 0 ? void 0 : options.manual) === true;
     const forceEmail = (options === null || options === void 0 ? void 0 : options.forceEmail) === true;
@@ -723,8 +751,18 @@ const verificarUsoCloudinary = async (options) => {
         const cooldownMs = Math.max(CLOUDINARY_ALERT_COOLDOWN_MINUTES, 1) * 60 * 1000;
         const emCooldown = Date.now() - cloudinaryLastAlertAt < cooldownMs;
         const deveEnviarEmail = forceEmail || (acimaDoLimite && !emCooldown);
+        const deveGerarBackupAutomatico = acimaDoLimite && !emCooldown && CLOUDINARY_AUTO_BACKUP_ENABLED;
+        let backupAutomatico = null;
+        if (deveGerarBackupAutomatico) {
+            try {
+                backupAutomatico = await executarBackupAutomaticoCloudinary();
+            }
+            catch (backupError) {
+                console.error("Erro ao executar backup automático do Cloudinary:", backupError);
+            }
+        }
         if (deveEnviarEmail) {
-            await enviarAlertaCloudinaryPorEmail(dados);
+            await enviarAlertaCloudinaryPorEmail(dados, backupAutomatico);
             cloudinaryLastAlertAt = Date.now();
         }
         if (manual || acimaDoLimite) {
@@ -734,6 +772,8 @@ const verificarUsoCloudinary = async (options) => {
             ok: true,
             enabled: true,
             alertSent: deveEnviarEmail,
+            autoBackupTriggered: Boolean(backupAutomatico),
+            autoBackupBatchKey: (backupAutomatico === null || backupAutomatico === void 0 ? void 0 : backupAutomatico.batchKey) || null,
             aboveThreshold: acimaDoLimite,
             cooldownActive: emCooldown && !forceEmail,
             ...dados,
