@@ -642,19 +642,34 @@ const excluirArquivoCloudinary = async (params: {
   };
 };
 
-const executarLimpezaCloudinaryPorLote = async (batchKey: string) => {
-  const { manifestPath } = resolverArquivosLoteBackupCloudinary(batchKey);
-  const manifestRaw = await readFile(manifestPath, "utf-8");
-  const manifest = JSON.parse(manifestRaw) as {
-    files?: Array<{
-      pedidoId: number;
-      tipo: "nf" | "canhoto";
-      sourceUrl: string;
-      error?: string;
-    }>;
-  };
+const executarLimpezaCloudinary = async (params: {
+  batchKey?: string;
+  files?: Array<{
+    pedidoId: number;
+    tipo: "nf" | "canhoto";
+    sourceUrl: string;
+    error?: string;
+  }>;
+}) => {
+  let files = Array.isArray(params.files) ? params.files : [];
+  let manifestPath: string | null = null;
 
-  const files = Array.isArray(manifest.files) ? manifest.files : [];
+  if (!files.length) {
+    const batchKey = validarBatchKeyBackupCloudinary(params.batchKey);
+    const filesDoLote = resolverArquivosLoteBackupCloudinary(batchKey);
+    manifestPath = filesDoLote.manifestPath;
+    const manifestRaw = await readFile(filesDoLote.manifestPath, "utf-8");
+    const manifest = JSON.parse(manifestRaw) as {
+      files?: Array<{
+        pedidoId: number;
+        tipo: "nf" | "canhoto";
+        sourceUrl: string;
+        error?: string;
+      }>;
+    };
+    files = Array.isArray(manifest.files) ? manifest.files : [];
+  }
+
   const candidatos = files.filter((item) => item?.sourceUrl && !item?.error);
   const results: Array<{
     pedidoId: number;
@@ -695,7 +710,7 @@ const executarLimpezaCloudinaryPorLote = async (batchKey: string) => {
 
   return {
     ok: true,
-    batchKey,
+    batchKey: params.batchKey || null,
     manifestPath,
     filesListed: files.length,
     filesEligible: candidatos.length,
@@ -1603,8 +1618,26 @@ app.post("/admin/monitoramento/cloudinary/limpar", async (req: AuthenticatedRequ
   }
 
   try {
-    const batchKey = validarBatchKeyBackupCloudinary(req.body?.batch_key);
-    const resultado = await executarLimpezaCloudinaryPorLote(batchKey);
+    const files: Array<{
+      pedidoId: number;
+      tipo: "nf" | "canhoto";
+      sourceUrl: string;
+      error?: string;
+    }> = Array.isArray(req.body?.files)
+      ? req.body.files
+          .map((item: any) => ({
+            pedidoId: Number(item?.pedidoId || item?.pedido_id || 0),
+            tipo: String(item?.tipo || "").trim() === "canhoto" ? "canhoto" as const : "nf" as const,
+            sourceUrl: String(item?.sourceUrl || item?.source_url || "").trim(),
+            error: item?.error ? String(item.error) : undefined,
+          }))
+          .filter((item: { sourceUrl: string }) => item.sourceUrl)
+      : [];
+
+    const resultado = await executarLimpezaCloudinary({
+      batchKey: req.body?.batch_key ? String(req.body.batch_key) : undefined,
+      files,
+    });
     return res.json(resultado);
   } catch (error: any) {
     if (error?.code === "ENOENT") {

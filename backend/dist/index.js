@@ -526,11 +526,17 @@ const excluirArquivoCloudinary = async (params) => {
         result: payload.result || "unknown",
     };
 };
-const executarLimpezaCloudinaryPorLote = async (batchKey) => {
-    const { manifestPath } = resolverArquivosLoteBackupCloudinary(batchKey);
-    const manifestRaw = await (0, promises_1.readFile)(manifestPath, "utf-8");
-    const manifest = JSON.parse(manifestRaw);
-    const files = Array.isArray(manifest.files) ? manifest.files : [];
+const executarLimpezaCloudinary = async (params) => {
+    let files = Array.isArray(params.files) ? params.files : [];
+    let manifestPath = null;
+    if (!files.length) {
+        const batchKey = validarBatchKeyBackupCloudinary(params.batchKey);
+        const filesDoLote = resolverArquivosLoteBackupCloudinary(batchKey);
+        manifestPath = filesDoLote.manifestPath;
+        const manifestRaw = await (0, promises_1.readFile)(filesDoLote.manifestPath, "utf-8");
+        const manifest = JSON.parse(manifestRaw);
+        files = Array.isArray(manifest.files) ? manifest.files : [];
+    }
     const candidatos = files.filter((item) => (item === null || item === void 0 ? void 0 : item.sourceUrl) && !(item === null || item === void 0 ? void 0 : item.error));
     const results = [];
     for (const item of candidatos) {
@@ -561,7 +567,7 @@ const executarLimpezaCloudinaryPorLote = async (batchKey) => {
     const failed = results.filter((item) => item.error);
     return {
         ok: true,
-        batchKey,
+        batchKey: params.batchKey || null,
         manifestPath,
         filesListed: files.length,
         filesEligible: candidatos.length,
@@ -1285,13 +1291,25 @@ app.get("/admin/monitoramento/cloudinary/backup/:batchKey/download", async (req,
     }
 });
 app.post("/admin/monitoramento/cloudinary/limpar", async (req, res) => {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     if (((_a = req.user) === null || _a === void 0 ? void 0 : _a.perfil) !== "admin" && ((_b = req.user) === null || _b === void 0 ? void 0 : _b.perfil) !== "backoffice") {
         return res.status(403).json({ error: "Sem permissão para limpar arquivos do Cloudinary." });
     }
     try {
-        const batchKey = validarBatchKeyBackupCloudinary((_c = req.body) === null || _c === void 0 ? void 0 : _c.batch_key);
-        const resultado = await executarLimpezaCloudinaryPorLote(batchKey);
+        const files = Array.isArray((_c = req.body) === null || _c === void 0 ? void 0 : _c.files)
+            ? req.body.files
+                .map((item) => ({
+                pedidoId: Number((item === null || item === void 0 ? void 0 : item.pedidoId) || (item === null || item === void 0 ? void 0 : item.pedido_id) || 0),
+                tipo: String((item === null || item === void 0 ? void 0 : item.tipo) || "").trim() === "canhoto" ? "canhoto" : "nf",
+                sourceUrl: String((item === null || item === void 0 ? void 0 : item.sourceUrl) || (item === null || item === void 0 ? void 0 : item.source_url) || "").trim(),
+                error: (item === null || item === void 0 ? void 0 : item.error) ? String(item.error) : undefined,
+            }))
+                .filter((item) => item.sourceUrl)
+            : [];
+        const resultado = await executarLimpezaCloudinary({
+            batchKey: ((_d = req.body) === null || _d === void 0 ? void 0 : _d.batch_key) ? String(req.body.batch_key) : undefined,
+            files,
+        });
         return res.json(resultado);
     }
     catch (error) {
