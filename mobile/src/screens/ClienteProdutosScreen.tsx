@@ -77,7 +77,7 @@ export default function ClienteProdutosScreen() {
   const [relacaoEditando, setRelacaoEditando] = useState<ClienteProduto | null>(null);
   const [editValorUnitario, setEditValorUnitario] = useState('');
   const [processandoAcao, setProcessandoAcao] = useState(false);
-  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [clientesExpandidos, setClientesExpandidos] = useState<Record<number, boolean>>({});
 
   const canManageCadastros = user?.perfil === 'admin' || user?.perfil === 'backoffice';
 
@@ -264,7 +264,6 @@ export default function ClienteProdutosScreen() {
     } else {
       setEditValorUnitario(Number(relacao.valor_unitario).toFixed(2).replace('.', ','));
     }
-    setConfirmandoExclusao(false);
   };
 
   const salvarEdicao = async () => {
@@ -289,21 +288,37 @@ export default function ClienteProdutosScreen() {
     }
   };
 
-  const excluirRelacao = async () => {
-    if (!relacaoEditando) return;
-    setProcessandoAcao(true);
-    try {
-      await clienteProdutosApi.excluir(relacaoEditando.id);
-      setRelacaoEditando(null);
-      setConfirmandoExclusao(false);
-      await carregarDados();
-      Alert.alert('Sucesso', 'Vínculo removido com sucesso.');
-    } catch (error: any) {
-      const mensagemApi = error?.response?.data?.error as string | undefined;
-      Alert.alert('Erro', mensagemApi || 'Não foi possível excluir o vínculo.');
-    } finally {
-      setProcessandoAcao(false);
-    }
+  const confirmarExclusaoRelacao = (relacao: ClienteProduto) => {
+    Alert.alert(
+      'Excluir vínculo',
+      'Deseja realmente excluir este vínculo?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            setRelacaoEditando(relacao);
+            setProcessandoAcao(true);
+            try {
+              await clienteProdutosApi.excluir(relacao.id);
+              setRelacaoEditando(null);
+              await carregarDados();
+              Alert.alert('Sucesso', 'Vínculo removido com sucesso.');
+            } catch (error: any) {
+              const mensagemApi = error?.response?.data?.error as string | undefined;
+              Alert.alert('Erro', mensagemApi || 'Não foi possível excluir o vínculo.');
+            } finally {
+              setProcessandoAcao(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const alternarCardCliente = (clienteIdCard: number) => {
+    setClientesExpandidos((prev) => ({ ...prev, [clienteIdCard]: !prev[clienteIdCard] }));
   };
 
   return (
@@ -412,61 +427,77 @@ export default function ClienteProdutosScreen() {
             contentContainerStyle={styles.listContent}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => carregarDados(true)} />}
             ListEmptyComponent={<Text style={styles.empty}>Nenhum vínculo encontrado.</Text>}
-            renderItem={({ item }) => (
-              <View style={styles.card}>
-                <View style={styles.cardTopRow}>
-                  <View style={styles.cardTitleGroup}>
-                    <Text style={styles.cardSectionLabel}>Cliente</Text>
-                    <Text style={styles.cardTitle} numberOfLines={1}>
-                      {item.cliente_nome || 'Cliente'}
-                    </Text>
-                  </View>
-                  <Text style={styles.cardGroupCount}>{item.itens.length} vínculo(s)</Text>
-                </View>
+            renderItem={({ item }) => {
+              const expandido = Boolean(clientesExpandidos[item.cliente_id]);
 
-                <View style={styles.groupItemsWrap}>
-                  {item.itens.map((relacao, idx) => (
-                    <View
-                      key={relacao.id}
-                      style={[
-                        styles.groupItemRow,
-                        idx < item.itens.length - 1 && styles.groupItemRowBorder,
-                      ]}
-                    >
-                      <View style={styles.groupItemMain}>
-                        <Text style={styles.cardSectionLabel}>Produto</Text>
-                        <Text style={styles.cardSubtitle} numberOfLines={1}>
-                          {relacao.produto_nome || 'Produto'}
-                        </Text>
-                      </View>
-                      <View style={styles.groupItemRight}>
-                        <Text style={styles.valueLabel}>Valor unitário</Text>
-                        <Text style={styles.valueText}>{formatarMoeda(relacao.valor_unitario || 0)}</Text>
-                        {canManageCadastros ? (
-                          <View style={styles.groupActionsRow}>
-                            <Pressable
-                              style={({ pressed }) => [styles.cardActionLink, pressed && styles.cardActionLinkPressed]}
-                              onPress={() => abrirEdicao(relacao)}
-                            >
-                              <Text style={styles.cardActionEditText}>Editar</Text>
-                            </Pressable>
-                            <Pressable
-                              style={({ pressed }) => [styles.cardActionLink, pressed && styles.cardActionLinkPressed]}
-                              onPress={() => {
-                                setRelacaoEditando(relacao);
-                                setConfirmandoExclusao(true);
-                              }}
-                            >
-                              <Text style={styles.cardActionDeleteText}>Excluir</Text>
-                            </Pressable>
-                          </View>
-                        ) : null}
-                      </View>
+              return (
+                <View style={styles.card}>
+                  <Pressable
+                    style={({ pressed }) => [styles.cardTopRow, pressed && styles.cardTopRowPressed]}
+                    onPress={() => alternarCardCliente(item.cliente_id)}
+                  >
+                    <View style={styles.cardTitleGroup}>
+                      <Text style={styles.cardSectionLabel}>Cliente</Text>
+                      <Text style={styles.cardTitle} numberOfLines={1}>
+                        {item.cliente_nome || 'Cliente'}
+                      </Text>
+                      <Text style={styles.cardClientCode}>#{item.codigo_cliente || '---'}</Text>
                     </View>
-                  ))}
+                    <View style={styles.cardTopRight}>
+                      <Text style={styles.cardGroupCount}>{item.itens.length} vínculo(s)</Text>
+                      <Text style={styles.cardExpandIcon}>{expandido ? '−' : '+'}</Text>
+                    </View>
+                  </Pressable>
+
+                  {!expandido ? (
+                    <View style={styles.cardCollapsedMeta}>
+                      <Text style={styles.cardCollapsedText}>Toque para visualizar os produtos vinculados.</Text>
+                    </View>
+                  ) : null}
+
+                  {expandido ? (
+                    <View style={styles.groupItemsWrap}>
+                      {item.itens.map((relacao, idx) => (
+                        <View
+                          key={relacao.id}
+                          style={[
+                            styles.groupItemRow,
+                            idx < item.itens.length - 1 && styles.groupItemRowBorder,
+                          ]}
+                        >
+                          <View style={styles.groupItemMain}>
+                            <Text style={styles.cardSectionLabel}>Produto</Text>
+                            <Text style={styles.cardSubtitle} numberOfLines={1}>
+                              {relacao.produto_nome || 'Produto'}
+                            </Text>
+                          </View>
+                          <View style={styles.groupItemRight}>
+                            <Text style={styles.valueLabel}>Valor unitário</Text>
+                            <Text style={styles.valueText}>{formatarMoeda(relacao.valor_unitario || 0)}</Text>
+                            {canManageCadastros ? (
+                              <View style={styles.groupActionsRow}>
+                                <Pressable
+                                  style={({ pressed }) => [styles.cardActionLink, pressed && styles.cardActionLinkPressed]}
+                                  onPress={() => abrirEdicao(relacao)}
+                                >
+                                  <Text style={styles.cardActionEditText}>Editar</Text>
+                                </Pressable>
+                                <Pressable
+                                  style={({ pressed }) => [styles.cardActionLink, pressed && styles.cardActionLinkPressed]}
+                                  onPress={() => confirmarExclusaoRelacao(relacao)}
+                                >
+                                  <Text style={styles.cardActionDeleteText}>Excluir</Text>
+                                </Pressable>
+                              </View>
+                            ) : null}
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
                 </View>
-              </View>
-            )}
+              );
+            }}
           />
         )}
       </View>
@@ -713,97 +744,70 @@ export default function ClienteProdutosScreen() {
           <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setRelacaoEditando(null)} />
           {relacaoEditando ? (
             <View style={styles.modalCard}>
-              {!confirmandoExclusao ? (
-                <>
-                  <View style={styles.modalHeader}>
-                    <View>
-                      <Text style={styles.modalTitle}>Editar valor</Text>
-                      <Text style={styles.modalSubtitle}>{relacaoEditando.cliente_nome}</Text>
-                      <Text style={styles.modalSubtitle}>{relacaoEditando.produto_nome}</Text>
-                    </View>
-                    <Pressable
-                      style={({ pressed }) => [styles.closeButton, pressed && styles.closeButtonPressed]}
-                      onPress={() => setRelacaoEditando(null)}
-                    >
-                      <Text style={styles.closeButtonText}>×</Text>
-                    </Pressable>
-                  </View>
+              <View style={styles.modalHeader}>
+                <View>
+                  <Text style={styles.modalTitle}>Editar valor</Text>
+                  <Text style={styles.modalSubtitle}>{relacaoEditando.cliente_nome}</Text>
+                  <Text style={styles.modalSubtitle}>{relacaoEditando.produto_nome}</Text>
+                </View>
+                <Pressable
+                  style={({ pressed }) => [styles.closeButton, pressed && styles.closeButtonPressed]}
+                  onPress={() => setRelacaoEditando(null)}
+                >
+                  <Text style={styles.closeButtonText}>×</Text>
+                </Pressable>
+              </View>
 
-                  <View style={styles.formBody}>
-                    <Text style={styles.formLabel}>Valor unitário</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={editValorUnitario}
-                      onChangeText={(value) => setEditValorUnitario(normalizarValorInput(value))}
-                      placeholder="0,00"
-                      placeholderTextColor="#64748b"
-                      keyboardType="decimal-pad"
-                    />
-                  </View>
+              <View style={styles.formBody}>
+                <Text style={styles.formLabel}>Valor unitário</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editValorUnitario}
+                  onChangeText={(value) => setEditValorUnitario(normalizarValorInput(value))}
+                  placeholder="0,00"
+                  placeholderTextColor="#64748b"
+                  keyboardType="decimal-pad"
+                />
+              </View>
 
-                  <View style={styles.editActionsRow}>
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.destructiveGhostButton,
-                        styles.editActionButton,
-                        pressed && styles.destructiveGhostButtonPressed,
-                      ]}
-                      onPress={() => setConfirmandoExclusao(true)}
-                      disabled={processandoAcao}
-                    >
-                      <Text style={styles.destructiveGhostButtonText}>Excluir vínculo</Text>
-                    </Pressable>
-                  </View>
+              <View style={styles.editActionsRow}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.destructiveGhostButton,
+                    styles.editActionButton,
+                    pressed && styles.destructiveGhostButtonPressed,
+                  ]}
+                  onPress={() => confirmarExclusaoRelacao(relacaoEditando)}
+                  disabled={processandoAcao}
+                >
+                  <Text style={styles.destructiveGhostButtonText}>Excluir vínculo</Text>
+                </Pressable>
+              </View>
 
-                  <View style={styles.editActionsRow}>
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.secondaryButton,
-                        styles.editActionButton,
-                        pressed && styles.secondaryButtonPressed,
-                      ]}
-                      onPress={() => setRelacaoEditando(null)}
-                      disabled={processandoAcao}
-                    >
-                      <Text style={styles.secondaryButtonText}>Cancelar</Text>
-                    </Pressable>
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.primaryButton,
-                        styles.editActionButton,
-                        pressed && styles.primaryButtonPressed,
-                      ]}
-                      onPress={salvarEdicao}
-                      disabled={processandoAcao}
-                    >
-                      <Text style={styles.primaryButtonText}>{processandoAcao ? 'Salvando...' : 'Salvar'}</Text>
-                    </Pressable>
-                  </View>
-                </>
-              ) : (
-                <>
-                  <View style={styles.confirmBox}>
-                    <Text style={styles.confirmTitle}>Excluir vínculo</Text>
-                    <Text style={styles.confirmText}>Remover este vínculo cliente/produto?</Text>
-                  </View>
-                  <View style={styles.modalActions}>
-                    <Pressable
-                      style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
-                      onPress={() => setConfirmandoExclusao(false)}
-                      disabled={processandoAcao}
-                    >
-                      <Text style={styles.secondaryButtonText}>Cancelar</Text>
-                    </Pressable>
-                    <Pressable
-                      style={({ pressed }) => [styles.dangerButton, pressed && styles.primaryButtonPressed]}
-                      onPress={excluirRelacao}
-                      disabled={processandoAcao}
-                    >
-                      <Text style={styles.primaryButtonText}>{processandoAcao ? 'Excluindo...' : 'Excluir'}</Text>
-                    </Pressable>
-                  </View>
-                </>
-              )}
+              <View style={styles.editActionsRow}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.secondaryButton,
+                    styles.editActionButton,
+                    pressed && styles.secondaryButtonPressed,
+                  ]}
+                  onPress={() => setRelacaoEditando(null)}
+                  disabled={processandoAcao}
+                >
+                  <Text style={styles.secondaryButtonText}>Cancelar</Text>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.primaryButton,
+                    styles.editActionButton,
+                    pressed && styles.primaryButtonPressed,
+                  ]}
+                  onPress={salvarEdicao}
+                  disabled={processandoAcao}
+                >
+                  <Text style={styles.primaryButtonText}>{processandoAcao ? 'Salvando...' : 'Salvar'}</Text>
+                </Pressable>
+              </View>
             </View>
           ) : null}
         </View>
@@ -1145,6 +1149,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     columnGap: 8,
   },
+  cardTopRowPressed: {
+    opacity: 0.9,
+  },
+  cardTopRight: {
+    alignItems: 'flex-end',
+    rowGap: 4,
+  },
   cardTitleGroup: {
     flex: 1,
     minWidth: 0,
@@ -1162,10 +1173,36 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0f172a',
   },
+  cardClientCode: {
+    marginTop: 2,
+    color: '#64748b',
+    fontSize: 11.55,
+    fontWeight: '700',
+  },
   cardGroupCount: {
     color: '#475569',
     fontSize: 12.71,
     fontWeight: '700',
+  },
+  cardExpandIcon: {
+    color: '#1d4ed8',
+    fontSize: 18,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  cardCollapsedMeta: {
+    marginTop: 10,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  cardCollapsedText: {
+    color: '#64748b',
+    fontSize: 12.71,
+    fontWeight: '600',
   },
   groupItemsWrap: {
     marginTop: 8,

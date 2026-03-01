@@ -590,7 +590,7 @@ export default function ControleNotasScreen() {
             </View>
             <View style={styles.summaryInlineDivider} />
             <View style={styles.summaryInlineItem}>
-              <Text style={styles.summaryInlineLabel}>Efetivados</Text>
+              <Text style={styles.summaryInlineLabel}>Antecipados</Text>
               <Text style={styles.summaryInlineValue}>{pedidosEfetivados.length}</Text>
             </View>
             <View style={styles.summaryInlineDivider} />
@@ -606,7 +606,7 @@ export default function ControleNotasScreen() {
               <Text style={styles.summaryMetricValueMoney}>{formatarMoeda(totalSelecionado)}</Text>
             </View>
             <View style={styles.summaryMetricCard}>
-              <Text style={styles.summaryMetricLabel}>Pronto para efetivar</Text>
+              <Text style={styles.summaryMetricLabel}>Pronto para antecipar</Text>
               <Text style={styles.summaryMetricValue}>{idsSelecionados.length > 0 ? 'Sim' : 'Não'}</Text>
             </View>
           </View>
@@ -626,7 +626,7 @@ export default function ControleNotasScreen() {
             onPress={() => setAbaAtiva('efetivados')}
           >
             <Text style={[styles.tabButtonText, abaAtiva === 'efetivados' && styles.tabButtonTextActive]}>
-              Efetivados ({pedidosEfetivados.length})
+              Antecipados ({pedidosEfetivados.length})
             </Text>
           </Pressable>
         </View>
