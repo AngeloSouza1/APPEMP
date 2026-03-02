@@ -220,6 +220,16 @@ const getFileExtension = (mimeType: string) => {
   return 'jpg';
 };
 
+const buildCloudinaryPdfPreviewUrl = (cloudName: string, data: { public_id?: string; version?: string | number }) => {
+  const publicId = String(data.public_id || '').trim();
+  if (!publicId) {
+    throw new Error('Cloudinary: PDF enviado sem public_id para conversão em imagem.');
+  }
+
+  const version = data.version !== undefined && data.version !== null ? `v${String(data.version).trim()}/` : '';
+  return `https://res.cloudinary.com/${cloudName}/image/upload/pg_1,f_png,q_auto/${version}${publicId}.png`;
+};
+
 export const arquivosApi = {
   uploadImagemCloudinary: async (asset: {
     uri: string;
@@ -235,12 +245,15 @@ export const arquivosApi = {
 
     const mimeType = getMimeTypeFromAsset(asset);
     const isPdf = mimeType === 'application/pdf';
-    const endpoint = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${isPdf ? 'raw' : 'auto'}/upload`;
+    const endpoint = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${isPdf ? 'image' : 'auto'}/upload`;
 
     const parseCloudinaryResponse = async (response: Response, metodo: string) => {
       const data = await response.json();
       if (!response.ok || !data?.secure_url) {
         throw new Error(data?.error?.message || `${metodo}: falha (HTTP ${response.status}).`);
+      }
+      if (isPdf) {
+        return buildCloudinaryPdfPreviewUrl(CLOUDINARY_CLOUD_NAME, data);
       }
       return String(data.secure_url);
     };

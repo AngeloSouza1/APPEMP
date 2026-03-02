@@ -453,12 +453,13 @@ export default function PedidoNovoScreen({ navigation }: Props) {
           mimeType: doc.mimeType || 'application/pdf',
           fileName: doc.name,
         });
+        Alert.alert('PDF convertido', 'O PDF da NF foi convertido para imagem (PNG) antes de salvar.');
       } catch (error: any) {
         Alert.alert('Erro', error?.message || 'Não foi possível enviar o PDF da NF.');
       }
     };
 
-    Alert.alert('Arquivo da NF', 'Escolha o tipo do arquivo.', [
+    Alert.alert('Arquivo da NF', 'Escolha o tipo do arquivo. PDFs serão convertidos para imagem (PNG).', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Imagem', onPress: selecionarImagem },
       { text: 'PDF', onPress: () => void selecionarPdf() },
