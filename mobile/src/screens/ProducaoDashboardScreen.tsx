@@ -14,7 +14,7 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { produtosApi, relatoriosApi, RelatorioProducaoItem } from '../api/services';
+import { produtosApi, relatoriosApi, RelatorioProducaoItem, RelatorioTrocaItem } from '../api/services';
 import { RootStackParamList } from '../navigation/RootNavigator';
 
 const formatarNumero = (valor: number) =>
@@ -37,6 +37,30 @@ const agregarProducao = (rows: RelatorioProducaoItem[]) => {
   return [...mapa.values()];
 };
 
+type ProducaoTrocaAgrupada = {
+  produto_id: number;
+  produto_nome: string;
+  quantidade_total: number;
+};
+
+const agregarTrocas = (rows: RelatorioTrocaItem[]) => {
+  const mapa = new Map<string, ProducaoTrocaAgrupada>();
+  rows.forEach((row) => {
+    const key = String(row.produto_id);
+    const atual = mapa.get(key);
+    if (atual) {
+      atual.quantidade_total = Number(atual.quantidade_total || 0) + Number(row.quantidade || 0);
+      return;
+    }
+    mapa.set(key, {
+      produto_id: Number(row.produto_id),
+      produto_nome: row.produto_nome,
+      quantidade_total: Number(row.quantidade || 0),
+    });
+  });
+  return [...mapa.values()];
+};
+
 export default function ProducaoDashboardScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
@@ -44,18 +68,22 @@ export default function ProducaoDashboardScreen() {
   const [carregandoTransicao, setCarregandoTransicao] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [resultado, setResultado] = useState<RelatorioProducaoItem[]>([]);
+  const [resultadoTrocas, setResultadoTrocas] = useState<ProducaoTrocaAgrupada[]>([]);
   const [imagemPorProdutoId, setImagemPorProdutoId] = useState<Record<number, string>>({});
 
   const carregarProducao = async () => {
     setLoading(true);
     setErro(null);
     try {
-      const [emEsperaResp, conferirResp, produtosResp] = await Promise.all([
+      const [emEsperaResp, conferirResp, trocasEmEsperaResp, trocasConferirResp, produtosResp] = await Promise.all([
         relatoriosApi.producao({ status: 'EM_ESPERA' }),
         relatoriosApi.producao({ status: 'CONFERIR' }),
+        relatoriosApi.trocas({ status: 'EM_ESPERA' }),
+        relatoriosApi.trocas({ status: 'CONFERIR' }),
         produtosApi.listar(),
       ]);
       setResultado(agregarProducao([...emEsperaResp.data, ...conferirResp.data]));
+      setResultadoTrocas(agregarTrocas([...trocasEmEsperaResp.data, ...trocasConferirResp.data]));
       const imagensMap = produtosResp.data.reduce<Record<number, string>>((acc, produto) => {
         if (produto.id && produto.imagem_url) {
           acc[produto.id] = produto.imagem_url;
@@ -86,6 +114,10 @@ export default function ProducaoDashboardScreen() {
   const ordenado = useMemo(
     () => [...resultado].sort((a, b) => Number(b.quantidade_total || 0) - Number(a.quantidade_total || 0)),
     [resultado]
+  );
+  const trocasOrdenadas = useMemo(
+    () => [...resultadoTrocas].sort((a, b) => Number(b.quantidade_total || 0) - Number(a.quantidade_total || 0)),
+    [resultadoTrocas]
   );
 
   const topSafeOffset = Math.max(
@@ -138,38 +170,74 @@ export default function ProducaoDashboardScreen() {
         ) : null}
 
         {!loading ? (
-          <View style={styles.sectionCard}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Itens de Produção</Text>
-              <Text style={styles.sectionMeta}>{ordenado.length} item(ns)</Text>
-            </View>
-            {ordenado.length === 0 ? (
-              <Text style={styles.emptyText}>Nenhum item encontrado.</Text>
-            ) : (
-              ordenado.map((item, index) => (
-                <View key={`${item.produto_id}-${index}`} style={styles.itemCard}>
-                  <View style={styles.itemTop}>
-                    <View style={styles.itemIdentity}>
-                      {imagemPorProdutoId[item.produto_id] ? (
-                        <Image
-                          source={{ uri: imagemPorProdutoId[item.produto_id] }}
-                          style={styles.itemImage}
-                          resizeMode="cover"
-                        />
-                      ) : (
-                        <View style={styles.itemImageFallback}>
-                          <Image source={require('../../assets/modulos/produtos.png')} style={styles.itemImageFallbackIcon} resizeMode="contain" />
-                        </View>
-                      )}
-                      <Text style={styles.itemTitle}>{item.produto_nome}</Text>
+          <>
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Itens de Produção</Text>
+                <Text style={styles.sectionMeta}>{ordenado.length} item(ns)</Text>
+              </View>
+              {ordenado.length === 0 ? (
+                <Text style={styles.emptyText}>Nenhum item encontrado.</Text>
+              ) : (
+                ordenado.map((item, index) => (
+                  <View key={`${item.produto_id}-${index}`} style={styles.itemCard}>
+                    <View style={styles.itemTop}>
+                      <View style={styles.itemIdentity}>
+                        {imagemPorProdutoId[item.produto_id] ? (
+                          <Image
+                            source={{ uri: imagemPorProdutoId[item.produto_id] }}
+                            style={styles.itemImage}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View style={styles.itemImageFallback}>
+                            <Image source={require('../../assets/modulos/produtos.png')} style={styles.itemImageFallbackIcon} resizeMode="contain" />
+                          </View>
+                        )}
+                        <Text style={styles.itemTitle}>{item.produto_nome}</Text>
+                      </View>
+                      <Text style={styles.itemValue}>{formatarNumero(item.quantidade_total)}</Text>
                     </View>
-                    <Text style={styles.itemValue}>{formatarNumero(item.quantidade_total)}</Text>
+                    {item.embalagem ? <Text style={styles.itemMeta}>{item.embalagem}</Text> : null}
                   </View>
-                  {item.embalagem ? <Text style={styles.itemMeta}>{item.embalagem}</Text> : null}
-                </View>
-              ))
-            )}
-          </View>
+                ))
+              )}
+            </View>
+            <View style={[styles.sectionCard, styles.sectionCardTrocas]}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Trocas para Produção</Text>
+                <Text style={[styles.sectionMeta, styles.sectionMetaTrocas]}>{trocasOrdenadas.length} item(ns)</Text>
+              </View>
+              {trocasOrdenadas.length === 0 ? (
+                <Text style={styles.emptyText}>Nenhuma troca pendente para produção.</Text>
+              ) : (
+                trocasOrdenadas.map((item, index) => (
+                  <View key={`troca-${item.produto_id}-${index}`} style={styles.itemCardTroca}>
+                    <View style={styles.itemTop}>
+                      <View style={styles.itemIdentity}>
+                        {imagemPorProdutoId[item.produto_id] ? (
+                          <Image
+                            source={{ uri: imagemPorProdutoId[item.produto_id] }}
+                            style={styles.itemImage}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View style={[styles.itemImageFallback, styles.itemImageFallbackTroca]}>
+                            <Image source={require('../../assets/modulos/produtos.png')} style={styles.itemImageFallbackIcon} resizeMode="contain" />
+                          </View>
+                        )}
+                        <View style={styles.trocaInfo}>
+                          <Text style={styles.itemTitle}>{item.produto_nome}</Text>
+                          <Text style={styles.trocaHint}>Item de troca vinculado aos pedidos</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.itemValueTroca}>{formatarNumero(item.quantidade_total)}</Text>
+                    </View>
+                  </View>
+                ))
+              )}
+            </View>
+          </>
         ) : null}
       </ScrollView>
       <View style={[styles.footerDock, { bottom: Math.max(insets.bottom, 8) }]}>
@@ -346,6 +414,10 @@ const styles = StyleSheet.create({
     padding: 10,
     gap: 8,
   },
+  sectionCardTrocas: {
+    borderColor: '#fde68a',
+    backgroundColor: 'rgba(255,251,235,0.97)',
+  },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -354,11 +426,20 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { color: '#0f172a', fontSize: 17.33, fontWeight: '800' },
   sectionMeta: { color: '#475569', fontSize: 13.86, fontWeight: '700' },
+  sectionMetaTrocas: { color: '#92400e' },
   itemCard: {
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#dbeafe',
     backgroundColor: '#ffffff',
+    padding: 9,
+    gap: 4,
+  },
+  itemCardTroca: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#fcd34d',
+    backgroundColor: '#fffbeb',
     padding: 9,
     gap: 4,
   },
@@ -387,9 +468,23 @@ const styles = StyleSheet.create({
     height: 26,
     opacity: 0.95,
   },
+  itemImageFallbackTroca: {
+    borderColor: '#fcd34d',
+    backgroundColor: '#fef3c7',
+  },
   itemTitle: { flex: 1, color: '#0f172a', fontSize: 16.17, fontWeight: '900' },
   itemValue: { color: '#1d4ed8', fontSize: 19.64, fontWeight: '900' },
+  itemValueTroca: { color: '#b45309', fontSize: 19.64, fontWeight: '900' },
   itemMeta: { color: '#475569', fontSize: 13.86, fontWeight: '600' },
+  trocaInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  trocaHint: {
+    color: '#92400e',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
   footerDock: {
     position: 'absolute',
     left: 12,
