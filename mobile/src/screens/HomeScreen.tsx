@@ -240,6 +240,7 @@ export default function HomeScreen() {
   const [menuAberto, setMenuAberto] = useState(false);
   const [mostrarSobreApp, setMostrarSobreApp] = useState(false);
   const [mostrarStatusBanco, setMostrarStatusBanco] = useState(false);
+  const [carregandoInicialHome, setCarregandoInicialHome] = useState(true);
   const [carregandoStatusBanco, setCarregandoStatusBanco] = useState(false);
   const [erroStatusBanco, setErroStatusBanco] = useState<string | null>(null);
   const [statusBanco, setStatusBanco] = useState<CloudinaryStatusResumo | null>(null);
@@ -266,6 +267,7 @@ export default function HomeScreen() {
     remaneioTotal: number;
   } | null>(null);
   const homeNotificacaoInicializadaRef = useRef(false);
+  const homeBootstrapConcluidoRef = useRef(false);
 
   const carregarDashboardMotorista = useCallback(async () => {
     if (user?.perfil !== 'motorista') return;
@@ -286,9 +288,29 @@ export default function HomeScreen() {
     }
   }, [user?.perfil]);
 
+  const carregarMetadadosClientesMotorista = useCallback(async () => {
+    if (user?.perfil !== 'motorista') return;
+    try {
+      const response = await clientesApi.listar();
+      const mapaImagens = response.data.reduce<Record<number, string | null>>((acc, cliente) => {
+        acc[cliente.id] = cliente.imagem_url || null;
+        return acc;
+      }, {});
+      const mapaLinks = response.data.reduce<Record<number, string | null>>((acc, cliente) => {
+        acc[cliente.id] = cliente.link || null;
+        return acc;
+      }, {});
+      setClientesImagemMap(mapaImagens);
+      setClientesLinkMap(mapaLinks);
+    } catch {
+      setClientesImagemMap({});
+      setClientesLinkMap({});
+    }
+  }, [user?.perfil]);
+
   useEffect(() => {
     if (user?.perfil !== 'motorista') return;
-    carregarDashboardMotorista();
+    if (!homeBootstrapConcluidoRef.current) return;
     const timer = setInterval(() => {
       carregarDashboardMotorista();
     }, 15000);
@@ -297,26 +319,9 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (user?.perfil !== 'motorista') return;
-    const carregarImagensClientes = async () => {
-      try {
-        const response = await clientesApi.listar();
-        const mapaImagens = response.data.reduce<Record<number, string | null>>((acc, cliente) => {
-          acc[cliente.id] = cliente.imagem_url || null;
-          return acc;
-        }, {});
-        const mapaLinks = response.data.reduce<Record<number, string | null>>((acc, cliente) => {
-          acc[cliente.id] = cliente.link || null;
-          return acc;
-        }, {});
-        setClientesImagemMap(mapaImagens);
-        setClientesLinkMap(mapaLinks);
-      } catch {
-        setClientesImagemMap({});
-        setClientesLinkMap({});
-      }
-    };
-    carregarImagensClientes();
-  }, [user?.perfil]);
+    if (!homeBootstrapConcluidoRef.current) return;
+    void carregarMetadadosClientesMotorista();
+  }, [carregarMetadadosClientesMotorista, user?.perfil]);
 
   const abrirLinkCliente = useCallback(async (rawLink: string) => {
     const cleaned = rawLink.trim();
@@ -396,6 +401,39 @@ export default function HomeScreen() {
     }
   }, [user]);
 
+  useEffect(() => {
+    let cancelado = false;
+    homeBootstrapConcluidoRef.current = false;
+
+    const bootstrapHome = async () => {
+      if (!user) {
+        if (!cancelado) setCarregandoInicialHome(false);
+        return;
+      }
+
+      if (!cancelado) setCarregandoInicialHome(true);
+
+      try {
+        if (user.perfil === 'motorista') {
+          await Promise.all([carregarDashboardMotorista(), carregarMetadadosClientesMotorista()]);
+        } else {
+          await carregarNotificacoesModulos();
+        }
+      } finally {
+        if (!cancelado) {
+          homeBootstrapConcluidoRef.current = true;
+          setCarregandoInicialHome(false);
+        }
+      }
+    };
+
+    bootstrapHome();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [carregarDashboardMotorista, carregarMetadadosClientesMotorista, carregarNotificacoesModulos, user]);
+
   useFocusEffect(
     useCallback(() => {
       clearSystemBadge().catch(() => undefined);
@@ -405,7 +443,9 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       if (!user || user.perfil === 'motorista') return;
-      carregarNotificacoesModulos();
+      if (homeBootstrapConcluidoRef.current) {
+        carregarNotificacoesModulos();
+      }
       consumeLatestAppNotification()
         .then((notification) => {
           if (!notification?.message) return;
@@ -1233,6 +1273,15 @@ export default function HomeScreen() {
           <View style={styles.loadingCard}>
             <ActivityIndicator size="small" color="#1d4ed8" />
             <Text style={styles.loadingText}>Carregando...</Text>
+          </View>
+        </View>
+      </Modal>
+      <Modal transparent visible={carregandoInicialHome} animationType="fade">
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingCardVertical}>
+            <ActivityIndicator size="small" color="#1d4ed8" />
+            <Text style={styles.loadingTitle}>Preparando o app</Text>
+            <Text style={styles.loadingSubtext}>Aguarde enquanto os dados iniciais são carregados do servidor.</Text>
           </View>
         </View>
       </Modal>
@@ -2175,9 +2224,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     columnGap: 10,
   },
+  loadingCardVertical: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  loadingTitle: {
+    color: '#1e3a8a',
+    fontWeight: '800',
+    fontSize: 16,
+  },
   loadingText: {
     color: '#1e3a8a',
     fontWeight: '700',
     fontSize: 15.02,
+  },
+  loadingSubtext: {
+    color: '#475569',
+    fontWeight: '600',
+    fontSize: 12.8,
+    textAlign: 'center',
   },
 });

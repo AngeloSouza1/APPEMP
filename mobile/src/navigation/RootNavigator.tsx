@@ -1,3 +1,4 @@
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
 import HomeScreen from '../screens/HomeScreen';
@@ -47,7 +48,17 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export default function RootNavigator() {
   const { token, loading } = useAuth();
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <View style={styles.bootContainer}>
+        <View style={styles.bootCard}>
+          <ActivityIndicator size="small" color="#1d4ed8" />
+          <Text style={styles.bootTitle}>Inicializando APPEMP</Text>
+          <Text style={styles.bootText}>Carregando sua sessão e preparando os dados iniciais.</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -78,3 +89,37 @@ export default function RootNavigator() {
     </Stack.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  bootContainer: {
+    flex: 1,
+    backgroundColor: '#dbeafe',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  bootCard: {
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  bootTitle: {
+    color: '#1e3a8a',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  bootText: {
+    color: '#475569',
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+});
