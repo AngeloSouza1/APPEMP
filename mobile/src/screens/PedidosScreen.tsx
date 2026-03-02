@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   Image,
+  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -18,7 +19,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { clientesApi, pedidosApi, rotasApi } from '../api/services';
-import { API_URL } from '../config/env';
 import DatePickerModal from '../components/DatePickerModal';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { Pedido } from '../types/pedidos';
@@ -73,6 +73,7 @@ export default function PedidosScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [estadoProcessamento, setEstadoProcessamento] = useState<'idle' | 'loading' | 'reconnecting'>('loading');
 
   const [q, setQ] = useState('');
   const [data, setData] = useState('');
@@ -94,6 +95,7 @@ export default function PedidosScreen() {
   const [mostrarRotasFiltro, setMostrarRotasFiltro] = useState(false);
   const [buscaRotaFiltro, setBuscaRotaFiltro] = useState('');
   const [cancelandoPedidoId, setCancelandoPedidoId] = useState<number | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getMensagemErro = (error: unknown) => {
     const maybeError = error as
@@ -102,24 +104,24 @@ export default function PedidosScreen() {
     const statusCode = maybeError?.response?.status;
 
     if (statusCode === 401) {
-      return 'Sessão expirada. Faça login novamente.';
+      return { message: 'Sessão expirada. Faça login novamente.', transient: false };
     }
     if (statusCode === 403) {
-      return 'Acesso negado para carregar pedidos.';
+      return { message: 'Acesso negado para carregar pedidos.', transient: false };
     }
     if (statusCode && statusCode >= 500) {
-      return 'Backend indisponível no momento. Tente novamente.';
+      return { message: 'Backend indisponível no momento. Tente novamente.', transient: true };
     }
 
     if (maybeError?.name === 'AbortError') {
-      return `Tempo de resposta excedido (${API_URL}).`;
+      return { message: 'Sincronizando pedidos. Aguarde alguns instantes.', transient: true };
     }
 
     if (maybeError?.message?.toLowerCase().includes('network request failed')) {
-      return `Sem conexão com a API (${API_URL}).`;
+      return { message: 'Sincronizando pedidos. Aguarde alguns instantes.', transient: true };
     }
 
-    return 'Não foi possível carregar pedidos.';
+    return { message: 'Não foi possível carregar pedidos.', transient: false };
   };
 
   const parseDataFiltro = (value: string) => {
@@ -135,11 +137,16 @@ export default function PedidosScreen() {
   };
 
   const fetchPedidos = useCallback(
-    async (isRefresh = false) => {
+    async (isRefresh = false, silentRetry = false) => {
+      let erroTransitorio = false;
+
       if (isRefresh) {
         setRefreshing(true);
       } else {
         setLoading(true);
+      }
+      if (!silentRetry) {
+        setEstadoProcessamento('loading');
       }
 
       try {
@@ -157,15 +164,42 @@ export default function PedidosScreen() {
         setTotalPages(response.data.totalPages);
         setTotalRegistros(response.data.total);
         setErro(null);
+        setEstadoProcessamento('idle');
       } catch (error) {
-        setErro(getMensagemErro(error));
+        const erroTratado = getMensagemErro(error);
+        erroTransitorio = erroTratado.transient;
+
+        if (erroTratado.transient) {
+          setErro(null);
+          setEstadoProcessamento('reconnecting');
+          if (!reconnectTimeoutRef.current) {
+            reconnectTimeoutRef.current = setTimeout(() => {
+              reconnectTimeoutRef.current = null;
+              void fetchPedidos(true, true);
+            }, 2500);
+          }
+        } else {
+          setErro(erroTratado.message);
+          setEstadoProcessamento('idle');
+        }
       } finally {
         setLoading(false);
         setRefreshing(false);
+        if (!erroTransitorio) {
+          setEstadoProcessamento('idle');
+        }
       }
     },
     [clienteId, data, page, q, rotaId, status]
   );
+
+  useEffect(() => {
+    return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -741,6 +775,21 @@ export default function PedidosScreen() {
         onClose={() => setShowDatePicker(false)}
         title="Filtrar por data"
       />
+      <Modal transparent visible={estadoProcessamento !== 'idle'} animationType="fade">
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingCardVertical}>
+            <ActivityIndicator size="small" color="#1d4ed8" />
+            <Text style={styles.loadingTitle}>
+              {estadoProcessamento === 'reconnecting' ? 'Sincronizando pedidos' : 'Carregando pedidos'}
+            </Text>
+            <Text style={styles.loadingSubtext}>
+              {estadoProcessamento === 'reconnecting'
+                ? 'Aguarde enquanto a conexão com o servidor é restabelecida.'
+                : 'Preparando os dados para exibir os pedidos.'}
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1385,5 +1434,36 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
     fontWeight: '700',
+  },
+  loadingOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  loadingCardVertical: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  loadingTitle: {
+    color: '#1e3a8a',
+    fontWeight: '800',
+    fontSize: 16,
+  },
+  loadingSubtext: {
+    color: '#475569',
+    fontWeight: '600',
+    fontSize: 12.8,
+    textAlign: 'center',
   },
 });
