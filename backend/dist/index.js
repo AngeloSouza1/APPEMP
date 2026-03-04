@@ -194,12 +194,20 @@ const desativarTokensInvalidos = async (tokens) => {
 };
 const enviarPushPedidos = async (params) => {
     try {
+        const filtros = [
+            "nd.ativo = true",
+            "u.ativo = true",
+            "u.perfil <> 'motorista'",
+        ];
+        const queryParams = [];
+        if (params.usuarioIgnoradoId) {
+            queryParams.push(params.usuarioIgnoradoId);
+            filtros.push(`u.id <> $${queryParams.length}`);
+        }
         const tokensResult = await db_1.pool.query(`SELECT DISTINCT nd.expo_push_token
        FROM notificacao_dispositivos nd
        INNER JOIN usuarios u ON u.id = nd.usuario_id
-       WHERE nd.ativo = true
-         AND u.ativo = true
-         AND u.perfil <> 'motorista'`);
+       WHERE ${filtros.join("\n         AND ")}`, queryParams);
         const tokens = tokensResult.rows
             .map((row) => normalizarExpoPushToken(row.expo_push_token))
             .filter((value) => Boolean(value));
@@ -2562,6 +2570,7 @@ app.post("/pedidos", async (req, res) => {
                 tipo: "pedido_criado",
                 pedido_id: Number(pedido.id),
             },
+            usuarioIgnoradoId: usuarioId,
         });
         res.status(201).json({
             ...pedido,
@@ -2603,7 +2612,7 @@ app.post("/pedidos", async (req, res) => {
 });
 // Atualiza o status de um pedido
 app.patch("/pedidos/:id/status", async (req, res) => {
-    var _a;
+    var _a, _b;
     const { id } = req.params;
     const { status, valor_efetivado, data } = req.body;
     if (!status) {
@@ -2659,6 +2668,7 @@ app.patch("/pedidos/:id/status", async (req, res) => {
                 pedido_id: Number(result.rows[0].id),
                 status: String(result.rows[0].status),
             },
+            usuarioIgnoradoId: ((_b = req.user) === null || _b === void 0 ? void 0 : _b.id) || null,
         });
         res.json(result.rows[0]);
     }
@@ -2984,6 +2994,7 @@ app.put("/pedidos/:id", async (req, res) => {
                 tipo: "pedido_atualizado",
                 pedido_id: Number(pedido.id),
             },
+            usuarioIgnoradoId: usuarioId,
         });
         res.json(pedido);
     }

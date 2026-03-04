@@ -34,7 +34,6 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { formatarMoeda } from '../utils/format';
-import { pushAppNotification } from '../utils/appNotifications';
 import { marcarRelatoriosComoDesatualizados } from '../utils/relatoriosRefresh';
 import { openPdfAttachment, isPdfAttachment } from '../utils/nfAttachment';
 
@@ -525,7 +524,7 @@ export default function PedidoNovoScreen({ navigation }: Props) {
 
     setSalvando(true);
     try {
-      const response = await pedidosApi.criar({
+      await pedidosApi.criar({
         cliente_id: clienteId,
         rota_id: rotaId,
         data: dataNormalizada,
@@ -535,12 +534,7 @@ export default function PedidoNovoScreen({ navigation }: Props) {
         nf_numero: usaNf ? nfNumeroNormalizado : null,
         itens: itensPayload,
       });
-      await pushAppNotification({
-        type: 'pedido_criado',
-        message: `Pedido #${response.data.id} criado com sucesso.`,
-      });
       await marcarRelatoriosComoDesatualizados();
-      Alert.alert('Sucesso', 'Pedido criado com sucesso.');
       navigation.goBack();
     } catch {
       Alert.alert('Erro', 'Não foi possível criar o pedido.');

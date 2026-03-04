@@ -216,15 +216,31 @@ const desativarTokensInvalidos = async (tokens: string[]) => {
   }
 };
 
-const enviarPushPedidos = async (params: { titulo: string; corpo: string; data?: Record<string, unknown> }) => {
+const enviarPushPedidos = async (params: {
+  titulo: string;
+  corpo: string;
+  data?: Record<string, unknown>;
+  usuarioIgnoradoId?: number | null;
+}) => {
   try {
+    const filtros: string[] = [
+      "nd.ativo = true",
+      "u.ativo = true",
+      "u.perfil <> 'motorista'",
+    ];
+    const queryParams: Array<number> = [];
+
+    if (params.usuarioIgnoradoId) {
+      queryParams.push(params.usuarioIgnoradoId);
+      filtros.push(`u.id <> $${queryParams.length}`);
+    }
+
     const tokensResult = await pool.query(
       `SELECT DISTINCT nd.expo_push_token
        FROM notificacao_dispositivos nd
        INNER JOIN usuarios u ON u.id = nd.usuario_id
-       WHERE nd.ativo = true
-         AND u.ativo = true
-         AND u.perfil <> 'motorista'`
+       WHERE ${filtros.join("\n         AND ")}`,
+      queryParams
     );
 
     const tokens = tokensResult.rows
@@ -3120,6 +3136,7 @@ app.post("/pedidos", async (req: AuthenticatedRequest, res) => {
         tipo: "pedido_criado",
         pedido_id: Number(pedido.id),
       },
+      usuarioIgnoradoId: usuarioId,
     });
 
     res.status(201).json({
@@ -3236,6 +3253,7 @@ app.patch("/pedidos/:id/status", async (req: AuthenticatedRequest, res) => {
         pedido_id: Number(result.rows[0].id),
         status: String(result.rows[0].status),
       },
+      usuarioIgnoradoId: req.user?.id || null,
     });
 
     res.json(result.rows[0]);
@@ -3646,6 +3664,7 @@ app.put("/pedidos/:id", async (req: AuthenticatedRequest, res) => {
         tipo: "pedido_atualizado",
         pedido_id: Number(pedido.id),
       },
+      usuarioIgnoradoId: usuarioId,
     });
 
     res.json(pedido);

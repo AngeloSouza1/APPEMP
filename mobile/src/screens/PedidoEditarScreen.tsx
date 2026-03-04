@@ -25,7 +25,6 @@ import { arquivosApi, pedidosApi, ProdutoResumo, produtosApi, RotaResumo, rotasA
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { Pedido } from '../types/pedidos';
 import { formatarMoeda } from '../utils/format';
-import { pushAppNotification } from '../utils/appNotifications';
 import { marcarRelatoriosComoDesatualizados } from '../utils/relatoriosRefresh';
 import { openPdfAttachment, isPdfAttachment } from '../utils/nfAttachment';
 
@@ -501,12 +500,7 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
         nf_numero: usaNf ? nfNumeroNormalizado : null,
         itens: itensPayload,
       });
-      await pushAppNotification({
-        type: 'pedido_editado',
-        message: `Pedido #${pedido.id} atualizado com sucesso.`,
-      });
       await marcarRelatoriosComoDesatualizados();
-      Alert.alert('Sucesso', 'Pedido atualizado com sucesso.');
       navigation.goBack();
     } catch {
       Alert.alert('Erro', 'Não foi possível atualizar o pedido.');
