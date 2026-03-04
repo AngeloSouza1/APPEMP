@@ -267,11 +267,26 @@ export default function ControleNotasScreen() {
           onPress: async () => {
             try {
               setEfetivando(true);
-              await pedidosApi.anteciparNotas(idsSelecionados);
-              setPedidos((prev) => prev.filter((pedido) => !idsSelecionados.includes(pedido.id)));
+              const response = await pedidosApi.anteciparNotas(idsSelecionados);
+              const idsEfetivados = new Set<number>(
+                Array.isArray(response.data?.ids) && response.data.ids.length
+                  ? response.data.ids
+                  : idsSelecionados
+              );
+              setPedidos((prev) => prev.map((pedido) => (
+                idsEfetivados.has(pedido.id)
+                  ? {
+                      ...pedido,
+                      nf_status: 'ANTECIPADA',
+                      nf_efetivado_por_nome:
+                        pedido.nf_efetivado_por_nome || 'Efetivado agora',
+                    }
+                  : pedido
+              )));
               setSelecionados({});
               setCardsExpandidos({});
-              Alert.alert('Sucesso', 'Notas efetivadas e removidas da listagem.');
+              setAbaAtiva('efetivados');
+              Alert.alert('Sucesso', 'Notas efetivadas e movidas para Antecipados.');
             } catch {
               Alert.alert('Erro', 'Não foi possível efetivar as notas selecionadas.');
             } finally {
