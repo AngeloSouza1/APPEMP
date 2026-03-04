@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -23,6 +24,7 @@ const BIOMETRIA_ICON = require('../../assets/biometria.png');
 
 export default function LoginScreen() {
   const { login } = useAuth();
+  const { height, width } = useWindowDimensions();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,6 +37,8 @@ export default function LoginScreen() {
   const [previewImagem, setPreviewImagem] = useState<string | null>(null);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricLoading, setBiometricLoading] = useState(false);
+  const compactLayout = height < 760;
+  const narrowLayout = width < 380;
 
   useEffect(() => {
     const loadRememberPreference = async () => {
@@ -159,28 +163,38 @@ export default function LoginScreen() {
       <Image source={BG_LOGIN} style={styles.bgImage} resizeMode="cover" />
       <View style={styles.bgWash} />
       <View style={styles.bgTopFade} />
+      <View style={styles.bgBottomGlow} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <View style={styles.shell}>
-          <View style={styles.brandPanel}>
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, compactLayout && styles.scrollContentCompact]}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={[styles.shell, compactLayout && styles.shellCompact]}>
+          <View style={[styles.brandPanel, compactLayout && styles.brandPanelCompact]}>
+            <View style={styles.brandBadge}>
+              <Text style={styles.brandBadgeText}>Painel operacional</Text>
+            </View>
             <View style={styles.brandHeaderRow}>
-              <View style={styles.logoWrap}>
+              <View style={[styles.logoWrap, compactLayout && styles.logoWrapCompact]}>
                 <Image source={LOGO} style={styles.logo} resizeMode="contain" />
               </View>
               <View style={styles.brandTitleWrap}>
-                <Text style={styles.brandTitle}>APPEMP</Text>
+                <Text style={[styles.brandTitle, compactLayout && styles.brandTitleCompact]}>APPEMP</Text>
+                <Text style={[styles.brandCaption, compactLayout && styles.brandCaptionCompact]}>
+                  Central de pedidos
+                </Text>
               </View>
             </View>
-            <Text style={styles.brandSubtitle}>
-              Acesse sua central de operações para gerenciar pedidos.
+            <Text style={[styles.brandSubtitle, compactLayout && styles.brandSubtitleCompact]}>
+              Entre para acessar pedidos, rotas e a operação diária.
             </Text>
           </View>
 
-          <View style={styles.card}>
+          <View style={[styles.card, compactLayout && styles.cardCompact]}>
             {formError ? <Text style={styles.formError}>{formError}</Text> : null}
 
             {(previewImagem || previewNome) ? (
-              <View style={styles.previewCard}>
+              <View style={[styles.previewCard, narrowLayout && styles.previewCardNarrow]}>
                 {previewImagem ? (
                   <Image source={{ uri: previewImagem }} style={styles.previewAvatar} />
                 ) : (
@@ -199,46 +213,52 @@ export default function LoginScreen() {
               </View>
             ) : null}
 
-            <TextInput
-              style={[
-                styles.input,
-                focusedField === 'username' && styles.inputFocused,
-                usernameError && styles.inputError,
-              ]}
-              placeholder="Usuário"
-              placeholderTextColor="#64748b"
-              value={username}
-              onChangeText={(value) => {
-                setUsername(value);
-                if (usernameError) setUsernameError(null);
-                if (formError) setFormError(null);
-              }}
-              autoCapitalize="none"
-              autoComplete="username"
-              onFocus={() => setFocusedField('username')}
-              onBlur={() => setFocusedField((prev) => (prev === 'username' ? null : prev))}
-            />
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Usuário</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  focusedField === 'username' && styles.inputFocused,
+                  usernameError && styles.inputError,
+                ]}
+                placeholder="Digite seu usuário"
+                placeholderTextColor="#94a3b8"
+                value={username}
+                onChangeText={(value) => {
+                  setUsername(value);
+                  if (usernameError) setUsernameError(null);
+                  if (formError) setFormError(null);
+                }}
+                autoCapitalize="none"
+                autoComplete="username"
+                onFocus={() => setFocusedField('username')}
+                onBlur={() => setFocusedField((prev) => (prev === 'username' ? null : prev))}
+              />
+            </View>
             {usernameError ? <Text style={styles.fieldError}>{usernameError}</Text> : null}
 
-            <TextInput
-              style={[
-                styles.input,
-                focusedField === 'password' && styles.inputFocused,
-                passwordError && styles.inputError,
-              ]}
-              placeholder="Senha"
-              placeholderTextColor="#64748b"
-              value={password}
-              onChangeText={(value) => {
-                setPassword(value);
-                if (passwordError) setPasswordError(null);
-                if (formError) setFormError(null);
-              }}
-              secureTextEntry
-              autoComplete="password"
-              onFocus={() => setFocusedField('password')}
-              onBlur={() => setFocusedField((prev) => (prev === 'password' ? null : prev))}
-            />
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Senha</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  focusedField === 'password' && styles.inputFocused,
+                  passwordError && styles.inputError,
+                ]}
+                placeholder="Digite sua senha"
+                placeholderTextColor="#94a3b8"
+                value={password}
+                onChangeText={(value) => {
+                  setPassword(value);
+                  if (passwordError) setPasswordError(null);
+                  if (formError) setFormError(null);
+                }}
+                secureTextEntry
+                autoComplete="password"
+                onFocus={() => setFocusedField('password')}
+                onBlur={() => setFocusedField((prev) => (prev === 'password' ? null : prev))}
+              />
+            </View>
             {passwordError ? <Text style={styles.fieldError}>{passwordError}</Text> : null}
 
             <Pressable
@@ -266,7 +286,10 @@ export default function LoginScreen() {
               <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
                 {rememberMe ? <Text style={styles.checkboxMark}>✓</Text> : null}
               </View>
-              <Text style={styles.rememberText}>Manter conectado</Text>
+              <View style={styles.rememberTextWrap}>
+                <Text style={styles.rememberText}>Manter conectado</Text>
+                <Text style={styles.rememberHint}>Salva a sessão neste aparelho.</Text>
+              </View>
             </Pressable>
 
             <Pressable
@@ -278,8 +301,18 @@ export default function LoginScreen() {
                 (loading || biometricLoading) && styles.buttonDisabled,
               ]}
             >
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Entrar</Text>}
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Entrar</Text>
+              )}
             </Pressable>
+
+            <View style={styles.secondaryDivider}>
+              <View style={styles.secondaryDividerLine} />
+              <Text style={styles.secondaryDividerText}>Acesso rápido</Text>
+              <View style={styles.secondaryDividerLine} />
+            </View>
 
             <Pressable
               onPress={onBiometricLogin}
@@ -315,7 +348,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     position: 'relative',
   },
   bgImage: {
@@ -324,97 +357,156 @@ const styles = StyleSheet.create({
   },
   bgWash: {
     ...StyleSheet.absoluteFillObject,
-    // Softens the black pattern so it doesn't feel harsh.
-    backgroundColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: 'rgba(255,255,255,0.62)',
   },
   bgTopFade: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: '40%',
-    backgroundColor: 'rgba(37,99,235,0.06)',
+    height: '36%',
+    backgroundColor: 'rgba(37,99,235,0.10)',
+  },
+  bgBottomGlow: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    bottom: 70,
+    height: 160,
+    borderRadius: 40,
+    backgroundColor: 'rgba(191,219,254,0.28)',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 16,
-    paddingVertical: 24,
+    padding: 20,
+    paddingVertical: 32,
     alignItems: 'center',
+  },
+  scrollContentCompact: {
+    paddingVertical: 20,
+    paddingHorizontal: 14,
   },
   shell: {
     width: '100%',
     maxWidth: 520,
     alignSelf: 'center',
-    borderRadius: 18,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(59,130,246,0.18)',
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderColor: 'rgba(148,163,184,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.95)',
     overflow: 'hidden',
     shadowColor: '#020617',
-    shadowOpacity: 0.10,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 10,
+  },
+  shellCompact: {
+    borderRadius: 20,
   },
   brandPanel: {
-    backgroundColor: 'rgba(255,255,255,0.82)',
-    paddingVertical: 16,
-    paddingHorizontal: 18,
+    backgroundColor: '#f8fbff',
+    paddingVertical: 18,
+    paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(59,130,246,0.10)',
-    alignItems: 'center',
+    borderBottomColor: 'rgba(148,163,184,0.16)',
+    alignItems: 'flex-start',
+  },
+  brandPanelCompact: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  brandBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: '#dbeafe',
+    borderWidth: 1,
+    borderColor: 'rgba(59,130,246,0.18)',
+    marginBottom: 12,
+  },
+  brandBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1d4ed8',
   },
   brandHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
   },
   logoWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 18,
+    width: 58,
+    height: 58,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(219,234,254,0.75)',
+    backgroundColor: '#e0ecff',
     borderWidth: 1,
-    borderColor: 'rgba(59,130,246,0.22)',
+    borderColor: 'rgba(59,130,246,0.18)',
+    marginRight: 14,
+  },
+  logoWrapCompact: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
     marginRight: 12,
   },
   logo: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
   },
   brandTitleWrap: {
     flex: 1,
     minWidth: 0,
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   brandTitle: {
-    fontSize: 30.03,
-    lineHeight: 34,
-    fontWeight: '900',
+    fontSize: 28,
+    lineHeight: 30,
+    fontWeight: '800',
     color: '#0f172a',
-    marginTop: 6,
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
     includeFontPadding: true,
-    textShadowColor: 'rgba(37,99,235,0.22)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
+  },
+  brandTitleCompact: {
+    fontSize: 24,
+    lineHeight: 26,
+  },
+  brandCaption: {
+    marginTop: 3,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  brandCaptionCompact: {
+    fontSize: 12,
   },
   brandSubtitle: {
-    marginTop: 10,
+    marginTop: 14,
     color: '#334155',
-    lineHeight: 19,
+    lineHeight: 20,
     maxWidth: 320,
-    textAlign: 'center',
+    fontSize: 14,
+  },
+  brandSubtitleCompact: {
+    marginTop: 12,
+    fontSize: 13,
+    lineHeight: 18,
   },
   card: {
     width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.78)',
-    padding: 20,
-    paddingBottom: 28,
-    minHeight: 340,
+    backgroundColor: '#ffffff',
+    padding: 22,
+    paddingBottom: 26,
+    minHeight: 360,
+    gap: 14,
+  },
+  cardCompact: {
+    minHeight: 0,
+    padding: 16,
+    paddingBottom: 18,
     gap: 12,
   },
   previewCard: {
@@ -426,6 +518,19 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(59,130,246,0.16)',
     backgroundColor: 'rgba(239,246,255,0.86)',
     padding: 10,
+  },
+  previewCardNarrow: {
+    padding: 9,
+    gap: 10,
+  },
+  fieldGroup: {
+    gap: 7,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#334155',
+    letterSpacing: 0.2,
   },
   previewAvatar: {
     width: 56,
@@ -454,48 +559,51 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   previewKicker: {
-    fontSize: 11.55,
-    letterSpacing: 1.2,
+    fontSize: 10.5,
+    letterSpacing: 0.8,
     color: '#475569',
     fontWeight: '700',
   },
   previewName: {
     marginTop: 2,
-    fontSize: 18.48,
+    fontSize: 17,
     fontWeight: '800',
     color: '#0f172a',
   },
   input: {
     borderWidth: 1,
-    borderColor: 'rgba(59,130,246,0.16)',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderColor: '#d7e1ee',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    backgroundColor: '#f8fafc',
     color: '#0f172a',
+    fontSize: 15,
   },
   inputFocused: {
-    borderColor: 'rgba(37,99,235,0.55)',
+    borderColor: '#3b82f6',
     shadowColor: 'rgba(37,99,235,0.35)',
-    shadowOpacity: 1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
   inputError: {
     borderColor: 'rgba(225,29,72,0.45)',
   },
   fieldError: {
-    marginTop: -6,
+    marginTop: -8,
+    marginLeft: 2,
     color: '#be123c',
-    fontSize: 13.86,
+    fontSize: 13,
     fontWeight: '600',
   },
   rememberRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    alignItems: 'flex-start',
+    gap: 12,
     marginTop: 2,
+    paddingTop: 2,
   },
   checkbox: {
     width: 20,
@@ -513,23 +621,37 @@ const styles = StyleSheet.create({
   },
   checkboxMark: {
     color: '#ffffff',
-    fontSize: 13.86,
+    fontSize: 13,
     fontWeight: '900',
     lineHeight: 14,
   },
+  rememberTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
   rememberText: {
     color: '#334155',
-    fontSize: 15.02,
+    fontSize: 14,
     fontWeight: '600',
   },
+  rememberHint: {
+    marginTop: 2,
+    fontSize: 12,
+    color: '#64748b',
+  },
   button: {
-    marginTop: 4,
+    marginTop: 2,
     backgroundColor: '#1d4ed8',
-    borderRadius: 10,
-    paddingVertical: 12,
+    borderRadius: 12,
+    paddingVertical: 14,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#1e40af',
+    shadowColor: '#1e3a8a',
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
   buttonPressed: {
     backgroundColor: '#1e40af',
@@ -540,25 +662,38 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontWeight: '700',
+    fontSize: 16,
+  },
+  secondaryDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 2,
+  },
+  secondaryDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e2e8f0',
+  },
+  secondaryDividerText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748b',
+    letterSpacing: 0.3,
   },
   biometricTouchArea: {
-    marginTop: 2,
+    marginTop: -2,
     alignItems: 'stretch',
     justifyContent: 'center',
     borderRadius: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: 'rgba(37,99,235,0.35)',
-    backgroundColor: '#eff6ff',
-    shadowColor: '#1e3a8a',
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    borderColor: '#cbd5e1',
+    backgroundColor: '#f8fafc',
   },
   biometricTouchAreaPressed: {
-    backgroundColor: '#dbeafe',
+    backgroundColor: '#eef2ff',
   },
   biometricRowButton: {
     flexDirection: 'row',
@@ -567,11 +702,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   biometricRowIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(37,99,235,0.35)',
+    borderColor: 'rgba(37,99,235,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#ffffff',
@@ -582,17 +717,18 @@ const styles = StyleSheet.create({
     tintColor: '#1d4ed8',
   },
   biometricRowLabel: {
-    color: '#1e3a8a',
+    color: '#334155',
     fontWeight: '700',
-    fontSize: 17,
+    fontSize: 15,
   },
   formError: {
     color: '#be123c',
-    backgroundColor: 'rgba(254,226,226,0.95)',
+    backgroundColor: '#fff1f2',
     borderWidth: 1,
-    borderColor: 'rgba(254,202,202,0.95)',
-    borderRadius: 10,
-    padding: 10,
+    borderColor: '#fecdd3',
+    borderRadius: 12,
+    padding: 12,
     fontWeight: '700',
+    lineHeight: 18,
   },
 });
