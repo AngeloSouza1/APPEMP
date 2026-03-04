@@ -14,6 +14,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -102,6 +103,8 @@ const toEditableItem = (item: Pedido['itens'][number], index: number): EditableI
 export default function PedidoEditarScreen({ route, navigation }: Props) {
   const { id } = route.params;
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const compactLayout = height < 760;
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [rotas, setRotas] = useState<RotaResumo[]>([]);
   const [produtos, setProdutos] = useState<ProdutoResumo[]>([]);
@@ -541,21 +544,25 @@ export default function PedidoEditarScreen({ route, navigation }: Props) {
       <View style={styles.backgroundGlowCyan} />
       <View style={styles.backgroundGlowSoft} />
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: topSafeOffset }]}> 
-        <View style={styles.headerCard}>
+      <ScrollView contentContainerStyle={[styles.content, compactLayout && styles.contentCompact, { paddingTop: topSafeOffset }]}> 
+        <View style={[styles.headerCard, compactLayout && styles.headerCardCompact]}>
           <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>Editar Pedido #{pedido.id}</Text>
-            <Text style={styles.headerSubtitle}>{pedido.cliente_nome}</Text>
+            <Text style={[styles.headerTitle, compactLayout && styles.headerTitleCompact]}>Editar Pedido #{pedido.id}</Text>
+            <Text style={[styles.headerSubtitle, compactLayout && styles.headerSubtitleCompact]}>{pedido.cliente_nome}</Text>
           </View>
           <Pressable
-            style={({ pressed }) => [styles.headerIconButton, pressed && styles.headerIconButtonPressed]}
+            style={({ pressed }) => [
+              styles.headerIconButton,
+              compactLayout && styles.headerIconButtonCompact,
+              pressed && styles.headerIconButtonPressed,
+            ]}
             onPress={() => navigation.goBack()}
           >
             <Text style={styles.headerIconText}>{'<'}</Text>
           </Pressable>
         </View>
 
-        <View style={styles.formCard}>
+        <View style={[styles.formCard, compactLayout && styles.formCardCompact]}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Dados do Pedido</Text>
           </View>
@@ -1022,6 +1029,10 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     gap: 10,
   },
+  contentCompact: {
+    paddingHorizontal: 10,
+    gap: 8,
+  },
   centeredScreen: {
     flex: 1,
     justifyContent: 'center',
@@ -1079,6 +1090,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     columnGap: 10,
   },
+  headerCardCompact: {
+    borderRadius: 12,
+    paddingHorizontal: 9,
+    paddingVertical: 9,
+    columnGap: 8,
+  },
   headerInfo: {
     flex: 1,
   },
@@ -1087,11 +1104,17 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0f172a',
   },
+  headerTitleCompact: {
+    fontSize: 21,
+  },
   headerSubtitle: {
     marginTop: 2,
     color: '#475569',
     fontSize: 13.86,
     fontWeight: '600',
+  },
+  headerSubtitleCompact: {
+    fontSize: 12.8,
   },
   headerIconButton: {
     minWidth: 82,
@@ -1104,6 +1127,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
+  },
+  headerIconButtonCompact: {
+    minWidth: 64,
+    height: 34,
+    borderRadius: 10,
   },
   headerIconButtonPressed: {
     opacity: 0.82,
@@ -1121,6 +1149,11 @@ const styles = StyleSheet.create({
     borderColor: '#dbeafe',
     padding: 12,
     gap: 9,
+  },
+  formCardCompact: {
+    borderRadius: 12,
+    padding: 10,
+    gap: 8,
   },
   fieldLabel: {
     color: '#334155',

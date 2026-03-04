@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -68,6 +69,9 @@ const STATUS_THEME: Record<string, { bg: string; border: string; text: string; l
 export default function PedidosScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
+  const { height, width } = useWindowDimensions();
+  const compactLayout = height < 760;
+  const narrowLayout = width < 390;
 
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -345,8 +349,8 @@ export default function PedidosScreen() {
       <View style={styles.backgroundGlowCyan} />
       <View style={styles.backgroundGlowSoft} />
 
-      <View style={[styles.topBar, { paddingTop: topSafeOffset }]}>
-        <View style={styles.headerCard}>
+      <View style={[styles.topBar, compactLayout && styles.topBarCompact, { paddingTop: topSafeOffset }]}>
+        <View style={[styles.headerCard, compactLayout && styles.headerCardCompact]}>
           <View style={styles.headerInfo}>
             <View style={styles.headerTitleRow}>
               <Image
@@ -354,11 +358,15 @@ export default function PedidosScreen() {
                 style={styles.headerTitleIcon}
                 resizeMode="contain"
               />
-              <Text style={styles.headerTitle}>Pedidos</Text>
+              <Text style={[styles.headerTitle, compactLayout && styles.headerTitleCompact]}>Pedidos</Text>
             </View>
           </View>
           <Pressable
-            style={({ pressed }) => [styles.headerIconButton, pressed && styles.headerIconButtonPressed]}
+            style={({ pressed }) => [
+              styles.headerIconButton,
+              compactLayout && styles.headerIconButtonCompact,
+              pressed && styles.headerIconButtonPressed,
+            ]}
             onPress={() => navigation.navigate('Home')}
           >
             <Text style={styles.headerIconText}>{'<'}</Text>
@@ -366,7 +374,11 @@ export default function PedidosScreen() {
         </View>
 
         <Pressable
-          style={({ pressed }) => [styles.headerAddButtonStandalone, pressed && styles.headerAddButtonPressed]}
+          style={({ pressed }) => [
+            styles.headerAddButtonStandalone,
+            compactLayout && styles.headerAddButtonStandaloneCompact,
+            pressed && styles.headerAddButtonPressed,
+          ]}
           onPress={() => navigation.navigate('PedidoNovo')}
         >
           <Text style={styles.headerAddIcon}>+</Text>
@@ -374,9 +386,15 @@ export default function PedidosScreen() {
         </Pressable>
       </View>
 
-      <View style={[styles.content, { paddingTop: topSafeOffset + 138 }]}>
+      <View
+        style={[
+          styles.content,
+          compactLayout && styles.contentCompact,
+          { paddingTop: topSafeOffset + (compactLayout ? 122 : 138) },
+        ]}
+      >
 
-        <View style={styles.kpiRow}>
+        <View style={[styles.kpiRow, narrowLayout && styles.stackRow]}>
           <View style={styles.kpiCard}>
             <Text style={styles.kpiLabel}>Pedidos na página</Text>
             <Text style={styles.kpiValue}>{resumoPagina.totalPedidos}</Text>
@@ -403,7 +421,7 @@ export default function PedidosScreen() {
 
           {filtrosAbertos ? (
             <>
-              <View style={styles.filtersInputs}>
+              <View style={[styles.filtersInputs, narrowLayout && styles.stackRow]}>
                 <View style={styles.filterField}>
                   <Text style={styles.filterLabel}>Busca</Text>
                   <TextInput
@@ -839,6 +857,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingBottom: 10,
   },
+  contentCompact: {
+    paddingHorizontal: 10,
+    paddingBottom: 8,
+  },
   topBar: {
     position: 'absolute',
     top: 0,
@@ -846,6 +868,9 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 20,
     paddingHorizontal: 12,
+  },
+  topBarCompact: {
+    paddingHorizontal: 10,
   },
   headerCard: {
     backgroundColor: 'rgba(255,255,255,0.9)',
@@ -864,6 +889,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },
+  headerCardCompact: {
+    borderRadius: 12,
+    paddingHorizontal: 9,
+    paddingVertical: 9,
+    columnGap: 8,
+    marginBottom: 8,
+  },
   headerIconButton: {
     minWidth: 82,
     height: 38,
@@ -876,6 +908,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     columnGap: 6,
     justifyContent: 'center',
+  },
+  headerIconButtonCompact: {
+    minWidth: 64,
+    height: 34,
+    borderRadius: 10,
   },
   headerAddButton: {
     minWidth: 88,
@@ -904,6 +941,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     columnGap: 7,
     justifyContent: 'center',
+  },
+  headerAddButtonStandaloneCompact: {
+    marginTop: 6,
+    marginBottom: 8,
+    height: 44,
+    borderRadius: 10,
   },
   headerAddButtonPressed: {
     opacity: 0.86,
@@ -945,10 +988,17 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0f172a',
   },
+  headerTitleCompact: {
+    fontSize: 24,
+  },
   kpiRow: {
     flexDirection: 'row',
     gap: 8,
     marginBottom: 10,
+  },
+  stackRow: {
+    flexDirection: 'column',
+    gap: 8,
   },
   kpiCard: {
     flex: 1,

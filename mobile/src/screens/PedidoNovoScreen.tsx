@@ -14,6 +14,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -75,6 +76,9 @@ const formatarDataAtual = () => {
 
 export default function PedidoNovoScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { height, width } = useWindowDimensions();
+  const compactLayout = height < 760;
+  const narrowLayout = width < 380;
   const [clientes, setClientes] = useState<ClienteResumo[]>([]);
   const [rotas, setRotas] = useState<RotaResumo[]>([]);
   const [produtos, setProdutos] = useState<ProdutoResumo[]>([]);
@@ -575,23 +579,30 @@ export default function PedidoNovoScreen({ navigation }: Props) {
       <ScrollView
         contentContainerStyle={[
           styles.content,
+          compactLayout && styles.contentCompact,
           { paddingTop: topSafeOffset, paddingBottom: 108 + Math.max(insets.bottom, 8) },
         ]}
       >
-        <View style={styles.headerCard}>
+        <View style={[styles.headerCard, compactLayout && styles.headerCardCompact]}>
           <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>Novo Pedido</Text>
-            <Text style={styles.headerSubtitle}>Preencha os dados para criar</Text>
+            <Text style={[styles.headerTitle, compactLayout && styles.headerTitleCompact]}>Novo Pedido</Text>
+            <Text style={[styles.headerSubtitle, compactLayout && styles.headerSubtitleCompact]}>
+              Preencha os dados para criar
+            </Text>
           </View>
           <Pressable
-            style={({ pressed }) => [styles.headerIconButton, pressed && styles.headerIconButtonPressed]}
+            style={({ pressed }) => [
+              styles.headerIconButton,
+              compactLayout && styles.headerIconButtonCompact,
+              pressed && styles.headerIconButtonPressed,
+            ]}
             onPress={() => navigation.goBack()}
           >
             <Text style={styles.headerIconText}>{'<'}</Text>
           </Pressable>
         </View>
 
-        <View style={styles.formCard}>
+        <View style={[styles.formCard, compactLayout && styles.formCardCompact]}>
           <Text style={styles.fieldLabel}>Cliente</Text>
           <Pressable
             style={({ pressed }) => [
@@ -617,7 +628,7 @@ export default function PedidoNovoScreen({ navigation }: Props) {
               <TextInput
                 value={buscaCliente}
                 onChangeText={setBuscaCliente}
-                style={styles.input}
+                style={[styles.input, narrowLayout && styles.inputCompact]}
                 placeholder="Buscar cliente"
                 placeholderTextColor="#64748b"
               />
@@ -1145,6 +1156,10 @@ const styles = StyleSheet.create({
     paddingBottom: 108,
     gap: 10,
   },
+  contentCompact: {
+    paddingHorizontal: 10,
+    gap: 8,
+  },
   centeredScreen: {
     flex: 1,
     justifyContent: 'center',
@@ -1178,6 +1193,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     columnGap: 10,
   },
+  headerCardCompact: {
+    borderRadius: 12,
+    paddingHorizontal: 9,
+    paddingVertical: 9,
+    columnGap: 8,
+  },
   headerInfo: {
     flex: 1,
   },
@@ -1186,11 +1207,17 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0f172a',
   },
+  headerTitleCompact: {
+    fontSize: 21,
+  },
   headerSubtitle: {
     marginTop: 2,
     color: '#475569',
     fontSize: 13.86,
     fontWeight: '600',
+  },
+  headerSubtitleCompact: {
+    fontSize: 12.8,
   },
   headerIconButton: {
     minWidth: 82,
@@ -1203,6 +1230,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
+  },
+  headerIconButtonCompact: {
+    minWidth: 64,
+    height: 34,
+    borderRadius: 10,
   },
   headerIconButtonPressed: {
     opacity: 0.82,
@@ -1221,6 +1253,11 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 9,
   },
+  formCardCompact: {
+    borderRadius: 12,
+    padding: 10,
+    gap: 8,
+  },
   disabledSectionCard: {
     opacity: 0.62,
   },
@@ -1229,6 +1266,9 @@ const styles = StyleSheet.create({
     fontSize: 13.86,
     fontWeight: '700',
     marginTop: 2,
+  },
+  inputCompact: {
+    paddingVertical: 10,
   },
   nfToggleRow: {
     marginTop: 2,

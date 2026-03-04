@@ -235,7 +235,7 @@ export default function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user, logout } = useAuth();
   const insets = useSafeAreaInsets();
-  const { height } = useWindowDimensions();
+  const { height, width } = useWindowDimensions();
   const moduleColumns = 2;
   const [menuAberto, setMenuAberto] = useState(false);
   const [mostrarSobreApp, setMostrarSobreApp] = useState(false);
@@ -697,6 +697,7 @@ export default function HomeScreen() {
 
   const telaPequena = height <= 760;
   const telaGrande = height >= 900;
+  const telaEstreita = width < 390;
 
   const ajuste = {
     appBarMarginBottom: telaPequena ? 10 : 12,
@@ -782,15 +783,15 @@ export default function HomeScreen() {
       <View style={styles.backgroundGlowCyan} />
       <View style={styles.backgroundGlowSoft} />
 
-      <View style={[styles.content, { paddingTop: topSafeOffset }]}>
+      <View style={[styles.content, telaEstreita && styles.contentCompact, { paddingTop: topSafeOffset }]}>
         {appNotificationMessage ? (
           <View style={styles.appNotificationBanner}>
             <Text style={styles.appNotificationText}>{appNotificationMessage}</Text>
           </View>
         ) : null}
-        <View style={[styles.appBar, { marginBottom: ajuste.appBarMarginBottom }]}>
-          <View style={styles.appBarLeft}>
-            <View style={styles.avatar}>
+        <View style={[styles.appBar, telaEstreita && styles.appBarCompact, { marginBottom: ajuste.appBarMarginBottom }]}>
+          <View style={[styles.appBarLeft, telaEstreita && styles.appBarLeftCompact]}>
+            <View style={[styles.avatar, telaEstreita && styles.avatarCompact]}>
               {user?.imagem_url ? (
                 <Image source={{ uri: user.imagem_url }} style={styles.avatarImage} resizeMode="cover" />
               ) : (
@@ -799,8 +800,12 @@ export default function HomeScreen() {
             </View>
             <View style={styles.headerInfo}>
               <Text style={styles.headerEyebrow}>APPEMP</Text>
-              <Text style={styles.headerTitle}>{user?.nome || 'Usuário'}</Text>
-              <Text style={styles.headerSubtitle}>Perfil: {user?.perfil || '-'}</Text>
+              <Text style={[styles.headerTitle, telaEstreita && styles.headerTitleCompact]}>
+                {user?.nome || 'Usuário'}
+              </Text>
+              <Text style={[styles.headerSubtitle, telaEstreita && styles.headerSubtitleCompact]}>
+                Perfil: {user?.perfil || '-'}
+              </Text>
             </View>
           </View>
           <View style={styles.menuWrap}>
@@ -883,7 +888,7 @@ export default function HomeScreen() {
                 <Text style={styles.driverBannerText}>Dashboard do motorista (status Conferir)</Text>
               </View>
 
-              <View style={styles.kpiRow}>
+              <View style={[styles.kpiRow, telaEstreita && styles.kpiRowCompact]}>
                 <View style={[styles.kpiCard, styles.kpiBlue]}>
                   <Text style={styles.kpiLabel}>Pedidos</Text>
                   <Text style={styles.kpiValue}>{resumoMotorista.totalPedidos}</Text>
@@ -1334,6 +1339,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingTop: 14,
   },
+  contentCompact: {
+    paddingHorizontal: 10,
+    paddingTop: 12,
+  },
   appBar: {
     backgroundColor: 'rgba(255,255,255,0.9)',
     borderRadius: 14,
@@ -1348,11 +1357,19 @@ const styles = StyleSheet.create({
     columnGap: 12,
     zIndex: 5,
   },
+  appBarCompact: {
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    columnGap: 8,
+  },
   appBarLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     columnGap: 12,
     flex: 1,
+  },
+  appBarLeftCompact: {
+    columnGap: 9,
   },
   modulesHeaderWrap: {
     width: '100%',
@@ -1367,6 +1384,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+  },
+  avatarCompact: {
+    width: 46,
+    height: 46,
+    borderRadius: 13,
   },
   avatarImage: {
     width: '100%',
@@ -1393,10 +1415,16 @@ const styles = StyleSheet.create({
     color: '#0f172a',
     marginTop: 1,
   },
+  headerTitleCompact: {
+    fontSize: 18,
+  },
   headerSubtitle: {
     color: '#334155',
     marginTop: 1,
     fontSize: 13.86,
+  },
+  headerSubtitleCompact: {
+    fontSize: 12.8,
   },
   appNotificationBanner: {
     borderRadius: 10,
@@ -1923,6 +1951,9 @@ const styles = StyleSheet.create({
   kpiRow: {
     flexDirection: 'row',
     gap: 8,
+  },
+  kpiRowCompact: {
+    flexDirection: 'column',
   },
   kpiCard: {
     flex: 1,

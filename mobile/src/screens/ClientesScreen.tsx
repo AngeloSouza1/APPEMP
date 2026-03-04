@@ -14,6 +14,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -29,6 +30,8 @@ export default function ClientesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const compactLayout = height < 760;
 
   const [clientes, setClientes] = useState<ClienteResumo[]>([]);
   const [rotas, setRotas] = useState<RotaResumo[]>([]);
@@ -66,7 +69,7 @@ export default function ClientesScreen() {
     Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20,
     insets.top + 10
   );
-  const contentTopOffset = topSafeOffset + (canManageCadastros ? 138 : 98);
+  const contentTopOffset = topSafeOffset + (canManageCadastros ? (compactLayout ? 122 : 138) : (compactLayout ? 88 : 98));
 
   const carregarDados = useCallback(async (isRefresh = false) => {
     if (isRefresh) {
@@ -282,8 +285,8 @@ export default function ClientesScreen() {
       <View style={styles.backgroundGlowCyan} />
       <View style={styles.backgroundGlowSoft} />
 
-      <View style={[styles.topBar, { paddingTop: topSafeOffset }]}>
-        <View style={styles.headerCard}>
+      <View style={[styles.topBar, compactLayout && styles.topBarCompact, { paddingTop: topSafeOffset }]}>
+        <View style={[styles.headerCard, compactLayout && styles.headerCardCompact]}>
           <View style={styles.headerInfo}>
             <View style={styles.headerTitleRow}>
               <Image
@@ -291,11 +294,15 @@ export default function ClientesScreen() {
                 style={styles.headerTitleIcon}
                 resizeMode="contain"
               />
-              <Text style={styles.headerTitle}>Clientes</Text>
+              <Text style={[styles.headerTitle, compactLayout && styles.headerTitleCompact]}>Clientes</Text>
             </View>
           </View>
           <Pressable
-            style={({ pressed }) => [styles.headerIconButton, pressed && styles.headerIconButtonPressed]}
+            style={({ pressed }) => [
+              styles.headerIconButton,
+              compactLayout && styles.headerIconButtonCompact,
+              pressed && styles.headerIconButtonPressed,
+            ]}
             onPress={() => navigation.navigate('Home')}
           >
             <Text style={styles.headerIconText}>{'<'}</Text>
@@ -304,7 +311,11 @@ export default function ClientesScreen() {
 
         {canManageCadastros ? (
           <Pressable
-                style={({ pressed }) => [styles.headerAddButtonStandalone, pressed && styles.headerAddButtonPressed]}
+                style={({ pressed }) => [
+                  styles.headerAddButtonStandalone,
+                  compactLayout && styles.headerAddButtonStandaloneCompact,
+                  pressed && styles.headerAddButtonPressed,
+                ]}
                 onPress={abrirNovoModal}
               >
                 <Text style={styles.headerAddIcon}>+</Text>
@@ -313,8 +324,8 @@ export default function ClientesScreen() {
         ) : null}
       </View>
 
-      <View style={[styles.content, { paddingTop: contentTopOffset }]}>
-        <View style={styles.filtersCard}>
+      <View style={[styles.content, compactLayout && styles.contentCompact, { paddingTop: contentTopOffset }]}>
+        <View style={[styles.filtersCard, compactLayout && styles.filtersCardCompact]}>
           <TextInput
             placeholder="Buscar por código ou nome"
             placeholderTextColor="#64748b"
@@ -927,6 +938,9 @@ const styles = StyleSheet.create({
     zIndex: 20,
     paddingHorizontal: 12,
   },
+  topBarCompact: {
+    paddingHorizontal: 10,
+  },
   headerCard: {
     backgroundColor: 'rgba(255,255,255,0.9)',
     borderRadius: 14,
@@ -943,6 +957,13 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
+  },
+  headerCardCompact: {
+    borderRadius: 12,
+    paddingHorizontal: 9,
+    paddingVertical: 9,
+    columnGap: 8,
+    marginBottom: 8,
   },
   headerInfo: {
     flex: 1,
@@ -961,6 +982,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0f172a',
   },
+  headerTitleCompact: {
+    fontSize: 24,
+  },
   headerSubtitle: {
     marginTop: 2,
     color: '#475569',
@@ -978,6 +1002,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerIconButtonCompact: {
+    minWidth: 64,
+    height: 34,
+    borderRadius: 10,
+  },
   headerIconButtonPressed: {
     opacity: 0.82,
   },
@@ -991,6 +1020,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 12,
     paddingBottom: 10,
+  },
+  contentCompact: {
+    paddingHorizontal: 10,
+    paddingBottom: 8,
   },
   headerAddButtonStandalone: {
     marginTop: 8,
@@ -1006,6 +1039,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     columnGap: 7,
     justifyContent: 'center',
+  },
+  headerAddButtonStandaloneCompact: {
+    marginTop: 6,
+    marginBottom: 8,
+    height: 44,
+    borderRadius: 10,
   },
   headerAddButtonPressed: {
     opacity: 0.86,
@@ -1029,6 +1068,11 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 10,
     gap: 8,
+  },
+  filtersCardCompact: {
+    padding: 9,
+    marginBottom: 8,
+    gap: 7,
   },
   filtersFooterRow: {
     flexDirection: 'row',

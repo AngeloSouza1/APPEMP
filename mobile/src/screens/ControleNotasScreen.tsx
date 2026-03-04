@@ -13,6 +13,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -76,6 +77,9 @@ const getCanhotoShareUrl = (pedidoId: number) => `${getShareBaseUrl()}/c/${pedid
 export default function ControleNotasScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
+  const { height, width } = useWindowDimensions();
+  const compactLayout = height < 760;
+  const narrowLayout = width < 390;
 
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -588,19 +592,22 @@ export default function ControleNotasScreen() {
       <View style={styles.backgroundGlowBlue} />
       <View style={styles.backgroundGlowCyan} />
 
-      <View style={[styles.content, { paddingTop: topSafeOffset }]}>
-        <View style={styles.headerCard}>
+      <View style={[styles.content, compactLayout && styles.contentCompact, { paddingTop: topSafeOffset }]}>
+        <View style={[styles.headerCard, compactLayout && styles.headerCardCompact]}>
           <View style={styles.headerTitleRow}>
             <Text style={styles.headerIcon}>🧾</Text>
-            <Text style={styles.headerTitle}>Controle de Notas</Text>
+            <Text style={[styles.headerTitle, compactLayout && styles.headerTitleCompact]}>Controle de Notas</Text>
           </View>
-          <Pressable style={styles.headerBackButton} onPress={() => navigation.navigate('Home')}>
+          <Pressable
+            style={[styles.headerBackButton, compactLayout && styles.headerBackButtonCompact]}
+            onPress={() => navigation.navigate('Home')}
+          >
             <Text style={styles.headerBackText}>{'<'}</Text>
           </Pressable>
         </View>
 
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryHeader}>
+        <View style={[styles.summaryCard, compactLayout && styles.summaryCardCompact]}>
+          <View style={[styles.summaryHeader, narrowLayout && styles.summaryHeaderCompact]}>
             <View>
               <Text style={styles.summaryTitle}>Pedidos com NF</Text>
               <Text style={styles.summaryHint}>Somente pedidos com NF válida (não cancelados)</Text>
@@ -628,7 +635,7 @@ export default function ControleNotasScreen() {
             </View>
           </View>
 
-          <View style={styles.summaryGrid}>
+          <View style={[styles.summaryGrid, narrowLayout && styles.summaryGridCompact]}>
             <View style={styles.summaryMetricCard}>
               <Text style={styles.summaryMetricLabel}>Valor selecionado</Text>
               <Text style={styles.summaryMetricValueMoney}>{formatarMoeda(totalSelecionado)}</Text>
@@ -640,7 +647,7 @@ export default function ControleNotasScreen() {
           </View>
         </View>
 
-        <View style={styles.tabsRow}>
+        <View style={[styles.tabsRow, narrowLayout && styles.stackRow]}>
           <Pressable
             style={[styles.tabButton, abaAtiva === 'conferir' && styles.tabButtonActive]}
             onPress={() => setAbaAtiva('conferir')}
@@ -660,7 +667,7 @@ export default function ControleNotasScreen() {
         </View>
 
         {abaAtiva === 'conferir' ? (
-          <View style={styles.bulkActionsRow}>
+          <View style={[styles.bulkActionsRow, narrowLayout && styles.stackRow]}>
             <Pressable style={styles.bulkActionButton} onPress={selecionarTodosPedidos}>
               <Text style={styles.bulkActionButtonText}>Selecionar todos</Text>
             </Pressable>
@@ -870,6 +877,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingBottom: 12,
   },
+  contentCompact: {
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+  },
   headerCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -882,9 +893,15 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     marginBottom: 10,
   },
+  headerCardCompact: {
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    marginBottom: 8,
+  },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', columnGap: 8 },
   headerIcon: { fontSize: 23 },
   headerTitle: { color: '#0f172a', fontWeight: '800', fontSize: 24 },
+  headerTitleCompact: { fontSize: 21 },
   headerBackButton: {
     width: 62,
     height: 42,
@@ -894,6 +911,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#f8fbff',
+  },
+  headerBackButtonCompact: {
+    width: 54,
+    height: 38,
+    borderRadius: 10,
   },
   headerBackText: { color: '#1d4ed8', fontWeight: '700', fontSize: 18 },
   summaryCard: {
@@ -905,11 +927,20 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginBottom: 10,
   },
+  summaryCardCompact: {
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    marginBottom: 8,
+  },
   summaryHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     columnGap: 8,
+  },
+  summaryHeaderCompact: {
+    flexDirection: 'column',
+    rowGap: 8,
   },
   summaryTitle: { color: '#334155', fontSize: 14, fontWeight: '700' },
   summaryHint: { color: '#64748b', fontSize: 11.5, fontWeight: '600', marginTop: 2 },
@@ -930,6 +961,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     rowGap: 8,
     columnGap: 6,
+  },
+  summaryGridCompact: {
+    flexDirection: 'column',
   },
   summaryInlineStats: {
     marginTop: 8,
@@ -969,6 +1003,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     columnGap: 8,
     marginBottom: 8,
+  },
+  stackRow: {
+    flexDirection: 'column',
+    rowGap: 8,
+    columnGap: 0,
   },
   tabButton: {
     flex: 1,
