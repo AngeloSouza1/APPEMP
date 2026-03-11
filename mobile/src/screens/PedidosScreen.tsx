@@ -394,7 +394,7 @@ export default function PedidosScreen() {
         ]}
       >
 
-        <View style={[styles.kpiRow, narrowLayout && styles.stackRow]}>
+        <View style={[styles.kpiRow, (narrowLayout || compactLayout) && styles.stackRow]}>
           <View style={styles.kpiCard}>
             <Text style={styles.kpiLabel}>Pedidos na página</Text>
             <Text style={styles.kpiValue}>{resumoPagina.totalPedidos}</Text>
@@ -1004,9 +1004,12 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
-    backgroundColor: 'rgba(239,246,255,0.95)',
-    padding: 10,
+    borderColor: '#93c5fd',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    minHeight: 68,
+    justifyContent: 'center',
     shadowColor: '#1d4ed8',
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -1015,20 +1018,20 @@ const styles = StyleSheet.create({
   },
   kpiLabel: {
     color: '#475569',
-    fontWeight: '600',
-    fontSize: 12.71,
+    fontWeight: '700',
+    fontSize: 12.8,
   },
   kpiValue: {
-    marginTop: 3,
+    marginTop: 4,
     color: '#0f172a',
     fontWeight: '800',
-    fontSize: 24.26,
+    fontSize: 26,
   },
   kpiValueSmall: {
     marginTop: 4,
     color: '#0f172a',
     fontWeight: '800',
-    fontSize: 17.33,
+    fontSize: 18,
   },
   filtersCard: {
     backgroundColor: 'rgba(255,255,255,0.92)',

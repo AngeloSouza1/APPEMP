@@ -664,17 +664,15 @@ export default function ControleNotasScreen() {
           </View>
 
           <View style={[styles.summaryInlineStats, narrowLayout && styles.summaryInlineStatsCompact]}>
-            <View style={[styles.summaryInlineItem, narrowLayout && styles.summaryInlineItemCompact]}>
+            <View style={[styles.summaryInlineItem, styles.summaryInlineStatCard, narrowLayout && styles.summaryInlineItemCompact]}>
               <Text style={styles.summaryInlineLabel}>A conferir</Text>
               <Text style={styles.summaryInlineValue}>{pedidosAConferir.length}</Text>
             </View>
-            <View style={[styles.summaryInlineDivider, narrowLayout && styles.summaryInlineDividerCompact]} />
-            <View style={[styles.summaryInlineItem, narrowLayout && styles.summaryInlineItemCompact]}>
+            <View style={[styles.summaryInlineItem, styles.summaryInlineStatCard, narrowLayout && styles.summaryInlineItemCompact]}>
               <Text style={styles.summaryInlineLabel}>Antecipados</Text>
               <Text style={styles.summaryInlineValue}>{pedidosEfetivados.length}</Text>
             </View>
-            <View style={[styles.summaryInlineDivider, narrowLayout && styles.summaryInlineDividerCompact]} />
-            <View style={[styles.summaryInlineItem, narrowLayout && styles.summaryInlineItemCompact]}>
+            <View style={[styles.summaryInlineItem, styles.summaryInlineStatCard, narrowLayout && styles.summaryInlineItemCompact]}>
               <Text style={styles.summaryInlineLabel}>Selecionados</Text>
               <Text style={styles.summaryInlineValue}>{idsSelecionados.length}</Text>
             </View>
@@ -1085,26 +1083,29 @@ const styles = StyleSheet.create({
   },
   summaryInlineStats: {
     marginTop: 8,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  summaryInlineStatsCompact: {
+    flexDirection: 'column',
+    gap: 8,
+  },
+  summaryInlineItem: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  summaryInlineItemCompact: {
+    alignItems: 'flex-start',
+  },
+  summaryInlineStatCard: {
     borderRadius: 9,
     borderWidth: 1,
     borderColor: '#dbeafe',
     backgroundColor: '#ffffff',
-    paddingHorizontal: 8,
-    paddingVertical: 7,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  summaryInlineStatsCompact: {
-    flexDirection: 'column',
-    alignItems: 'stretch',
-    rowGap: 8,
-  },
-  summaryInlineItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  summaryInlineItemCompact: {
-    alignItems: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    minHeight: 58,
+    justifyContent: 'center',
   },
   summaryInlineDivider: {
     width: 1,
@@ -1115,20 +1116,22 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 1,
   },
-  summaryInlineLabel: { color: '#64748b', fontSize: 11, fontWeight: '700' },
-  summaryInlineValue: { color: '#0f172a', fontSize: 16, fontWeight: '900', marginTop: 1 },
+  summaryInlineLabel: { color: '#475569', fontSize: 12, fontWeight: '700' },
+  summaryInlineValue: { color: '#0f172a', fontSize: 20, fontWeight: '900', marginTop: 3 },
   summaryMetricCard: {
     flex: 1,
     borderRadius: 9,
     borderWidth: 1,
-    borderColor: '#dbeafe',
+    borderColor: '#bfdbfe',
     backgroundColor: '#ffffff',
-    paddingHorizontal: 8,
-    paddingVertical: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    minHeight: 66,
+    justifyContent: 'center',
   },
-  summaryMetricLabel: { color: '#64748b', fontSize: 11.5, fontWeight: '700' },
-  summaryMetricValue: { color: '#0f172a', fontSize: 17, fontWeight: '800', marginTop: 1 },
-  summaryMetricValueMoney: { color: '#1d4ed8', fontSize: 16, fontWeight: '900', marginTop: 1 },
+  summaryMetricLabel: { color: '#475569', fontSize: 12, fontWeight: '700' },
+  summaryMetricValue: { color: '#0f172a', fontSize: 18, fontWeight: '800', marginTop: 3 },
+  summaryMetricValueMoney: { color: '#1d4ed8', fontSize: 17, fontWeight: '900', marginTop: 3 },
   tabsRow: {
     flexDirection: 'row',
     columnGap: 8,
