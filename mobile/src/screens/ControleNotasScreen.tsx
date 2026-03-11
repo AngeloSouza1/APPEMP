@@ -521,7 +521,7 @@ export default function ControleNotasScreen() {
     const podeSelecionar = sectionKey === 'conferir';
     return (
       <Pressable style={styles.card} onPress={() => toggleCard(item.id)}>
-        <View style={styles.cardTop}>
+        <View style={[styles.cardTop, narrowLayout && styles.cardTopCompact]}>
           <View style={styles.cardTitleWrap}>
             <Pressable
               style={[styles.checkbox, marcado && styles.checkboxChecked, !podeSelecionar && styles.checkboxDisabled]}
@@ -536,7 +536,7 @@ export default function ControleNotasScreen() {
             </Pressable>
             <Text style={styles.cardTitle}>Pedido #{item.id}</Text>
           </View>
-          <View style={styles.cardTopRight}>
+          <View style={[styles.cardTopRight, narrowLayout && styles.cardTopRightCompact]}>
             <Text style={[styles.statusBadge, { backgroundColor: statusTheme.bg, borderColor: statusTheme.border, color: statusTheme.text }]}>
               {statusLabel}
             </Text>
@@ -590,9 +590,9 @@ export default function ControleNotasScreen() {
                 <Text style={styles.emptyNfText}>Sem imagem de NF anexada.</Text>
               </View>
             )}
-            <View style={styles.actionsRow}>
+            <View style={[styles.actionsRow, narrowLayout && styles.actionsRowCompact]}>
               <Pressable
-                style={styles.actionButton}
+                style={[styles.actionButton, narrowLayout && styles.actionButtonCompact]}
                 onPress={(event) => {
                   event.stopPropagation();
                   void enviarNotaParaWhatsApp(item);
@@ -601,7 +601,7 @@ export default function ControleNotasScreen() {
                 <Text style={styles.actionButtonText}>Nota WhatsApp</Text>
               </Pressable>
               <Pressable
-                style={[styles.actionButton, enviandoCanhotoId === item.id && styles.actionButtonDisabled]}
+                style={[styles.actionButton, narrowLayout && styles.actionButtonCompact, enviandoCanhotoId === item.id && styles.actionButtonDisabled]}
                 onPress={(event) => {
                   event.stopPropagation();
                   abrirFluxoCanhoto(item);
@@ -612,7 +612,10 @@ export default function ControleNotasScreen() {
                   {enviandoCanhotoId === item.id ? 'Enviando...' : item.canhoto_imagem_url ? 'Canhoto ✓' : 'Canhoto'}
                 </Text>
               </Pressable>
-              <Pressable style={styles.actionButton} onPress={() => navigation.navigate('PedidoDetalhe', { id: item.id })}>
+              <Pressable
+                style={[styles.actionButton, narrowLayout && styles.actionButtonCompact]}
+                onPress={() => navigation.navigate('PedidoDetalhe', { id: item.id })}
+              >
                 <Text style={styles.actionButtonText}>Ver pedido</Text>
               </Pressable>
             </View>
@@ -626,6 +629,7 @@ export default function ControleNotasScreen() {
     Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20,
     insets.top + 10
   );
+  const bottomActionSpacing = compactLayout ? 84 : 92;
 
   return (
     <View style={styles.container}>
@@ -659,18 +663,18 @@ export default function ControleNotasScreen() {
             </View>
           </View>
 
-          <View style={styles.summaryInlineStats}>
-            <View style={styles.summaryInlineItem}>
+          <View style={[styles.summaryInlineStats, narrowLayout && styles.summaryInlineStatsCompact]}>
+            <View style={[styles.summaryInlineItem, narrowLayout && styles.summaryInlineItemCompact]}>
               <Text style={styles.summaryInlineLabel}>A conferir</Text>
               <Text style={styles.summaryInlineValue}>{pedidosAConferir.length}</Text>
             </View>
-            <View style={styles.summaryInlineDivider} />
-            <View style={styles.summaryInlineItem}>
+            <View style={[styles.summaryInlineDivider, narrowLayout && styles.summaryInlineDividerCompact]} />
+            <View style={[styles.summaryInlineItem, narrowLayout && styles.summaryInlineItemCompact]}>
               <Text style={styles.summaryInlineLabel}>Antecipados</Text>
               <Text style={styles.summaryInlineValue}>{pedidosEfetivados.length}</Text>
             </View>
-            <View style={styles.summaryInlineDivider} />
-            <View style={styles.summaryInlineItem}>
+            <View style={[styles.summaryInlineDivider, narrowLayout && styles.summaryInlineDividerCompact]} />
+            <View style={[styles.summaryInlineItem, narrowLayout && styles.summaryInlineItemCompact]}>
               <Text style={styles.summaryInlineLabel}>Selecionados</Text>
               <Text style={styles.summaryInlineValue}>{idsSelecionados.length}</Text>
             </View>
@@ -718,108 +722,117 @@ export default function ControleNotasScreen() {
           </View>
         ) : null}
 
-        {loading ? (
-          <View style={styles.centerCard}>
-            <ActivityIndicator />
-          </View>
-        ) : erro ? (
-          <View style={styles.centerCard}>
-            <Text style={styles.errorText}>{erro}</Text>
-            <Pressable style={styles.retryButton} onPress={onRefresh}>
-              <Text style={styles.retryButtonText}>Tentar novamente</Text>
-            </Pressable>
-          </View>
-        ) : abaAtiva === 'efetivados' ? (
-          pedidosEfetivadosAgrupados.length === 0 ? (
+        <View style={styles.contentBody}>
+          {loading ? (
             <View style={styles.centerCard}>
-              <Text style={styles.emptyText}>Nenhum pedido com NF encontrado.</Text>
+              <ActivityIndicator />
             </View>
-          ) : (
-            <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} refreshControl={undefined}>
-              <View style={styles.sectionCard}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Antecipados por data</Text>
-                  <Text style={styles.sectionMeta}>{pedidosEfetivados.length} item(ns)</Text>
-                </View>
-                <Pressable
-                  style={styles.expandAllRow}
-                  onPress={() => setExpandirTodasDatasAntecipadas((prev) => !prev)}
-                >
-                  <View style={[styles.checkbox, expandirTodasDatasAntecipadas && styles.checkboxChecked]}>
-                    {expandirTodasDatasAntecipadas ? <Text style={styles.checkboxIcon}>✓</Text> : null}
-                  </View>
-                  <Text style={styles.expandAllLabel}>Maximizar todos os cards de data</Text>
-                </Pressable>
-                {pedidosEfetivadosAgrupados.map((grupo) => {
-                  const valorTotalData = grupo.itens.reduce(
-                    (acc, pedido) => acc + Number(pedido.valor_total || 0),
-                    0
-                  );
-                  const expandido = Boolean(datasAntecipadasExpandidas[grupo.dataKey]);
-                  return (
-                    <View key={grupo.dataKey} style={styles.dateGroup}>
-                      <Pressable
-                        style={styles.dateGroupHeader}
-                        onPress={() =>
-                          setDatasAntecipadasExpandidas((prev) => ({
-                            ...prev,
-                            [grupo.dataKey]: !Boolean(prev[grupo.dataKey]),
-                          }))
-                        }
-                      >
-                        <Text style={styles.dateGroupTitle}>{grupo.data}</Text>
-                        <Text style={styles.dateGroupMeta}>
-                          {grupo.itens.length} pedido(s) • {formatarMoeda(valorTotalData)}
-                        </Text>
-                        <Text style={styles.dateGroupToggle}>{expandido ? '▾' : '▸'}</Text>
-                      </Pressable>
-                      {expandido
-                        ? grupo.itens.map((item) => (
-                            <View key={item.id} style={styles.dateGroupItem}>
-                              {renderPedidoCard({
-                                item,
-                                sectionKey: 'efetivados',
-                              })}
-                            </View>
-                          ))
-                        : null}
-                    </View>
-                  );
-                })}
-              </View>
-            </ScrollView>
-          )
-        ) : (
-          <FlatList
-            data={pedidosDaAba}
-            keyExtractor={(item) => String(item.id)}
-            renderItem={({ item }) =>
-              renderPedidoCard({
-                item,
-                sectionKey: abaAtiva,
-              })
-            }
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            onRefresh={onRefresh}
-            refreshing={refreshing}
-            ListEmptyComponent={
+          ) : erro ? (
+            <View style={styles.centerCard}>
+              <Text style={styles.errorText}>{erro}</Text>
+              <Pressable style={styles.retryButton} onPress={onRefresh}>
+                <Text style={styles.retryButtonText}>Tentar novamente</Text>
+              </Pressable>
+            </View>
+          ) : abaAtiva === 'efetivados' ? (
+            pedidosEfetivadosAgrupados.length === 0 ? (
               <View style={styles.centerCard}>
                 <Text style={styles.emptyText}>Nenhum pedido com NF encontrado.</Text>
               </View>
-            }
-          />
-        )}
+            ) : (
+              <ScrollView
+                contentContainerStyle={[styles.listContent, { paddingBottom: bottomActionSpacing }]}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.sectionCard}>
+                  <View style={[styles.sectionHeader, narrowLayout && styles.sectionHeaderCompact]}>
+                    <Text style={styles.sectionTitle}>Antecipados por data</Text>
+                    <Text style={styles.sectionMeta}>{pedidosEfetivados.length} item(ns)</Text>
+                  </View>
+                  <Pressable
+                    style={[styles.expandAllRow, narrowLayout && styles.expandAllRowCompact]}
+                    onPress={() => setExpandirTodasDatasAntecipadas((prev) => !prev)}
+                  >
+                    <View style={[styles.checkbox, expandirTodasDatasAntecipadas && styles.checkboxChecked]}>
+                      {expandirTodasDatasAntecipadas ? <Text style={styles.checkboxIcon}>✓</Text> : null}
+                    </View>
+                    <Text style={styles.expandAllLabel}>Maximizar todos os cards de data</Text>
+                  </Pressable>
+                  {pedidosEfetivadosAgrupados.map((grupo) => {
+                    const valorTotalData = grupo.itens.reduce(
+                      (acc, pedido) => acc + Number(pedido.valor_total || 0),
+                      0
+                    );
+                    const expandido = Boolean(datasAntecipadasExpandidas[grupo.dataKey]);
+                    return (
+                      <View key={grupo.dataKey} style={styles.dateGroup}>
+                        <Pressable
+                          style={[styles.dateGroupHeader, narrowLayout && styles.dateGroupHeaderCompact]}
+                          onPress={() =>
+                            setDatasAntecipadasExpandidas((prev) => ({
+                              ...prev,
+                              [grupo.dataKey]: !Boolean(prev[grupo.dataKey]),
+                            }))
+                          }
+                        >
+                          <View style={styles.dateGroupHeaderMain}>
+                            <Text style={styles.dateGroupTitle}>{grupo.data}</Text>
+                            <Text style={[styles.dateGroupMeta, narrowLayout && styles.dateGroupMetaCompact]}>
+                              {grupo.itens.length} pedido(s) • {formatarMoeda(valorTotalData)}
+                            </Text>
+                          </View>
+                          <Text style={styles.dateGroupToggle}>{expandido ? '▾' : '▸'}</Text>
+                        </Pressable>
+                        {expandido
+                          ? grupo.itens.map((item) => (
+                              <View key={item.id} style={styles.dateGroupItem}>
+                                {renderPedidoCard({
+                                  item,
+                                  sectionKey: 'efetivados',
+                                })}
+                              </View>
+                            ))
+                          : null}
+                      </View>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+            )
+          ) : (
+            <FlatList
+              data={pedidosDaAba}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item }) =>
+                renderPedidoCard({
+                  item,
+                  sectionKey: abaAtiva,
+                })
+              }
+              contentContainerStyle={[styles.listContent, { paddingBottom: bottomActionSpacing }]}
+              showsVerticalScrollIndicator={false}
+              onRefresh={onRefresh}
+              refreshing={refreshing}
+              ListEmptyComponent={
+                <View style={styles.centerCard}>
+                  <Text style={styles.emptyText}>Nenhum pedido com NF encontrado.</Text>
+                </View>
+              }
+            />
+          )}
+        </View>
 
-        <Pressable
-          style={[styles.efetivarButton, (!idsSelecionados.length || efetivando) && styles.efetivarButtonDisabled]}
-          onPress={efetivarNotas}
-          disabled={!idsSelecionados.length || efetivando}
-        >
-          <Text style={styles.efetivarButtonText}>
-            {efetivando ? 'Efetivando...' : 'Efetivar notas selecionadas'}
-          </Text>
-        </Pressable>
+        <View style={[styles.bottomActionBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+          <Pressable
+            style={[styles.efetivarButton, (!idsSelecionados.length || efetivando) && styles.efetivarButtonDisabled]}
+            onPress={efetivarNotas}
+            disabled={!idsSelecionados.length || efetivando}
+          >
+            <Text style={styles.efetivarButtonText}>
+              {efetivando ? 'Efetivando...' : 'Efetivar notas selecionadas'}
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
       <Modal
@@ -982,6 +995,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingBottom: 10,
   },
+  contentBody: {
+    flex: 1,
+    minHeight: 0,
+  },
   headerCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1077,14 +1094,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  summaryInlineStatsCompact: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    rowGap: 8,
+  },
   summaryInlineItem: {
     flex: 1,
     alignItems: 'center',
+  },
+  summaryInlineItemCompact: {
+    alignItems: 'flex-start',
   },
   summaryInlineDivider: {
     width: 1,
     height: 26,
     backgroundColor: '#e2e8f0',
+  },
+  summaryInlineDividerCompact: {
+    width: '100%',
+    height: 1,
   },
   summaryInlineLabel: { color: '#64748b', fontSize: 11, fontWeight: '700' },
   summaryInlineValue: { color: '#0f172a', fontSize: 16, fontWeight: '900', marginTop: 1 },
@@ -1160,7 +1189,7 @@ const styles = StyleSheet.create({
   bulkActionButtonTextSecondary: {
     color: '#475569',
   },
-  listContent: { paddingBottom: 24, rowGap: 10 },
+  listContent: { paddingBottom: 24, rowGap: 10, flexGrow: 1 },
   sectionCard: {
     borderRadius: 12,
     borderWidth: 1,
@@ -1173,6 +1202,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  sectionHeaderCompact: {
+    alignItems: 'flex-start',
+    flexDirection: 'column',
+    rowGap: 4,
   },
   sectionTitle: {
     color: '#0f172a',
@@ -1189,6 +1223,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     columnGap: 8,
     marginBottom: 2,
+  },
+  expandAllRowCompact: {
+    alignItems: 'flex-start',
   },
   expandAllLabel: {
     color: '#334155',
@@ -1207,6 +1244,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingVertical: 2,
   },
+  dateGroupHeaderCompact: {
+    alignItems: 'flex-start',
+  },
+  dateGroupHeaderMain: {
+    flex: 1,
+    rowGap: 6,
+    minWidth: 0,
+  },
   dateGroupTitle: {
     color: '#1e40af',
     fontSize: 15.02,
@@ -1223,14 +1268,17 @@ const styles = StyleSheet.create({
     color: '#475569',
     fontSize: 12.71,
     fontWeight: '700',
-    flex: 1,
-    textAlign: 'right',
-    marginRight: 6,
+    textAlign: 'left',
+  },
+  dateGroupMetaCompact: {
+    marginRight: 0,
   },
   dateGroupToggle: {
     color: '#334155',
     fontSize: 15.02,
     fontWeight: '800',
+    marginLeft: 8,
+    paddingTop: 6,
   },
   dateGroupItem: {
     marginTop: 2,
@@ -1243,9 +1291,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', columnGap: 8 },
+  cardTopCompact: { flexDirection: 'column', alignItems: 'flex-start', rowGap: 8 },
   cardTitleWrap: { flexDirection: 'row', alignItems: 'center', columnGap: 8, flex: 1 },
-  cardTopRight: { flexDirection: 'row', alignItems: 'center', columnGap: 8 },
+  cardTopRight: { flexDirection: 'row', alignItems: 'center', columnGap: 8, flexShrink: 0 },
+  cardTopRightCompact: { width: '100%', justifyContent: 'space-between', marginTop: 0 },
   cardTitle: { color: '#0f172a', fontSize: 16, fontWeight: '800' },
   checkbox: {
     width: 21,
@@ -1355,6 +1405,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 8,
+    flexWrap: 'wrap',
+  },
+  actionsRowCompact: {
+    justifyContent: 'flex-start',
   },
   actionButton: {
     borderWidth: 1,
@@ -1363,6 +1417,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     backgroundColor: '#eff6ff',
+    minWidth: 96,
+    alignItems: 'center',
+  },
+  actionButtonCompact: {
+    flexGrow: 1,
+    flexBasis: '48%',
   },
   actionButtonDisabled: {
     opacity: 0.6,
@@ -1387,8 +1447,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   retryButtonText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  bottomActionBar: {
+    paddingTop: 10,
+  },
   efetivarButton: {
-    marginTop: 10,
     borderRadius: 11,
     backgroundColor: '#2563eb',
     borderWidth: 1,
