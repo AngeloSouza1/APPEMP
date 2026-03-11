@@ -10,6 +10,7 @@ import {
   PanResponder,
   Platform,
   Pressable,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -73,6 +74,7 @@ const montarMensagemDocumentoWhatsApp = (
 const getShareBaseUrl = () => API_URL.replace(/\/$/, '');
 const getNotaShareUrl = (pedidoId: number) => `${getShareBaseUrl()}/n/${pedidoId}`;
 const getCanhotoShareUrl = (pedidoId: number) => `${getShareBaseUrl()}/c/${pedidoId}`;
+const isoData = (valor?: string | null) => (valor ? String(valor).slice(0, 10) : '');
 
 export default function ControleNotasScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -114,6 +116,8 @@ export default function ControleNotasScreen() {
   const [enviandoCanhotoId, setEnviandoCanhotoId] = useState<number | null>(null);
   const [canhotoPedidoAtivo, setCanhotoPedidoAtivo] = useState<Pedido | null>(null);
   const [abaAtiva, setAbaAtiva] = useState<'conferir' | 'efetivados'>('conferir');
+  const [datasAntecipadasExpandidas, setDatasAntecipadasExpandidas] = useState<Record<string, boolean>>({});
+  const [expandirTodasDatasAntecipadas, setExpandirTodasDatasAntecipadas] = useState(false);
   const ignorarProximoToggleCardRef = useRef(false);
   const notaSelecionadaEhPdf = useMemo(() => isPdfAttachment(notaSelecionada), [notaSelecionada]);
   useEffect(() => {
@@ -217,10 +221,45 @@ export default function ControleNotasScreen() {
     [pedidos]
   );
 
+  const pedidosEfetivadosAgrupados = useMemo(() => {
+    const mapa = new Map<string, { dataLabel: string; itens: Pedido[] }>();
+
+    pedidosEfetivados.forEach((pedido) => {
+      const dataAntecipacao = isoData(pedido.atualizado_em) || isoData(pedido.data);
+      const chave = dataAntecipacao || 'sem-data';
+      if (!mapa.has(chave)) {
+        mapa.set(chave, {
+          dataLabel: dataAntecipacao ? formatarData(dataAntecipacao) : 'Data não informada',
+          itens: [],
+        });
+      }
+      mapa.get(chave)!.itens.push(pedido);
+    });
+
+    return [...mapa.entries()]
+      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+      .map(([dataKey, value]) => ({ dataKey, data: value.dataLabel, itens: value.itens }));
+  }, [pedidosEfetivados]);
+
   const pedidosDaAba = useMemo(
     () => (abaAtiva === 'conferir' ? pedidosAConferir : pedidosEfetivados),
     [abaAtiva, pedidosAConferir, pedidosEfetivados]
   );
+
+  useEffect(() => {
+    if (!pedidosEfetivadosAgrupados.length) {
+      setDatasAntecipadasExpandidas({});
+      return;
+    }
+
+    setDatasAntecipadasExpandidas(() => {
+      const next: Record<string, boolean> = {};
+      pedidosEfetivadosAgrupados.forEach((grupo) => {
+        next[grupo.dataKey] = expandirTodasDatasAntecipadas;
+      });
+      return next;
+    });
+  }, [expandirTodasDatasAntecipadas, pedidosEfetivadosAgrupados]);
 
   const toggleCard = useCallback((id: number) => {
     if (ignorarProximoToggleCardRef.current) {
@@ -271,6 +310,7 @@ export default function ControleNotasScreen() {
           onPress: async () => {
             try {
               setEfetivando(true);
+              const dataAntecipacao = new Date().toISOString();
               const response = await pedidosApi.anteciparNotas(idsSelecionados);
               const idsEfetivados = new Set<number>(
                 Array.isArray(response.data?.ids) && response.data.ids.length
@@ -282,6 +322,7 @@ export default function ControleNotasScreen() {
                   ? {
                       ...pedido,
                       nf_status: 'ANTECIPADA',
+                      atualizado_em: dataAntecipacao,
                       nf_efetivado_por_nome:
                         pedido.nf_efetivado_por_nome || 'Efetivado agora',
                     }
@@ -472,7 +513,7 @@ export default function ControleNotasScreen() {
     }
   }, []);
 
-  const renderItem = ({ item, sectionKey }: { item: Pedido; sectionKey: 'conferir' | 'efetivados' }) => {
+  const renderPedidoCard = ({ item, sectionKey }: { item: Pedido; sectionKey: 'conferir' | 'efetivados' }) => {
     const statusTheme = STATUS_COLOR[item.status] || STATUS_COLOR.EM_ESPERA;
     const statusLabel = STATUS_LABEL[item.status] || item.status;
     const expandido = Boolean(cardsExpandidos[item.id]);
@@ -688,12 +729,72 @@ export default function ControleNotasScreen() {
               <Text style={styles.retryButtonText}>Tentar novamente</Text>
             </Pressable>
           </View>
+        ) : abaAtiva === 'efetivados' ? (
+          pedidosEfetivadosAgrupados.length === 0 ? (
+            <View style={styles.centerCard}>
+              <Text style={styles.emptyText}>Nenhum pedido com NF encontrado.</Text>
+            </View>
+          ) : (
+            <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} refreshControl={undefined}>
+              <View style={styles.sectionCard}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Antecipados por data</Text>
+                  <Text style={styles.sectionMeta}>{pedidosEfetivados.length} item(ns)</Text>
+                </View>
+                <Pressable
+                  style={styles.expandAllRow}
+                  onPress={() => setExpandirTodasDatasAntecipadas((prev) => !prev)}
+                >
+                  <View style={[styles.checkbox, expandirTodasDatasAntecipadas && styles.checkboxChecked]}>
+                    {expandirTodasDatasAntecipadas ? <Text style={styles.checkboxIcon}>✓</Text> : null}
+                  </View>
+                  <Text style={styles.expandAllLabel}>Maximizar todos os cards de data</Text>
+                </Pressable>
+                {pedidosEfetivadosAgrupados.map((grupo) => {
+                  const valorTotalData = grupo.itens.reduce(
+                    (acc, pedido) => acc + Number(pedido.valor_total || 0),
+                    0
+                  );
+                  const expandido = Boolean(datasAntecipadasExpandidas[grupo.dataKey]);
+                  return (
+                    <View key={grupo.dataKey} style={styles.dateGroup}>
+                      <Pressable
+                        style={styles.dateGroupHeader}
+                        onPress={() =>
+                          setDatasAntecipadasExpandidas((prev) => ({
+                            ...prev,
+                            [grupo.dataKey]: !Boolean(prev[grupo.dataKey]),
+                          }))
+                        }
+                      >
+                        <Text style={styles.dateGroupTitle}>{grupo.data}</Text>
+                        <Text style={styles.dateGroupMeta}>
+                          {grupo.itens.length} pedido(s) • {formatarMoeda(valorTotalData)}
+                        </Text>
+                        <Text style={styles.dateGroupToggle}>{expandido ? '▾' : '▸'}</Text>
+                      </Pressable>
+                      {expandido
+                        ? grupo.itens.map((item) => (
+                            <View key={item.id} style={styles.dateGroupItem}>
+                              {renderPedidoCard({
+                                item,
+                                sectionKey: 'efetivados',
+                              })}
+                            </View>
+                          ))
+                        : null}
+                    </View>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          )
         ) : (
           <FlatList
             data={pedidosDaAba}
             keyExtractor={(item) => String(item.id)}
             renderItem={({ item }) =>
-              renderItem({
+              renderPedidoCard({
                 item,
                 sectionKey: abaAtiva,
               })
@@ -1060,6 +1161,80 @@ const styles = StyleSheet.create({
     color: '#475569',
   },
   listContent: { paddingBottom: 24, rowGap: 10 },
+  sectionCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    padding: 10,
+    gap: 8,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sectionTitle: {
+    color: '#0f172a',
+    fontSize: 16.17,
+    fontWeight: '800',
+  },
+  sectionMeta: {
+    color: '#64748b',
+    fontSize: 12.71,
+    fontWeight: '700',
+  },
+  expandAllRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 8,
+    marginBottom: 2,
+  },
+  expandAllLabel: {
+    color: '#334155',
+    fontSize: 13.86,
+    fontWeight: '700',
+  },
+  dateGroup: {
+    gap: 6,
+  },
+  dateGroupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    columnGap: 8,
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  dateGroupTitle: {
+    color: '#1e40af',
+    fontSize: 15.02,
+    fontWeight: '800',
+    backgroundColor: '#eff6ff',
+    borderColor: '#bfdbfe',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    alignSelf: 'flex-start',
+  },
+  dateGroupMeta: {
+    color: '#475569',
+    fontSize: 12.71,
+    fontWeight: '700',
+    flex: 1,
+    textAlign: 'right',
+    marginRight: 6,
+  },
+  dateGroupToggle: {
+    color: '#334155',
+    fontSize: 15.02,
+    fontWeight: '800',
+  },
+  dateGroupItem: {
+    marginTop: 2,
+  },
   card: {
     borderRadius: 12,
     borderWidth: 1,

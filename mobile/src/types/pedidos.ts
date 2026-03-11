@@ -22,6 +22,7 @@ export interface Pedido {
   nf_numero?: string | null;
   nf_status?: 'PENDENTE' | 'ANTECIPADA' | string | null;
   nf_efetivado_por_nome?: string | null;
+  atualizado_em?: string | null;
   valor_total: number;
   valor_efetivado?: number;
   cliente_id: number;
