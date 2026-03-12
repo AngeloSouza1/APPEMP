@@ -394,16 +394,29 @@ export default function PedidosScreen() {
         ]}
       >
 
-        <View style={[styles.kpiRow, (narrowLayout || compactLayout) && styles.stackRow]}>
-          <View style={styles.kpiCard}>
-            <Text style={styles.kpiLabel}>Pedidos na página</Text>
-            <Text style={styles.kpiValue}>{resumoPagina.totalPedidos}</Text>
+        {compactLayout ? (
+          <View style={styles.kpiCompactWrap}>
+            <View style={styles.kpiCompactChip}>
+              <Text style={styles.kpiCompactLabel}>Pedidos na página</Text>
+              <Text style={styles.kpiCompactValue}>{resumoPagina.totalPedidos}</Text>
+            </View>
+            <View style={[styles.kpiCompactChip, styles.kpiCompactChipWide]}>
+              <Text style={styles.kpiCompactLabel}>Valor da página</Text>
+              <Text style={styles.kpiCompactValueMoney}>{formatarMoeda(resumoPagina.totalValor)}</Text>
+            </View>
           </View>
-          <View style={styles.kpiCard}>
-            <Text style={styles.kpiLabel}>Valor da página</Text>
-            <Text style={styles.kpiValueSmall}>{formatarMoeda(resumoPagina.totalValor)}</Text>
+        ) : (
+          <View style={[styles.kpiRow, narrowLayout && styles.stackRow]}>
+            <View style={styles.kpiCard}>
+              <Text style={styles.kpiLabel}>Pedidos na página</Text>
+              <Text style={styles.kpiValue}>{resumoPagina.totalPedidos}</Text>
+            </View>
+            <View style={styles.kpiCard}>
+              <Text style={styles.kpiLabel}>Valor da página</Text>
+              <Text style={styles.kpiValueSmall}>{formatarMoeda(resumoPagina.totalValor)}</Text>
+            </View>
           </View>
-        </View>
+        )}
 
         <View style={styles.filtersCard}>
           <Pressable
@@ -995,6 +1008,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     marginBottom: 10,
+  },
+  kpiCompactWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+  kpiCompactChip: {
+    flexGrow: 1,
+    flexBasis: '48%',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#93c5fd',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 58,
+    justifyContent: 'center',
+  },
+  kpiCompactChipWide: {
+    flexBasis: '100%',
+  },
+  kpiCompactLabel: {
+    color: '#475569',
+    fontWeight: '700',
+    fontSize: 12.8,
+  },
+  kpiCompactValue: {
+    marginTop: 3,
+    color: '#0f172a',
+    fontWeight: '800',
+    fontSize: 20,
+  },
+  kpiCompactValueMoney: {
+    marginTop: 3,
+    color: '#1d4ed8',
+    fontWeight: '900',
+    fontSize: 17,
   },
   stackRow: {
     flexDirection: 'column',

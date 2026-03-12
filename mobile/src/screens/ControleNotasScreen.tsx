@@ -663,31 +663,54 @@ export default function ControleNotasScreen() {
             </View>
           </View>
 
-          <View style={[styles.summaryInlineStats, narrowLayout && styles.summaryInlineStatsCompact]}>
-            <View style={[styles.summaryInlineItem, styles.summaryInlineStatCard, narrowLayout && styles.summaryInlineItemCompact]}>
-              <Text style={styles.summaryInlineLabel}>A conferir</Text>
-              <Text style={styles.summaryInlineValue}>{pedidosAConferir.length}</Text>
+          {compactLayout ? (
+            <View style={styles.summaryCompactWrap}>
+              <View style={styles.summaryCompactChip}>
+                <Text style={styles.summaryCompactChipLabel}>A conferir</Text>
+                <Text style={styles.summaryCompactChipValue}>{pedidosAConferir.length}</Text>
+              </View>
+              <View style={styles.summaryCompactChip}>
+                <Text style={styles.summaryCompactChipLabel}>Antecipados</Text>
+                <Text style={styles.summaryCompactChipValue}>{pedidosEfetivados.length}</Text>
+              </View>
+              <View style={styles.summaryCompactChip}>
+                <Text style={styles.summaryCompactChipLabel}>Selecionados</Text>
+                <Text style={styles.summaryCompactChipValue}>{idsSelecionados.length}</Text>
+              </View>
+              <View style={[styles.summaryCompactChip, styles.summaryCompactChipWide]}>
+                <Text style={styles.summaryCompactChipLabel}>Valor selecionado</Text>
+                <Text style={styles.summaryCompactChipValueMoney}>{formatarMoeda(totalSelecionado)}</Text>
+              </View>
             </View>
-            <View style={[styles.summaryInlineItem, styles.summaryInlineStatCard, narrowLayout && styles.summaryInlineItemCompact]}>
-              <Text style={styles.summaryInlineLabel}>Antecipados</Text>
-              <Text style={styles.summaryInlineValue}>{pedidosEfetivados.length}</Text>
-            </View>
-            <View style={[styles.summaryInlineItem, styles.summaryInlineStatCard, narrowLayout && styles.summaryInlineItemCompact]}>
-              <Text style={styles.summaryInlineLabel}>Selecionados</Text>
-              <Text style={styles.summaryInlineValue}>{idsSelecionados.length}</Text>
-            </View>
-          </View>
+          ) : (
+            <>
+              <View style={[styles.summaryInlineStats, narrowLayout && styles.summaryInlineStatsCompact]}>
+                <View style={[styles.summaryInlineItem, styles.summaryInlineStatCard, narrowLayout && styles.summaryInlineItemCompact]}>
+                  <Text style={styles.summaryInlineLabel}>A conferir</Text>
+                  <Text style={styles.summaryInlineValue}>{pedidosAConferir.length}</Text>
+                </View>
+                <View style={[styles.summaryInlineItem, styles.summaryInlineStatCard, narrowLayout && styles.summaryInlineItemCompact]}>
+                  <Text style={styles.summaryInlineLabel}>Antecipados</Text>
+                  <Text style={styles.summaryInlineValue}>{pedidosEfetivados.length}</Text>
+                </View>
+                <View style={[styles.summaryInlineItem, styles.summaryInlineStatCard, narrowLayout && styles.summaryInlineItemCompact]}>
+                  <Text style={styles.summaryInlineLabel}>Selecionados</Text>
+                  <Text style={styles.summaryInlineValue}>{idsSelecionados.length}</Text>
+                </View>
+              </View>
 
-          <View style={[styles.summaryGrid, narrowLayout && styles.summaryGridCompact]}>
-            <View style={styles.summaryMetricCard}>
-              <Text style={styles.summaryMetricLabel}>Valor selecionado</Text>
-              <Text style={styles.summaryMetricValueMoney}>{formatarMoeda(totalSelecionado)}</Text>
-            </View>
-            <View style={styles.summaryMetricCard}>
-              <Text style={styles.summaryMetricLabel}>Pronto para antecipar</Text>
-              <Text style={styles.summaryMetricValue}>{idsSelecionados.length > 0 ? 'Sim' : 'Não'}</Text>
-            </View>
-          </View>
+              <View style={[styles.summaryGrid, narrowLayout && styles.summaryGridCompact]}>
+                <View style={styles.summaryMetricCard}>
+                  <Text style={styles.summaryMetricLabel}>Valor selecionado</Text>
+                  <Text style={styles.summaryMetricValueMoney}>{formatarMoeda(totalSelecionado)}</Text>
+                </View>
+                <View style={styles.summaryMetricCard}>
+                  <Text style={styles.summaryMetricLabel}>Pronto para antecipar</Text>
+                  <Text style={styles.summaryMetricValue}>{idsSelecionados.length > 0 ? 'Sim' : 'Não'}</Text>
+                </View>
+              </View>
+            </>
+          )}
         </View>
 
         <View style={[styles.tabsRow, narrowLayout && styles.stackRow]}>
@@ -1080,6 +1103,44 @@ const styles = StyleSheet.create({
   },
   summaryGridCompact: {
     flexDirection: 'column',
+  },
+  summaryCompactWrap: {
+    marginTop: 8,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  summaryCompactChip: {
+    flexGrow: 1,
+    flexBasis: '48%',
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: '#cfe0fb',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    minHeight: 54,
+    justifyContent: 'center',
+  },
+  summaryCompactChipWide: {
+    flexBasis: '100%',
+  },
+  summaryCompactChipLabel: {
+    color: '#475569',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  summaryCompactChipValue: {
+    color: '#0f172a',
+    fontSize: 18,
+    fontWeight: '900',
+    marginTop: 3,
+  },
+  summaryCompactChipValueMoney: {
+    color: '#1d4ed8',
+    fontSize: 16,
+    fontWeight: '900',
+    marginTop: 3,
   },
   summaryInlineStats: {
     marginTop: 8,
