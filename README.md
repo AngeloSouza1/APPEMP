@@ -38,11 +38,16 @@ Crie um arquivo `.env` dentro de `backend/` com:
 ```bash
 PORT=3000
 
+# Opcao 1: Postgres local/tradicional
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=appemp
 DB_USER=SEU_USUARIO_POSTGRES
 DB_PASSWORD=SUA_SENHA_POSTGRES
+DB_SSL=false
+
+# Opcao 2: Neon ou Supabase
+# DATABASE_URL=postgresql://usuario:senha@host:5432/appemp?sslmode=require
 
 AUTH_USER=admin
 AUTH_PASSWORD=admin123
@@ -70,6 +75,42 @@ psql -h localhost -U SEU_USUARIO -d appemp -f migration-add-atualizado-em.sql
 psql -h localhost -U SEU_USUARIO -d appemp -f migration-normalizar-status-pedidos.sql
 psql -h localhost -U SEU_USUARIO -d appemp -f migration-auth-rbac-auditoria.sql
 ```
+
+### Migrando do Render para Neon ou Supabase
+
+O backend agora aceita tanto `DB_HOST/DB_PORT/...` quanto `DATABASE_URL`, o que facilita usar Neon ou Supabase.
+
+1. Crie um banco PostgreSQL no Neon ou no Supabase.
+2. Copie a string de conexão do provedor.
+3. No `backend/.env`, preencha:
+
+```bash
+DATABASE_URL=postgresql://usuario:senha@host:5432/appemp?sslmode=require
+```
+
+4. Crie a estrutura no novo banco:
+
+```bash
+cd backend
+psql "$DATABASE_URL" -f db-schema.sql
+psql "$DATABASE_URL" -f migration-add-atualizado-em.sql
+psql "$DATABASE_URL" -f migration-normalizar-status-pedidos.sql
+psql "$DATABASE_URL" -f migration-auth-rbac-auditoria.sql
+```
+
+5. Se ainda tiver acesso ao banco antigo no Render, migre os dados:
+
+```bash
+pg_dump "URL_ANTIGA_DO_RENDER" --no-owner --no-privileges > appemp-render.sql
+psql "$DATABASE_URL" < appemp-render.sql
+```
+
+Se o banco do Render realmente expirou e foi removido, a migração dos dados antigos so sera possivel se voce tiver:
+- um backup `.sql`
+- uma copia local
+- ou algum dump/export salvo no proprio Render
+
+Sem isso, da para migrar a aplicacao para Neon/Supabase, mas nao recuperar os dados antigos.
 
 ### 2. Front-end Web
 
