@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   clientesListarMock: vi.fn(),
   rotasListarMock: vi.fn(),
   produtosListarMock: vi.fn(),
+  clienteProdutosListarPorClienteMock: vi.fn(),
   pedidosCriarMock: vi.fn(),
 }));
 
@@ -20,7 +21,9 @@ vi.mock('@/lib/api', () => ({
   clientesApi: { listar: mocks.clientesListarMock },
   rotasApi: { listar: mocks.rotasListarMock },
   produtosApi: { listar: mocks.produtosListarMock },
+  clienteProdutosApi: { listarPorCliente: mocks.clienteProdutosListarPorClienteMock },
   pedidosApi: { criar: mocks.pedidosCriarMock },
+  trocasApi: { criar: vi.fn() },
 }));
 
 describe('/pedidos/novo page', () => {
@@ -34,8 +37,9 @@ describe('/pedidos/novo page', () => {
       data: [{ id: 10, nome: 'Rota Teste' }],
     });
     mocks.produtosListarMock.mockResolvedValue({
-      data: [{ id: 2, codigo_produto: 'PRD002', nome: 'Produto Teste' }],
+      data: [{ id: 2, codigo_produto: 'PRD002', nome: 'Produto Teste', preco_base: 10 }],
     });
+    mocks.clienteProdutosListarPorClienteMock.mockResolvedValue({ data: [] });
   });
 
   it('mantém botão criar desabilitado sem cliente e item com produto', async () => {
@@ -54,8 +58,11 @@ describe('/pedidos/novo page', () => {
 
     await screen.findByText('Novo Pedido');
 
-    const selects = screen.getAllByRole('combobox');
+    let selects = screen.getAllByRole('combobox');
     fireEvent.change(selects[0], { target: { value: '1' } }); // cliente
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar Item' }));
+
+    selects = screen.getAllByRole('combobox');
     fireEvent.change(selects[3], { target: { value: '2' } }); // produto do item
 
     fireEvent.click(screen.getByRole('button', { name: 'Criar Pedido' }));
@@ -74,7 +81,7 @@ describe('/pedidos/novo page', () => {
           produto_id: 2,
           quantidade: 1,
           embalagem: undefined,
-          valor_unitario: 0,
+          valor_unitario: 10,
           comissao: 0,
         },
       ],
@@ -92,6 +99,34 @@ describe('/pedidos/novo page', () => {
     expect((selects[0] as HTMLSelectElement).value).toBe('1');
     await waitFor(() => {
       expect((selects[1] as HTMLSelectElement).value).toBe('10');
+    });
+  });
+
+  it('reaplica preço vinculado do cliente nos itens já selecionados', async () => {
+    let resolver!: (value: { data: Array<{ produto_id: number; valor_unitario: number }> }) => void;
+    mocks.clienteProdutosListarPorClienteMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolver = resolve;
+      })
+    );
+
+    render(<NovoPedidoPage />);
+
+    await screen.findByText('Novo Pedido');
+
+    let selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[0], { target: { value: '1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar Item' }));
+
+    selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[3], { target: { value: '2' } });
+
+    expect(screen.getByDisplayValue('10')).toBeInTheDocument();
+
+    resolver({ data: [{ produto_id: 2, valor_unitario: 18.2 }] });
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('18.2')).toBeInTheDocument();
     });
   });
 });

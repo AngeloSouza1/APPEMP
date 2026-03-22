@@ -58,6 +58,7 @@ export default function NovoPedidoPage() {
     carregarItens,
     atualizarItem,
     handleProdutoChange,
+    reaplicarPrecosItens,
     adicionarItem,
     removerItem,
   } = usePedidoItens({ produtos, precoPersonalizadoPorProduto, startWithEmpty: true });
@@ -135,7 +136,12 @@ export default function NovoPedidoPage() {
     };
 
     carregarRelacaoClienteProduto();
-  }, [clienteId]);
+  }, [clienteId, reaplicarPrecosItens]);
+
+  useEffect(() => {
+    if (!clienteId) return;
+    reaplicarPrecosItens();
+  }, [clienteId, precoPersonalizadoPorProduto, reaplicarPrecosItens]);
 
   useEffect(() => {
     if (!clienteId) return;

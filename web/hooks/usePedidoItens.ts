@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Produto } from '@/lib/api';
 import { ItemForm } from '@/lib/pedidos';
 
@@ -48,27 +47,45 @@ export const usePedidoItens = ({
     );
   }, []);
 
-  const handleProdutoChange = useCallback((index: number, produtoId: string) => {
-    const produtoSelecionado = produtos.find((p) => p.id === Number(produtoId));
-    const precoPersonalizado = precoPersonalizadoPorProduto[Number(produtoId)];
+  const recalcularPrecoItem = useCallback(
+    (item: ItemForm) => {
+      if (!item.produto_id) {
+        return item;
+      }
 
+      const produtoSelecionado = produtos.find((p) => p.id === Number(item.produto_id));
+      const precoPersonalizado = precoPersonalizadoPorProduto[Number(item.produto_id)];
+      const valorUnitario =
+        Number.isFinite(precoPersonalizado)
+          ? String(precoPersonalizado)
+          : produtoSelecionado?.preco_base !== undefined && produtoSelecionado?.preco_base !== null
+          ? String(produtoSelecionado.preco_base)
+          : item.valor_unitario;
+
+      return {
+        ...item,
+        embalagem: produtoSelecionado?.embalagem || item.embalagem,
+        valor_unitario: valorUnitario,
+      };
+    },
+    [precoPersonalizadoPorProduto, produtos]
+  );
+
+  const handleProdutoChange = useCallback((index: number, produtoId: string) => {
     setItens((estadoAtual) =>
       estadoAtual.map((item, i) => {
         if (i !== index) return item;
-        return {
+        return recalcularPrecoItem({
           ...item,
           produto_id: produtoId,
-          embalagem: produtoSelecionado?.embalagem || item.embalagem,
-          valor_unitario:
-            Number.isFinite(precoPersonalizado)
-              ? String(precoPersonalizado)
-              : produtoSelecionado?.preco_base !== undefined && produtoSelecionado?.preco_base !== null
-              ? String(produtoSelecionado.preco_base)
-              : item.valor_unitario,
-        };
+        });
       })
     );
-  }, [precoPersonalizadoPorProduto, produtos]);
+  }, [recalcularPrecoItem]);
+
+  const reaplicarPrecosItens = useCallback(() => {
+    setItens((estadoAtual) => estadoAtual.map(recalcularPrecoItem));
+  }, [recalcularPrecoItem]);
 
   const adicionarItem = useCallback(() => {
     setItens((estadoAtual) => [{ ...ITEM_VAZIO }, ...estadoAtual]);
@@ -87,6 +104,7 @@ export const usePedidoItens = ({
     carregarItens,
     atualizarItem,
     handleProdutoChange,
+    reaplicarPrecosItens,
     adicionarItem,
     removerItem,
   };
