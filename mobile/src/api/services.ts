@@ -371,6 +371,8 @@ export const pedidosApi = {
     api.patch('/pedidos/remaneio/ordem', { pedido_ids }),
   anteciparNotas: (pedido_ids: number[]) =>
     api.patch<{ ok: boolean; total: number; ids: number[] }>('/pedidos/nf/antecipar', { pedido_ids }),
+  cancelarAntecipacaoNotas: (pedido_ids: number[]) =>
+    api.patch<{ ok: boolean; total: number; ids: number[] }>('/pedidos/nf/cancelar-antecipacao', { pedido_ids }),
 };
 
 export const clientesApi = {

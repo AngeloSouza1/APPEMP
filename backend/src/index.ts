@@ -2982,6 +2982,51 @@ app.patch("/pedidos/nf/antecipar", async (req: AuthenticatedRequest, res) => {
   }
 });
 
+app.patch("/pedidos/nf/cancelar-antecipacao", async (req: AuthenticatedRequest, res) => {
+  const pedidoIdsRaw: unknown[] | null = Array.isArray(req.body?.pedido_ids) ? req.body.pedido_ids : null;
+  if (!pedidoIdsRaw || pedidoIdsRaw.length === 0) {
+    return res.status(400).json({ error: "pedido_ids é obrigatório e deve ter ao menos 1 item." });
+  }
+
+  const pedidoIds = [
+    ...new Set(
+      pedidoIdsRaw
+        .map((value) => Number(value))
+        .filter((value) => Number.isFinite(value) && value > 0)
+        .map((value) => Math.trunc(value))
+    ),
+  ];
+
+  if (pedidoIds.length === 0) {
+    return res.status(400).json({ error: "pedido_ids inválido." });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE pedidos
+       SET nf_status = 'PENDENTE',
+           nf_efetivado_por = NULL,
+           nf_efetivado_por_nome = NULL,
+           atualizado_em = NOW(),
+           atualizado_por = $2
+       WHERE id = ANY($1::int[])
+         AND nf_status = 'ANTECIPADA'
+         AND status <> 'CANCELADO'
+       RETURNING id`,
+      [pedidoIds, req.user?.id || null]
+    );
+
+    return res.json({
+      ok: true,
+      total: result.rowCount || 0,
+      ids: result.rows.map((row) => Number(row.id)),
+    });
+  } catch (error) {
+    console.error("Erro ao cancelar efetivação das notas:", error);
+    return res.status(500).json({ error: "Erro ao cancelar efetivação das notas." });
+  }
+});
+
 // Cria um novo pedido com itens
 app.post("/pedidos", async (req: AuthenticatedRequest, res) => {
   const { chave_pedido, cliente_id, rota_id, data, status, itens, usa_nf, nf_imagem_url, nf_numero, canhoto_imagem_url } = req.body;

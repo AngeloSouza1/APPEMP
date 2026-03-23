@@ -343,6 +343,55 @@ export default function ControleNotasScreen() {
     );
   }, [idsSelecionados]);
 
+  const cancelarEfetivacaoNota = useCallback((pedidoId: number) => {
+    Alert.alert(
+      'Cancelar efetivação',
+      `Deseja cancelar a efetivação da nota do pedido #${pedidoId}?`,
+      [
+        { text: 'Voltar', style: 'cancel' },
+        {
+          text: 'Cancelar efetivação',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setEfetivando(true);
+              const response = await pedidosApi.cancelarAntecipacaoNotas([pedidoId]);
+              const idsCancelados = new Set<number>(
+                Array.isArray(response.data?.ids) && response.data.ids.length
+                  ? response.data.ids
+                  : [pedidoId]
+              );
+
+              setPedidos((prev) => prev.map((pedido) => (
+                idsCancelados.has(pedido.id)
+                  ? {
+                      ...pedido,
+                      nf_status: 'PENDENTE',
+                      atualizado_em: undefined,
+                      nf_efetivado_por_nome: null,
+                    }
+                  : pedido
+              )));
+              setSelecionados((prev) => {
+                const prox = { ...prev };
+                idsCancelados.forEach((id) => {
+                  delete prox[id];
+                });
+                return prox;
+              });
+              Alert.alert('Sucesso', 'Efetivação cancelada com sucesso.');
+              setAbaAtiva('conferir');
+            } catch {
+              Alert.alert('Erro', 'Não foi possível cancelar a efetivação da nota.');
+            } finally {
+              setEfetivando(false);
+            }
+          },
+        },
+      ]
+    );
+  }, []);
+
   const atualizarCanhotoPedido = useCallback((pedidoId: number, canhotoUrl: string | null) => {
     setPedidos((prev) => prev.map((pedido) => (
       pedido.id === pedidoId ? { ...pedido, canhoto_imagem_url: canhotoUrl } : pedido
@@ -636,6 +685,25 @@ export default function ControleNotasScreen() {
               >
                 <Text style={styles.actionButtonText}>Ver pedido</Text>
               </Pressable>
+              {sectionKey === 'efetivados' ? (
+                <Pressable
+                  style={[
+                    styles.actionButton,
+                    styles.actionButtonDanger,
+                    narrowLayout && styles.actionButtonCompact,
+                    efetivando && styles.actionButtonDisabled,
+                  ]}
+                  onPress={(event) => {
+                    event.stopPropagation();
+                    cancelarEfetivacaoNota(item.id);
+                  }}
+                  disabled={efetivando}
+                >
+                  <Text style={[styles.actionButtonText, styles.actionButtonDangerText]}>
+                    Cancelar efetivação
+                  </Text>
+                </Pressable>
+              ) : null}
             </View>
           </>
         ) : null}
@@ -1515,10 +1583,15 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexBasis: '48%',
   },
+  actionButtonDanger: {
+    borderColor: '#fca5a5',
+    backgroundColor: '#fef2f2',
+  },
   actionButtonDisabled: {
     opacity: 0.6,
   },
   actionButtonText: { color: '#1d4ed8', fontSize: 13, fontWeight: '700' },
+  actionButtonDangerText: { color: '#b91c1c' },
   centerCard: {
     borderWidth: 1,
     borderColor: '#cbd5e1',

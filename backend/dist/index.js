@@ -2449,6 +2449,43 @@ app.patch("/pedidos/nf/antecipar", async (req, res) => {
         return res.status(500).json({ error: "Erro ao efetivar notas." });
     }
 });
+app.patch("/pedidos/nf/cancelar-antecipacao", async (req, res) => {
+    var _a, _b;
+    const pedidoIdsRaw = Array.isArray((_a = req.body) === null || _a === void 0 ? void 0 : _a.pedido_ids) ? req.body.pedido_ids : null;
+    if (!pedidoIdsRaw || pedidoIdsRaw.length === 0) {
+        return res.status(400).json({ error: "pedido_ids é obrigatório e deve ter ao menos 1 item." });
+    }
+    const pedidoIds = [
+        ...new Set(pedidoIdsRaw
+            .map((value) => Number(value))
+            .filter((value) => Number.isFinite(value) && value > 0)
+            .map((value) => Math.trunc(value))),
+    ];
+    if (pedidoIds.length === 0) {
+        return res.status(400).json({ error: "pedido_ids inválido." });
+    }
+    try {
+        const result = await db_1.pool.query(`UPDATE pedidos
+       SET nf_status = 'PENDENTE',
+           nf_efetivado_por = NULL,
+           nf_efetivado_por_nome = NULL,
+           atualizado_em = NOW(),
+           atualizado_por = $2
+       WHERE id = ANY($1::int[])
+         AND nf_status = 'ANTECIPADA'
+         AND status <> 'CANCELADO'
+       RETURNING id`, [pedidoIds, ((_b = req.user) === null || _b === void 0 ? void 0 : _b.id) || null]);
+        return res.json({
+            ok: true,
+            total: result.rowCount || 0,
+            ids: result.rows.map((row) => Number(row.id)),
+        });
+    }
+    catch (error) {
+        console.error("Erro ao cancelar efetivação das notas:", error);
+        return res.status(500).json({ error: "Erro ao cancelar efetivação das notas." });
+    }
+});
 // Cria um novo pedido com itens
 app.post("/pedidos", async (req, res) => {
     var _a, _b, _c, _d, _e;
