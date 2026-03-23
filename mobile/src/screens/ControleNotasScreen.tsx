@@ -555,6 +555,7 @@ export default function ControleNotasScreen() {
         ) : null}
         {expandido ? (
           <>
+            <Text style={styles.attachmentLabel}>NF</Text>
             {item.nf_imagem_url ? (
               isPdfAttachment(item.nf_imagem_url) ? (
                 <Pressable
@@ -588,6 +589,23 @@ export default function ControleNotasScreen() {
             ) : (
               <View style={styles.emptyNf}>
                 <Text style={styles.emptyNfText}>Sem imagem de NF anexada.</Text>
+              </View>
+            )}
+            <Text style={styles.attachmentLabel}>Canhoto</Text>
+            {item.canhoto_imagem_url ? (
+              <Pressable
+                style={styles.imageWrap}
+                onPress={() => {
+                  setNotaZoom(1);
+                  setNotaSelecionada(item.canhoto_imagem_url || null);
+                }}
+              >
+                <Image source={{ uri: item.canhoto_imagem_url }} style={styles.imageThumb} resizeMode="cover" />
+                <Text style={styles.imageHint}>Toque para ampliar</Text>
+              </Pressable>
+            ) : (
+              <View style={styles.emptyNf}>
+                <Text style={styles.emptyNfText}>Sem imagem de canhoto anexada.</Text>
               </View>
             )}
             <View style={[styles.actionsRow, narrowLayout && styles.actionsRowCompact]}>
@@ -1399,6 +1417,15 @@ const styles = StyleSheet.create({
   cardMetaCompact: { marginBottom: 0 },
   nfNumberText: { color: '#0f172a', fontSize: 12.8, fontWeight: '700', marginTop: 4 },
   nfEfetivadoPorText: { color: '#0f766e', fontSize: 12.8, fontWeight: '700', marginTop: 4 },
+  attachmentLabel: {
+    color: '#334155',
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 10,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
   imageWrap: {
     borderWidth: 1,
     borderColor: '#bfdbfe',
