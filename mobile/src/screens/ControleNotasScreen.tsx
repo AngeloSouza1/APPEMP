@@ -82,6 +82,8 @@ export default function ControleNotasScreen() {
   const { height, width } = useWindowDimensions();
   const compactLayout = height < 760;
   const narrowLayout = width < 390;
+  const stackLayout = width < 430;
+  const extraNarrowLayout = width < 360;
 
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -657,9 +659,13 @@ export default function ControleNotasScreen() {
                 <Text style={styles.emptyNfText}>Sem imagem de canhoto anexada.</Text>
               </View>
             )}
-            <View style={[styles.actionsRow, narrowLayout && styles.actionsRowCompact]}>
+            <View style={[styles.actionsRow, (narrowLayout || stackLayout) && styles.actionsRowCompact]}>
               <Pressable
-                style={[styles.actionButton, narrowLayout && styles.actionButtonCompact]}
+                style={[
+                  styles.actionButton,
+                  (narrowLayout || stackLayout) && styles.actionButtonCompact,
+                  extraNarrowLayout && styles.actionButtonCompactFull,
+                ]}
                 onPress={(event) => {
                   event.stopPropagation();
                   void enviarNotaParaWhatsApp(item);
@@ -668,7 +674,12 @@ export default function ControleNotasScreen() {
                 <Text style={styles.actionButtonText}>Nota WhatsApp</Text>
               </Pressable>
               <Pressable
-                style={[styles.actionButton, narrowLayout && styles.actionButtonCompact, enviandoCanhotoId === item.id && styles.actionButtonDisabled]}
+                style={[
+                  styles.actionButton,
+                  (narrowLayout || stackLayout) && styles.actionButtonCompact,
+                  extraNarrowLayout && styles.actionButtonCompactFull,
+                  enviandoCanhotoId === item.id && styles.actionButtonDisabled,
+                ]}
                 onPress={(event) => {
                   event.stopPropagation();
                   abrirFluxoCanhoto(item);
@@ -680,7 +691,11 @@ export default function ControleNotasScreen() {
                 </Text>
               </Pressable>
               <Pressable
-                style={[styles.actionButton, narrowLayout && styles.actionButtonCompact]}
+                style={[
+                  styles.actionButton,
+                  (narrowLayout || stackLayout) && styles.actionButtonCompact,
+                  extraNarrowLayout && styles.actionButtonCompactFull,
+                ]}
                 onPress={() => navigation.navigate('PedidoDetalhe', { id: item.id })}
               >
                 <Text style={styles.actionButtonText}>Ver pedido</Text>
@@ -690,7 +705,8 @@ export default function ControleNotasScreen() {
                   style={[
                     styles.actionButton,
                     styles.actionButtonDanger,
-                    narrowLayout && styles.actionButtonCompact,
+                    (narrowLayout || stackLayout) && styles.actionButtonCompact,
+                    extraNarrowLayout && styles.actionButtonCompactFull,
                     efetivando && styles.actionButtonDisabled,
                   ]}
                   onPress={(event) => {
@@ -737,8 +753,8 @@ export default function ControleNotasScreen() {
           </Pressable>
         </View>
 
-        <View style={[styles.summaryCard, compactLayout && styles.summaryCardCompact]}>
-          <View style={[styles.summaryHeader, narrowLayout && styles.summaryHeaderCompact]}>
+        <View style={[styles.summaryCard, (compactLayout || stackLayout) && styles.summaryCardCompact]}>
+          <View style={[styles.summaryHeader, stackLayout && styles.summaryHeaderCompact]}>
             <View>
               <Text style={styles.summaryTitle}>Pedidos com NF</Text>
               <Text style={styles.summaryHint}>Somente pedidos com NF válida (não cancelados)</Text>
@@ -749,7 +765,7 @@ export default function ControleNotasScreen() {
             </View>
           </View>
 
-          {compactLayout ? (
+          {compactLayout || stackLayout ? (
             <View style={styles.summaryCompactWrap}>
               <View style={styles.summaryCompactChip}>
                 <Text style={styles.summaryCompactChipLabel}>A conferir</Text>
@@ -770,22 +786,22 @@ export default function ControleNotasScreen() {
             </View>
           ) : (
             <>
-              <View style={[styles.summaryInlineStats, narrowLayout && styles.summaryInlineStatsCompact]}>
-                <View style={[styles.summaryInlineItem, styles.summaryInlineStatCard, narrowLayout && styles.summaryInlineItemCompact]}>
+              <View style={[styles.summaryInlineStats, stackLayout && styles.summaryInlineStatsCompact]}>
+                <View style={[styles.summaryInlineItem, styles.summaryInlineStatCard, stackLayout && styles.summaryInlineItemCompact]}>
                   <Text style={styles.summaryInlineLabel}>A conferir</Text>
                   <Text style={styles.summaryInlineValue}>{pedidosAConferir.length}</Text>
                 </View>
-                <View style={[styles.summaryInlineItem, styles.summaryInlineStatCard, narrowLayout && styles.summaryInlineItemCompact]}>
+                <View style={[styles.summaryInlineItem, styles.summaryInlineStatCard, stackLayout && styles.summaryInlineItemCompact]}>
                   <Text style={styles.summaryInlineLabel}>Antecipados</Text>
                   <Text style={styles.summaryInlineValue}>{pedidosEfetivados.length}</Text>
                 </View>
-                <View style={[styles.summaryInlineItem, styles.summaryInlineStatCard, narrowLayout && styles.summaryInlineItemCompact]}>
+                <View style={[styles.summaryInlineItem, styles.summaryInlineStatCard, stackLayout && styles.summaryInlineItemCompact]}>
                   <Text style={styles.summaryInlineLabel}>Selecionados</Text>
                   <Text style={styles.summaryInlineValue}>{idsSelecionados.length}</Text>
                 </View>
               </View>
 
-              <View style={[styles.summaryGrid, narrowLayout && styles.summaryGridCompact]}>
+              <View style={[styles.summaryGrid, stackLayout && styles.summaryGridCompact]}>
                 <View style={styles.summaryMetricCard}>
                   <Text style={styles.summaryMetricLabel}>Valor selecionado</Text>
                   <Text style={styles.summaryMetricValueMoney}>{formatarMoeda(totalSelecionado)}</Text>
@@ -799,7 +815,7 @@ export default function ControleNotasScreen() {
           )}
         </View>
 
-        <View style={[styles.tabsRow, narrowLayout && styles.stackRow]}>
+        <View style={[styles.tabsRow, stackLayout && styles.stackRow]}>
           <Pressable
             style={[styles.tabButton, abaAtiva === 'conferir' && styles.tabButtonActive]}
             onPress={() => setAbaAtiva('conferir')}
@@ -819,7 +835,7 @@ export default function ControleNotasScreen() {
         </View>
 
         {abaAtiva === 'conferir' ? (
-          <View style={[styles.bulkActionsRow, narrowLayout && styles.stackRow]}>
+          <View style={[styles.bulkActionsRow, stackLayout && styles.stackRow]}>
             <Pressable style={styles.bulkActionButton} onPress={selecionarTodosPedidos}>
               <Text style={styles.bulkActionButtonText}>Selecionar todos</Text>
             </Pressable>
@@ -852,12 +868,12 @@ export default function ControleNotasScreen() {
                 showsVerticalScrollIndicator={false}
               >
                 <View style={styles.sectionCard}>
-                  <View style={[styles.sectionHeader, narrowLayout && styles.sectionHeaderCompact]}>
+                  <View style={[styles.sectionHeader, stackLayout && styles.sectionHeaderCompact]}>
                     <Text style={styles.sectionTitle}>Antecipados por data</Text>
                     <Text style={styles.sectionMeta}>{pedidosEfetivados.length} item(ns)</Text>
                   </View>
                   <Pressable
-                    style={[styles.expandAllRow, narrowLayout && styles.expandAllRowCompact]}
+                    style={[styles.expandAllRow, stackLayout && styles.expandAllRowCompact]}
                     onPress={() => setExpandirTodasDatasAntecipadas((prev) => !prev)}
                   >
                     <View style={[styles.checkbox, expandirTodasDatasAntecipadas && styles.checkboxChecked]}>
@@ -874,7 +890,7 @@ export default function ControleNotasScreen() {
                     return (
                       <View key={grupo.dataKey} style={styles.dateGroup}>
                         <Pressable
-                          style={[styles.dateGroupHeader, narrowLayout && styles.dateGroupHeaderCompact]}
+                          style={[styles.dateGroupHeader, stackLayout && styles.dateGroupHeaderCompact]}
                           onPress={() =>
                             setDatasAntecipadasExpandidas((prev) => ({
                               ...prev,
@@ -884,7 +900,7 @@ export default function ControleNotasScreen() {
                         >
                           <View style={styles.dateGroupHeaderMain}>
                             <Text style={styles.dateGroupTitle}>{grupo.data}</Text>
-                            <Text style={[styles.dateGroupMeta, narrowLayout && styles.dateGroupMetaCompact]}>
+                            <Text style={[styles.dateGroupMeta, stackLayout && styles.dateGroupMetaCompact]}>
                               {grupo.itens.length} pedido(s) • {formatarMoeda(valorTotalData)}
                             </Text>
                           </View>
@@ -1298,6 +1314,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
+    paddingHorizontal: 10,
+    minHeight: 44,
   },
   tabButtonActive: {
     borderColor: '#93c5fd',
@@ -1307,6 +1325,7 @@ const styles = StyleSheet.create({
     color: '#334155',
     fontSize: 12.8,
     fontWeight: '700',
+    textAlign: 'center',
   },
   tabButtonTextActive: {
     color: '#1e3a8a',
@@ -1326,6 +1345,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
+    paddingHorizontal: 10,
+    minHeight: 42,
   },
   bulkActionButtonSecondary: {
     borderColor: '#cbd5e1',
@@ -1335,6 +1356,7 @@ const styles = StyleSheet.create({
     color: '#1d4ed8',
     fontSize: 12.8,
     fontWeight: '700',
+    textAlign: 'center',
   },
   bulkActionButtonTextSecondary: {
     color: '#475569',
@@ -1583,6 +1605,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexBasis: '48%',
   },
+  actionButtonCompactFull: {
+    flexBasis: '100%',
+  },
   actionButtonDanger: {
     borderColor: '#fca5a5',
     backgroundColor: '#fef2f2',
@@ -1590,7 +1615,7 @@ const styles = StyleSheet.create({
   actionButtonDisabled: {
     opacity: 0.6,
   },
-  actionButtonText: { color: '#1d4ed8', fontSize: 13, fontWeight: '700' },
+  actionButtonText: { color: '#1d4ed8', fontSize: 13, fontWeight: '700', textAlign: 'center' },
   actionButtonDangerText: { color: '#b91c1c' },
   centerCard: {
     borderWidth: 1,
