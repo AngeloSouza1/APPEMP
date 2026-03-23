@@ -21,6 +21,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Constants from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { clientesApi, monitoramentoApi, type CloudinaryStatusResumo, pedidosApi } from '../api/services';
+import { APP_ENV } from '../config/env';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { Pedido } from '../types/pedidos';
@@ -685,7 +686,7 @@ export default function HomeScreen() {
     });
   };
 
-  const ambiente = process.env.EXPO_PUBLIC_APP_ENV || 'Produção';
+  const ambiente = APP_ENV;
   const versao = `v${Constants.expoConfig?.version || '0.0.0'}`;
   const build = `${new Date().getFullYear()}.${String(new Date().getMonth() + 1).padStart(2, '0')}.${String(
     new Date().getDate()

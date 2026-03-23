@@ -1,4 +1,5 @@
 import { api } from './client';
+import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '../config/env';
 import { LoginResponse } from '../types/auth';
 import { ItemPedido, PaginatedResponse, Pedido, TrocaPedido } from '../types/pedidos';
 
@@ -192,9 +193,6 @@ export const notificacoesApi = {
 export const monitoramentoApi = {
   statusCloudinary: () => api.get<CloudinaryStatusResumo>('/admin/monitoramento/cloudinary/status'),
 };
-
-const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
-const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
 const getMimeTypeFromAsset = (asset: {
   uri: string;
