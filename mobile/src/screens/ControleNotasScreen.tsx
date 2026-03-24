@@ -815,9 +815,14 @@ export default function ControleNotasScreen() {
           )}
         </View>
 
-        <View style={[styles.tabsRow, stackLayout && styles.stackRow]}>
+        <View style={[styles.tabsRow, stackLayout && styles.wrapRow]}>
           <Pressable
-            style={[styles.tabButton, abaAtiva === 'conferir' && styles.tabButtonActive]}
+            style={[
+              styles.tabButton,
+              stackLayout && styles.gridButton,
+              extraNarrowLayout && styles.gridButtonFull,
+              abaAtiva === 'conferir' && styles.tabButtonActive,
+            ]}
             onPress={() => setAbaAtiva('conferir')}
           >
             <Text style={[styles.tabButtonText, abaAtiva === 'conferir' && styles.tabButtonTextActive]}>
@@ -825,7 +830,12 @@ export default function ControleNotasScreen() {
             </Text>
           </Pressable>
           <Pressable
-            style={[styles.tabButton, abaAtiva === 'efetivados' && styles.tabButtonActive]}
+            style={[
+              styles.tabButton,
+              stackLayout && styles.gridButton,
+              extraNarrowLayout && styles.gridButtonFull,
+              abaAtiva === 'efetivados' && styles.tabButtonActive,
+            ]}
             onPress={() => setAbaAtiva('efetivados')}
           >
             <Text style={[styles.tabButtonText, abaAtiva === 'efetivados' && styles.tabButtonTextActive]}>
@@ -835,11 +845,22 @@ export default function ControleNotasScreen() {
         </View>
 
         {abaAtiva === 'conferir' ? (
-          <View style={[styles.bulkActionsRow, stackLayout && styles.stackRow]}>
-            <Pressable style={styles.bulkActionButton} onPress={selecionarTodosPedidos}>
+          <View style={[styles.bulkActionsRow, stackLayout && styles.wrapRow]}>
+            <Pressable
+              style={[styles.bulkActionButton, stackLayout && styles.gridButton, extraNarrowLayout && styles.gridButtonFull]}
+              onPress={selecionarTodosPedidos}
+            >
               <Text style={styles.bulkActionButtonText}>Selecionar todos</Text>
             </Pressable>
-            <Pressable style={[styles.bulkActionButton, styles.bulkActionButtonSecondary]} onPress={limparSelecaoPedidos}>
+            <Pressable
+              style={[
+                styles.bulkActionButton,
+                styles.bulkActionButtonSecondary,
+                stackLayout && styles.gridButton,
+                extraNarrowLayout && styles.gridButtonFull,
+              ]}
+              onPress={limparSelecaoPedidos}
+            >
               <Text style={[styles.bulkActionButtonText, styles.bulkActionButtonTextSecondary]}>Limpar</Text>
             </Pressable>
           </View>
@@ -1304,6 +1325,19 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     rowGap: 8,
     columnGap: 0,
+  },
+  wrapRow: {
+    flexWrap: 'wrap',
+    rowGap: 8,
+    columnGap: 8,
+  },
+  gridButton: {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: '48%',
+  },
+  gridButtonFull: {
+    flexBasis: '100%',
   },
   tabButton: {
     flex: 1,
