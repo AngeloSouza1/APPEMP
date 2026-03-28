@@ -18,7 +18,7 @@ import {
   View,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -52,17 +52,18 @@ const STATUS_RANK: Record<string, number> = {
 
 const montarMensagemDocumentoWhatsApp = (
   item: Pedido,
-  tipo: 'Nota' | 'Canhoto',
+  tipo: 'Nota' | 'Vale-Recibo' | 'Canhoto',
   url: string
 ) => {
   const statusLabel = STATUS_LABEL[item.status] || item.status;
+  const documentoFiscalLabel = item.usa_nf ? 'Nota' : 'Vale-Recibo';
 
   return [
-    `APPEMP • ${tipo}`,
+    `APPEMP • ${tipo === 'Nota' ? documentoFiscalLabel : tipo}`,
     `Pedido #${item.id}`,
     `${item.cliente_nome}`,
     `${formatarData(item.data)} • ${statusLabel}`,
-    item.nf_numero ? `NF ${item.nf_numero}` : null,
+    item.nf_numero ? `NF ${item.nf_numero}` : item.usa_vale_recibo ? 'Vale-recibo anexado' : null,
     '',
     'Abrir aqui:',
     url,
@@ -78,8 +79,14 @@ const isoData = (valor?: string | null) => (valor ? String(valor).slice(0, 10) :
 
 export default function ControleNotasScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<any>();
   const insets = useSafeAreaInsets();
   const { height, width } = useWindowDimensions();
+  const ehControleVales = route.name === 'ControleVales' || route.params?.modo === 'vales';
+  const documentoTitulo = ehControleVales ? 'Vale-Recibo' : 'Nota';
+  const documentoTituloPlural = ehControleVales ? 'Vales' : 'Notas';
+  const documentoTituloLower = ehControleVales ? 'vale-recibo' : 'nota';
+  const documentoTituloLowerPlural = ehControleVales ? 'vales' : 'notas';
   const compactLayout = height < 760;
   const narrowLayout = width < 390;
   const stackLayout = width < 430;
@@ -137,7 +144,12 @@ export default function ControleNotasScreen() {
       });
       const pedidosComNf = response.data.data.filter(
         (pedido) =>
-          Boolean(pedido.nf_imagem_url) &&
+          Boolean(
+            ehControleVales
+              ? pedido.usa_vale_recibo
+              : pedido.usa_nf && pedido.nf_imagem_url
+          ) &&
+          (!ehControleVales || pedido.status === 'EFETIVADO') &&
           pedido.status !== 'CANCELADO'
       );
       const mapa = new Map<number, Pedido>();
@@ -153,7 +165,11 @@ export default function ControleNotasScreen() {
           mapa.set(pedido.id, pedido);
           return;
         }
-        if (novoRank === atualRank && !atual.nf_imagem_url && pedido.nf_imagem_url) {
+        if (
+          novoRank === atualRank &&
+          !(ehControleVales ? atual.vale_recibo_imagem_url : atual.nf_imagem_url) &&
+          (ehControleVales ? pedido.vale_recibo_imagem_url : pedido.nf_imagem_url)
+        ) {
           mapa.set(pedido.id, pedido);
           return;
         }
@@ -178,12 +194,12 @@ export default function ControleNotasScreen() {
       });
       setErro(null);
     } catch {
-      setErro('Não foi possível carregar as notas dos pedidos.');
+      setErro(`Não foi possível carregar os ${documentoTituloLowerPlural} dos pedidos.`);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [ehControleVales]);
 
   useFocusEffect(
     useCallback(() => {
@@ -297,13 +313,13 @@ export default function ControleNotasScreen() {
 
   const efetivarNotas = useCallback(() => {
     if (!idsSelecionados.length) {
-      Alert.alert('Seleção vazia', 'Selecione ao menos uma nota para efetivar.');
+      Alert.alert('Seleção vazia', `Selecione ao menos um ${documentoTituloLower} para efetivar.`);
       return;
     }
 
     Alert.alert(
-      'Efetivar notas',
-      `Deseja efetivar ${idsSelecionados.length} nota(s) selecionada(s)?`,
+      `Efetivar ${documentoTituloLowerPlural}`,
+      `Deseja efetivar ${idsSelecionados.length} ${documentoTituloLower}(s) selecionada(s)?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -333,9 +349,9 @@ export default function ControleNotasScreen() {
               setSelecionados({});
               setCardsExpandidos({});
               setAbaAtiva('efetivados');
-              Alert.alert('Sucesso', 'Notas efetivadas e movidas para Antecipados.');
+              Alert.alert('Sucesso', `${documentoTituloPlural} efetivados e movidos para Antecipados.`);
             } catch {
-              Alert.alert('Erro', 'Não foi possível efetivar as notas selecionadas.');
+              Alert.alert('Erro', `Não foi possível efetivar os ${documentoTituloLowerPlural} selecionados.`);
             } finally {
               setEfetivando(false);
             }
@@ -343,12 +359,12 @@ export default function ControleNotasScreen() {
         },
       ]
     );
-  }, [idsSelecionados]);
+  }, [documentoTituloLower, documentoTituloLowerPlural, documentoTituloPlural, idsSelecionados]);
 
   const cancelarEfetivacaoNota = useCallback((pedidoId: number) => {
     Alert.alert(
       'Cancelar efetivação',
-      `Deseja cancelar a efetivação da nota do pedido #${pedidoId}?`,
+      `Deseja cancelar a efetivação do ${documentoTituloLower} do pedido #${pedidoId}?`,
       [
         { text: 'Voltar', style: 'cancel' },
         {
@@ -384,7 +400,7 @@ export default function ControleNotasScreen() {
               Alert.alert('Sucesso', 'Efetivação cancelada com sucesso.');
               setAbaAtiva('conferir');
             } catch {
-              Alert.alert('Erro', 'Não foi possível cancelar a efetivação da nota.');
+              Alert.alert('Erro', `Não foi possível cancelar a efetivação do ${documentoTituloLower}.`);
             } finally {
               setEfetivando(false);
             }
@@ -392,7 +408,7 @@ export default function ControleNotasScreen() {
         },
       ]
     );
-  }, []);
+  }, [documentoTituloLower]);
 
   const atualizarCanhotoPedido = useCallback((pedidoId: number, canhotoUrl: string | null) => {
     setPedidos((prev) => prev.map((pedido) => (
@@ -538,15 +554,16 @@ export default function ControleNotasScreen() {
     );
   }, [canhotoPedidoAtivo, enviandoCanhotoId, removerCanhoto]);
 
-  const enviarNotaParaWhatsApp = useCallback(async (item: Pedido) => {
-    if (!item.nf_imagem_url) {
-      Alert.alert('Nota', 'Nenhuma imagem de NF anexada para envio.');
+  const enviarDocumentoFiscalParaWhatsApp = useCallback(async (item: Pedido) => {
+    const documentoFiscalUrl = ehControleVales ? item.vale_recibo_imagem_url : item.nf_imagem_url;
+    if (!documentoFiscalUrl) {
+      Alert.alert(documentoTitulo, `Nenhuma imagem de ${documentoTituloLower} anexada para envio.`);
       return;
     }
 
     const mensagem = montarMensagemDocumentoWhatsApp(
       item,
-      'Nota',
+      ehControleVales ? 'Vale-Recibo' : 'Nota',
       getNotaShareUrl(item.id)
     );
     const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(mensagem)}`;
@@ -560,13 +577,16 @@ export default function ControleNotasScreen() {
       }
       await Linking.openURL(fallbackWebUrl);
     } catch {
-      Alert.alert('Erro', 'Não foi possível abrir o WhatsApp para envio da nota.');
+      Alert.alert('Erro', `Não foi possível abrir o WhatsApp para envio do ${documentoTituloLower}.`);
     }
-  }, []);
+  }, [documentoTitulo, documentoTituloLower, ehControleVales]);
 
   const renderPedidoCard = ({ item, sectionKey }: { item: Pedido; sectionKey: 'conferir' | 'efetivados' }) => {
     const statusTheme = STATUS_COLOR[item.status] || STATUS_COLOR.EM_ESPERA;
     const statusLabel = STATUS_LABEL[item.status] || item.status;
+    const documentoFiscalUrl = ehControleVales ? item.vale_recibo_imagem_url || null : item.nf_imagem_url || null;
+    const documentoFiscalEhPdf = isPdfAttachment(documentoFiscalUrl);
+    const documentoFiscalTitulo = ehControleVales ? 'Vale-Recibo' : 'NF';
     const expandido = Boolean(cardsExpandidos[item.id]);
     const marcado = Boolean(selecionados[item.id]);
     const podeSelecionar = sectionKey === 'conferir';
@@ -598,7 +618,9 @@ export default function ControleNotasScreen() {
         <Text style={[styles.cardMeta, !expandido && styles.cardMetaCompact]}>
           {formatarData(item.data)} • {formatarMoeda(Number(item.valor_total || 0))}
         </Text>
-        <Text style={styles.nfNumberText}>NF: {item.nf_numero ? item.nf_numero : 'Não informado'}</Text>
+        <Text style={styles.nfNumberText}>
+          {ehControleVales ? 'Vale-recibo anexado' : `NF: ${item.nf_numero ? item.nf_numero : 'Não informado'}`}
+        </Text>
         {sectionKey === 'efetivados' ? (
           <Text style={styles.nfEfetivadoPorText}>
             Efetivado por: {item.nf_efetivado_por_nome || 'Usuário não identificado'}
@@ -606,23 +628,23 @@ export default function ControleNotasScreen() {
         ) : null}
         {expandido ? (
           <>
-            <Text style={styles.attachmentLabel}>NF</Text>
-            {item.nf_imagem_url ? (
-              isPdfAttachment(item.nf_imagem_url) ? (
+            <Text style={styles.attachmentLabel}>{documentoFiscalTitulo}</Text>
+            {documentoFiscalUrl ? (
+              documentoFiscalEhPdf ? (
                 <Pressable
                   style={styles.pdfButton}
                   onPress={async () => {
                     try {
-                      await openPdfAttachment(item.nf_imagem_url, `pedido-${item.id}-nf`);
+                      await openPdfAttachment(documentoFiscalUrl, `pedido-${item.id}-documento-fiscal`);
                     } catch (error: any) {
-                      Alert.alert('PDF da NF', error?.message || 'Não foi possível abrir o PDF da NF.');
+                      Alert.alert('PDF do documento fiscal', error?.message || 'Não foi possível abrir o PDF do documento fiscal.');
                     }
                   }}
                 >
                   <View style={styles.pdfBadge}>
                     <Text style={styles.pdfBadgeText}>PDF</Text>
                   </View>
-                  <Text style={styles.pdfButtonText}>Nota fiscal em PDF</Text>
+                  <Text style={styles.pdfButtonText}>{documentoFiscalTitulo} em PDF</Text>
                   <Text style={styles.pdfButtonHint}>Toque para abrir o arquivo</Text>
                 </Pressable>
               ) : (
@@ -630,16 +652,16 @@ export default function ControleNotasScreen() {
                   style={styles.imageWrap}
                   onPress={() => {
                     setNotaZoom(1);
-                    setNotaSelecionada(item.nf_imagem_url || null);
+                    setNotaSelecionada(documentoFiscalUrl);
                   }}
                 >
-                  <Image source={{ uri: item.nf_imagem_url }} style={styles.imageThumb} resizeMode="cover" />
+                  <Image source={{ uri: documentoFiscalUrl }} style={styles.imageThumb} resizeMode="cover" />
                   <Text style={styles.imageHint}>Toque para ampliar</Text>
                 </Pressable>
               )
             ) : (
               <View style={styles.emptyNf}>
-                <Text style={styles.emptyNfText}>Sem imagem de NF anexada.</Text>
+                <Text style={styles.emptyNfText}>Sem documento fiscal anexado.</Text>
               </View>
             )}
             <Text style={styles.attachmentLabel}>Canhoto</Text>
@@ -668,10 +690,10 @@ export default function ControleNotasScreen() {
                 ]}
                 onPress={(event) => {
                   event.stopPropagation();
-                  void enviarNotaParaWhatsApp(item);
+                  void enviarDocumentoFiscalParaWhatsApp(item);
                 }}
               >
-                <Text style={styles.actionButtonText}>Nota WhatsApp</Text>
+                <Text style={styles.actionButtonText}>{ehControleVales ? 'Vale WhatsApp' : 'Nota WhatsApp'}</Text>
               </Pressable>
               <Pressable
                 style={[
@@ -743,7 +765,9 @@ export default function ControleNotasScreen() {
         <View style={[styles.headerCard, compactLayout && styles.headerCardCompact]}>
           <View style={styles.headerTitleRow}>
             <Text style={styles.headerIcon}>🧾</Text>
-            <Text style={[styles.headerTitle, compactLayout && styles.headerTitleCompact]}>Controle de Notas</Text>
+            <Text style={[styles.headerTitle, compactLayout && styles.headerTitleCompact]}>
+              {`Controle de ${documentoTituloPlural}`}
+            </Text>
           </View>
           <Pressable
             style={[styles.headerBackButton, compactLayout && styles.headerBackButtonCompact]}
@@ -755,9 +779,13 @@ export default function ControleNotasScreen() {
 
         <View style={[styles.summaryCard, (compactLayout || stackLayout) && styles.summaryCardCompact]}>
           <View style={[styles.summaryHeader, stackLayout && styles.summaryHeaderCompact]}>
-            <View>
-              <Text style={styles.summaryTitle}>Pedidos com NF</Text>
-              <Text style={styles.summaryHint}>Somente pedidos com NF válida (não cancelados)</Text>
+            <View style={styles.summaryHeaderContent}>
+              <Text style={styles.summaryTitle}>{ehControleVales ? 'Pedidos com Vale-Recibo' : 'Pedidos com NF'}</Text>
+              <Text style={styles.summaryHint}>
+                {ehControleVales
+                  ? 'Somente pedidos efetivados com vale-recibo válido'
+                  : 'Somente pedidos com NF válida (não cancelados)'}
+              </Text>
             </View>
             <View style={styles.summaryTotalBadge}>
               <Text style={styles.summaryTotalLabel}>Total</Text>
@@ -881,7 +909,11 @@ export default function ControleNotasScreen() {
           ) : abaAtiva === 'efetivados' ? (
             pedidosEfetivadosAgrupados.length === 0 ? (
               <View style={styles.centerCard}>
-                <Text style={styles.emptyText}>Nenhum pedido com NF encontrado.</Text>
+                <Text style={styles.emptyText}>
+                  {ehControleVales
+                    ? 'Nenhum pedido efetivado com Vale-Recibo encontrado.'
+                    : `Nenhum pedido com ${documentoTitulo} encontrado.`}
+                </Text>
               </View>
             ) : (
               <ScrollView
@@ -959,7 +991,11 @@ export default function ControleNotasScreen() {
               refreshing={refreshing}
               ListEmptyComponent={
                 <View style={styles.centerCard}>
-                  <Text style={styles.emptyText}>Nenhum pedido com NF encontrado.</Text>
+                  <Text style={styles.emptyText}>
+                    {ehControleVales
+                      ? 'Nenhum pedido efetivado com Vale-Recibo encontrado.'
+                      : `Nenhum pedido com ${documentoTitulo} encontrado.`}
+                  </Text>
                 </View>
               }
             />
@@ -973,7 +1009,7 @@ export default function ControleNotasScreen() {
             disabled={!idsSelecionados.length || efetivando}
           >
             <Text style={styles.efetivarButtonText}>
-              {efetivando ? 'Efetivando...' : 'Efetivar notas selecionadas'}
+              {efetivando ? 'Efetivando...' : `Efetivar ${documentoTituloLowerPlural} selecionados`}
             </Text>
           </Pressable>
         </View>
@@ -1200,14 +1236,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     columnGap: 8,
   },
+  summaryHeaderContent: {
+    flex: 1,
+    minWidth: 0,
+  },
   summaryHeaderCompact: {
     flexDirection: 'column',
     rowGap: 8,
   },
   summaryTitle: { color: '#334155', fontSize: 14, fontWeight: '700' },
-  summaryHint: { color: '#64748b', fontSize: 11.5, fontWeight: '600', marginTop: 2 },
+  summaryHint: {
+    color: '#64748b',
+    fontSize: 11.5,
+    fontWeight: '600',
+    marginTop: 2,
+    flexShrink: 1,
+    lineHeight: 15,
+  },
   summaryTotalBadge: {
     minWidth: 64,
+    maxWidth: 72,
+    flexShrink: 0,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#bfdbfe',

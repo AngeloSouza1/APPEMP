@@ -141,6 +141,7 @@ export type RelatorioNotaItem = {
   pedido_valor_total: number;
   nf_numero?: string | null;
   nf_imagem_url?: string | null;
+  vale_recibo_imagem_url?: string | null;
   nf_status?: 'PENDENTE' | 'ANTECIPADA' | string | null;
   cliente_id: number;
   codigo_cliente: string;
@@ -346,7 +347,9 @@ export const pedidosApi = {
     data: string;
     status?: string;
     usa_nf?: boolean;
+    usa_vale_recibo?: boolean;
     nf_imagem_url?: string | null;
+    vale_recibo_imagem_url?: string | null;
     canhoto_imagem_url?: string | null;
     nf_numero?: string | null;
     itens: Omit<ItemPedido, 'id' | 'produto_nome' | 'codigo_produto' | 'valor_total_item'>[];
@@ -356,7 +359,9 @@ export const pedidosApi = {
     data?: string;
     status?: string;
     usa_nf?: boolean;
+    usa_vale_recibo?: boolean;
     nf_imagem_url?: string | null;
+    vale_recibo_imagem_url?: string | null;
     canhoto_imagem_url?: string | null;
     nf_numero?: string | null;
     itens?: Omit<ItemPedido, 'id' | 'produto_nome' | 'codigo_produto' | 'valor_total_item'>[];

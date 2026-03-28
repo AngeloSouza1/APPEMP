@@ -88,9 +88,12 @@ export default function PedidoNovoScreen({ navigation }: Props) {
   const [data, setData] = useState(formatarDataAtual());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [usaNf, setUsaNf] = useState(false);
+  const [usaValeRecibo, setUsaValeRecibo] = useState(false);
   const [nfNumero, setNfNumero] = useState('');
   const [nfImagemUrl, setNfImagemUrl] = useState('');
+  const [valeReciboImagemUrl, setValeReciboImagemUrl] = useState('');
   const [enviandoNf, setEnviandoNf] = useState(false);
+  const [enviandoValeRecibo, setEnviandoValeRecibo] = useState(false);
   const [previewNfVisivel, setPreviewNfVisivel] = useState(false);
   const [previewNfZoom, setPreviewNfZoom] = useState(1);
   const previewNfPan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
@@ -268,8 +271,11 @@ export default function PedidoNovoScreen({ navigation }: Props) {
     dataValida &&
     itens.length > 0 &&
     !enviandoNf &&
-    (!usaNf || (Boolean(nfImagemUrl.trim()) && Boolean(nfNumero.trim())));
+    !enviandoValeRecibo &&
+    (!usaNf || (Boolean(nfImagemUrl.trim()) && Boolean(nfNumero.trim()))) &&
+    (!usaValeRecibo || Boolean(valeReciboImagemUrl.trim()));
   const nfEhPdf = useMemo(() => isPdfAttachment(nfImagemUrl), [nfImagemUrl]);
+  const valeReciboEhPdf = useMemo(() => isPdfAttachment(valeReciboImagemUrl), [valeReciboImagemUrl]);
 
   const selecionarCliente = (cliente: ClienteResumo) => {
     setClienteId(cliente.id);
@@ -359,22 +365,40 @@ export default function PedidoNovoScreen({ navigation }: Props) {
     setItemExpandidoKey((atual) => (atual === key ? null : atual));
   };
 
-  const enviarNf = async (asset: { uri: string; base64?: string | null; mimeType?: string | null; fileName?: string | null }) => {
-    setEnviandoNf(true);
+  const enviarDocumentoFiscal = async ({
+    asset,
+    setEnviando,
+    setUrl,
+    tipo,
+  }: {
+    asset: { uri: string; base64?: string | null; mimeType?: string | null; fileName?: string | null };
+    setEnviando: (value: boolean) => void;
+    setUrl: (value: string) => void;
+    tipo: 'NF' | 'Vale-Recibo';
+  }) => {
+    setEnviando(true);
     try {
       const url = await arquivosApi.uploadImagemCloudinary(asset);
-      setNfImagemUrl(url);
-      Alert.alert('Sucesso', 'Arquivo da NF carregado com sucesso.');
+      setUrl(url);
+      Alert.alert('Sucesso', `Arquivo de ${tipo} carregado com sucesso.`);
     } catch (error: any) {
-      Alert.alert('Erro', error?.message || 'Não foi possível enviar o arquivo da NF.');
+      Alert.alert('Erro', error?.message || `Não foi possível enviar o arquivo de ${tipo}.`);
     } finally {
-      setEnviandoNf(false);
+      setEnviando(false);
     }
   };
 
-  const selecionarImagemNf = () => {
+  const selecionarArquivoDocumento = ({
+    tipo,
+    setEnviando,
+    setUrl,
+  }: {
+    tipo: 'NF' | 'Vale-Recibo';
+    setEnviando: (value: boolean) => void;
+    setUrl: (value: string) => void;
+  }) => {
     const selecionarImagem = () => {
-      Alert.alert('Imagem da NF', 'Escolha a origem da imagem.', [
+      Alert.alert(`Imagem de ${tipo}`, 'Escolha a origem da imagem.', [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Galeria',
@@ -384,7 +408,7 @@ export default function PedidoNovoScreen({ navigation }: Props) {
               Alert.alert(
                 'Permissão negada',
                 permissao.canAskAgain
-                  ? 'Permita acesso à galeria para selecionar a imagem da NF.'
+                  ? `Permita acesso à galeria para selecionar a imagem de ${tipo}.`
                   : 'Acesso à galeria bloqueado. Libere nas configurações do app.'
               );
               return;
@@ -400,9 +424,9 @@ export default function PedidoNovoScreen({ navigation }: Props) {
                 Alert.alert('Seleção cancelada', 'Nenhuma imagem foi selecionada.');
                 return;
               }
-              await enviarNf(result.assets[0] as any);
+              await enviarDocumentoFiscal({ asset: result.assets[0] as any, setEnviando, setUrl, tipo });
             } catch (error: any) {
-              Alert.alert('Erro', error?.message || 'Não foi possível enviar o arquivo da NF.');
+              Alert.alert('Erro', error?.message || `Não foi possível enviar o arquivo de ${tipo}.`);
             }
           },
         },
@@ -414,7 +438,7 @@ export default function PedidoNovoScreen({ navigation }: Props) {
               Alert.alert(
                 'Permissão negada',
                 permissao.canAskAgain
-                  ? 'Permita acesso à câmera para capturar a imagem da NF.'
+                  ? `Permita acesso à câmera para capturar a imagem de ${tipo}.`
                   : 'Acesso à câmera bloqueado. Libere nas configurações do app.'
               );
               return;
@@ -430,9 +454,9 @@ export default function PedidoNovoScreen({ navigation }: Props) {
                 Alert.alert('Captura cancelada', 'Nenhuma imagem foi capturada.');
                 return;
               }
-              await enviarNf(result.assets[0] as any);
+              await enviarDocumentoFiscal({ asset: result.assets[0] as any, setEnviando, setUrl, tipo });
             } catch (error: any) {
-              Alert.alert('Erro', error?.message || 'Não foi possível enviar o arquivo da NF.');
+              Alert.alert('Erro', error?.message || `Não foi possível enviar o arquivo de ${tipo}.`);
             }
           },
         },
@@ -451,18 +475,23 @@ export default function PedidoNovoScreen({ navigation }: Props) {
           return;
         }
         const doc = result.assets[0];
-        await enviarNf({
-          uri: doc.uri,
-          mimeType: doc.mimeType || 'application/pdf',
-          fileName: doc.name,
+        await enviarDocumentoFiscal({
+          asset: {
+            uri: doc.uri,
+            mimeType: doc.mimeType || 'application/pdf',
+            fileName: doc.name,
+          },
+          setEnviando,
+          setUrl,
+          tipo,
         });
-        Alert.alert('PDF convertido', 'O PDF da NF foi convertido para imagem (PNG) antes de salvar.');
+        Alert.alert('PDF convertido', `O PDF de ${tipo} foi convertido para imagem (PNG) antes de salvar.`);
       } catch (error: any) {
-        Alert.alert('Erro', error?.message || 'Não foi possível enviar o PDF da NF.');
+        Alert.alert('Erro', error?.message || `Não foi possível enviar o PDF de ${tipo}.`);
       }
     };
 
-    Alert.alert('Arquivo da NF', 'Escolha o tipo do arquivo. PDFs serão convertidos para imagem (PNG).', [
+    Alert.alert(`Arquivo de ${tipo}`, 'Escolha o tipo do arquivo. PDFs serão convertidos para imagem (PNG).', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Imagem', onPress: selecionarImagem },
       { text: 'PDF', onPress: () => void selecionarPdf() },
@@ -487,6 +516,7 @@ export default function PedidoNovoScreen({ navigation }: Props) {
     }
 
     const nfImagemNormalizada = nfImagemUrl.trim();
+    const valeReciboImagemNormalizada = valeReciboImagemUrl.trim();
     const nfNumeroNormalizado = nfNumero.trim();
     if (usaNf && !nfImagemNormalizada) {
       Alert.alert('Imagem da NF', 'Informe a imagem da NF para continuar.');
@@ -494,6 +524,10 @@ export default function PedidoNovoScreen({ navigation }: Props) {
     }
     if (usaNf && !nfNumeroNormalizado) {
       Alert.alert('Número da NF', 'Informe o número da NF para continuar.');
+      return;
+    }
+    if (usaValeRecibo && !valeReciboImagemNormalizada) {
+      Alert.alert('Imagem do Vale-Recibo', 'Informe a imagem do vale-recibo para continuar.');
       return;
     }
 
@@ -534,7 +568,9 @@ export default function PedidoNovoScreen({ navigation }: Props) {
         data: dataNormalizada,
         status: 'EM_ESPERA',
         usa_nf: usaNf,
+        usa_vale_recibo: usaValeRecibo,
         nf_imagem_url: usaNf ? nfImagemNormalizada : null,
+        vale_recibo_imagem_url: usaValeRecibo ? valeReciboImagemNormalizada : null,
         nf_numero: usaNf ? nfNumeroNormalizado : null,
         itens: itensPayload,
       });
@@ -685,24 +721,43 @@ export default function PedidoNovoScreen({ navigation }: Props) {
             </View>
           ) : null}
 
-          <Pressable
-            style={({ pressed }) => [styles.nfToggleRow, pressed && styles.selectorTriggerPressed]}
-            onPress={() =>
-              setUsaNf((prev) => {
-                const proximo = !prev;
-                if (!proximo) {
-                  setNfImagemUrl('');
-                  setNfNumero('');
-                }
-                return proximo;
-              })
-            }
-          >
-            <View style={[styles.nfCheckbox, usaNf && styles.nfCheckboxChecked]}>
-              {usaNf ? <Text style={styles.nfCheckboxIcon}>✓</Text> : null}
-            </View>
-            <Text style={styles.nfToggleText}>Usa NF</Text>
-          </Pressable>
+          <View style={styles.documentToggleGroup}>
+            <Pressable
+              style={({ pressed }) => [styles.nfToggleRow, styles.documentToggleItem, pressed && styles.selectorTriggerPressed]}
+              onPress={() =>
+                setUsaNf((prev) => {
+                  const proximo = !prev;
+                  if (!proximo) {
+                    setNfImagemUrl('');
+                    setNfNumero('');
+                  }
+                  return proximo;
+                })
+              }
+            >
+              <View style={[styles.nfCheckbox, usaNf && styles.nfCheckboxChecked]}>
+                {usaNf ? <Text style={styles.nfCheckboxIcon}>✓</Text> : null}
+              </View>
+              <Text style={styles.nfToggleText}>Usa NF</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.nfToggleRow, styles.documentToggleItem, pressed && styles.selectorTriggerPressed]}
+              onPress={() =>
+                setUsaValeRecibo((prev) => {
+                  const proximo = !prev;
+                  if (!proximo) {
+                    setValeReciboImagemUrl('');
+                  }
+                  return proximo;
+                })
+              }
+            >
+              <View style={[styles.nfCheckbox, usaValeRecibo && styles.nfCheckboxChecked]}>
+                {usaValeRecibo ? <Text style={styles.nfCheckboxIcon}>✓</Text> : null}
+              </View>
+              <Text style={styles.nfToggleText}>Usa Vale-Recibo</Text>
+            </Pressable>
+          </View>
 
           {usaNf ? (
             <>
@@ -723,7 +778,7 @@ export default function PedidoNovoScreen({ navigation }: Props) {
                   pressed && styles.selectorTriggerPressed,
                   enviandoNf && styles.saveButtonDisabled,
                 ]}
-                onPress={selecionarImagemNf}
+                onPress={() => selecionarArquivoDocumento({ tipo: 'NF', setEnviando: setEnviandoNf, setUrl: setNfImagemUrl })}
                 disabled={enviandoNf}
               >
                 <Text style={styles.nfUploadButtonText}>
@@ -763,6 +818,63 @@ export default function PedidoNovoScreen({ navigation }: Props) {
                     <Text style={styles.nfRemoveButtonText}>Remover arquivo</Text>
                   </Pressable>
                   {nfEhPdf ? <Text style={styles.nfFileHint}>Arquivo salvo como PDF.</Text> : null}
+                </View>
+              ) : null}
+            </>
+          ) : null}
+
+          {usaValeRecibo ? (
+            <>
+              <Text style={styles.fieldLabel}>Imagem do Vale-Recibo</Text>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.nfUploadButton,
+                  pressed && styles.selectorTriggerPressed,
+                  enviandoValeRecibo && styles.saveButtonDisabled,
+                ]}
+                onPress={() =>
+                  selecionarArquivoDocumento({
+                    tipo: 'Vale-Recibo',
+                    setEnviando: setEnviandoValeRecibo,
+                    setUrl: setValeReciboImagemUrl,
+                  })
+                }
+                disabled={enviandoValeRecibo}
+              >
+                <Text style={styles.nfUploadButtonText}>
+                  {enviandoValeRecibo
+                    ? 'Enviando arquivo...'
+                    : valeReciboImagemUrl
+                      ? 'Trocar arquivo do vale-recibo'
+                      : 'Selecionar arquivo do vale-recibo'}
+                </Text>
+              </Pressable>
+              {valeReciboImagemUrl ? (
+                <View style={styles.nfPreviewCard}>
+                  {valeReciboEhPdf ? (
+                    <Pressable
+                      style={styles.nfPdfButton}
+                      onPress={async () => {
+                        try {
+                          await openPdfAttachment(valeReciboImagemUrl, 'novo-vale-recibo');
+                        } catch (error: any) {
+                          Alert.alert('PDF do Vale-Recibo', error?.message || 'Não foi possível abrir o PDF do vale-recibo.');
+                        }
+                      }}
+                    >
+                      <View style={styles.nfPdfBadge}>
+                        <Text style={styles.nfPdfBadgeText}>PDF</Text>
+                      </View>
+                      <Text style={styles.nfPdfButtonText}>Vale-recibo em PDF</Text>
+                      <Text style={styles.nfPdfButtonHint}>Toque para abrir o arquivo</Text>
+                    </Pressable>
+                  ) : (
+                    <Image source={{ uri: valeReciboImagemUrl }} style={styles.nfPreviewImage} resizeMode="cover" />
+                  )}
+                  <Pressable style={styles.nfRemoveButton} onPress={() => setValeReciboImagemUrl('')}>
+                    <Text style={styles.nfRemoveButtonText}>Remover arquivo</Text>
+                  </Pressable>
+                  {valeReciboEhPdf ? <Text style={styles.nfFileHint}>Arquivo salvo como PDF.</Text> : null}
                 </View>
               ) : null}
             </>
@@ -1050,11 +1162,13 @@ export default function PedidoNovoScreen({ navigation }: Props) {
           </View>
         </View>
       </Modal>
-      <Modal transparent visible={enviandoNf} animationType="fade">
+      <Modal transparent visible={enviandoNf || enviandoValeRecibo} animationType="fade">
         <View style={styles.loadingOverlay}>
           <View style={styles.loadingCard}>
             <ActivityIndicator size="small" color="#1d4ed8" />
-            <Text style={styles.loadingText}>Processando upload da NF...</Text>
+            <Text style={styles.loadingText}>
+              {enviandoValeRecibo ? 'Processando upload do vale-recibo...' : 'Processando upload da NF...'}
+            </Text>
           </View>
         </View>
       </Modal>
@@ -1270,12 +1384,21 @@ const styles = StyleSheet.create({
   inputCompact: {
     paddingVertical: 10,
   },
-  nfToggleRow: {
+  documentToggleGroup: {
     marginTop: 2,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    columnGap: 14,
+    rowGap: 8,
+  },
+  documentToggleItem: {
+    flexBasis: '47%',
+    minWidth: 132,
+  },
+  nfToggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     columnGap: 8,
-    alignSelf: 'flex-start',
     paddingVertical: 2,
     paddingHorizontal: 2,
   },

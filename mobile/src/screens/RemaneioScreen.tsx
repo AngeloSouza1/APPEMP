@@ -402,13 +402,39 @@ export default function RemaneioScreen() {
     setSucesso(null);
     setProcessando(true);
     try {
+      const pedidoAlvo = pedidosRemaneio.find((pedido) => pedido.id === pedidoId) || null;
       await pedidosApi.atualizarStatus(pedidoId, {
         status: 'EFETIVADO',
         data: dataEfetivacaoIso,
       });
       await marcarRelatoriosComoDesatualizados();
       setStepSelecaoBloqueado(false);
-      setSucesso(`Pedido #${pedidoId} efetivado com data ${formatarData(dataEfetivacaoIso)}.`);
+
+      const destinos: string[] = [];
+      const pendencias: string[] = [];
+
+      if (pedidoAlvo?.usa_nf) {
+        if (pedidoAlvo.nf_imagem_url) destinos.push('Controle de Notas');
+        else pendencias.push('NF sem imagem anexada');
+      }
+
+      if (pedidoAlvo?.usa_vale_recibo) {
+        destinos.push('Controle de Vales');
+        if (!pedidoAlvo.vale_recibo_imagem_url) {
+          pendencias.push('vale-recibo sem imagem anexada');
+        }
+      }
+
+      const resumoDestino =
+        destinos.length > 0
+          ? ` Encaminhado para ${destinos.join(' e ')}.${pendencias.length ? ` Observação: ${pendencias.join(' e ')}.` : ''}`
+          : pedidoAlvo?.usa_nf || pedidoAlvo?.usa_vale_recibo
+            ? ` Não entrou em controle porque ${pendencias.join(' e ')}.`
+            : '';
+
+      setSucesso(
+        `Pedido #${pedidoId} efetivado com data ${formatarData(dataEfetivacaoIso)}.${resumoDestino}`
+      );
       await carregarDados();
     } catch {
       setErro('Não foi possível efetivar o pedido.');

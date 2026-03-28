@@ -618,6 +618,17 @@ export default function HomeScreen() {
     navigation.navigate('ControleNotas');
   };
 
+  const abrirControleVales = () => {
+    if (!podeAcessarControleNotas) {
+      setMenuAberto(false);
+      Alert.alert('Acesso negado', 'Você não tem permissão para acessar Controle de Vales.');
+      return;
+    }
+    setMenuAberto(false);
+    setMostrarSobreApp(false);
+    navigation.navigate('ControleVales');
+  };
+
   const irParaNovoPedido = () => {
     setMenuAberto(false);
     setMostrarSobreApp(false);
@@ -843,6 +854,15 @@ export default function HomeScreen() {
                       <Text style={styles.menuLinkIcon}>🗂️</Text>
                     </View>
                     <Text style={styles.menuLinkText}>Controle de Notas</Text>
+                    <Text style={styles.menuLinkChevron}>{'▸'}</Text>
+                  </Pressable>
+                ) : null}
+                {podeAcessarControleNotas ? (
+                  <Pressable style={styles.menuLink} onPress={abrirControleVales}>
+                    <View style={styles.menuLinkIconWrap}>
+                      <Text style={styles.menuLinkIcon}>💳</Text>
+                    </View>
+                    <Text style={styles.menuLinkText}>Controle de Vales</Text>
                     <Text style={styles.menuLinkChevron}>{'▸'}</Text>
                   </Pressable>
                 ) : null}

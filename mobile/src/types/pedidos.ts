@@ -17,7 +17,9 @@ export interface Pedido {
   status: string;
   ordem_remaneio?: number | null;
   usa_nf?: boolean;
+  usa_vale_recibo?: boolean;
   nf_imagem_url?: string | null;
+  vale_recibo_imagem_url?: string | null;
   canhoto_imagem_url?: string | null;
   nf_numero?: string | null;
   nf_status?: 'PENDENTE' | 'ANTECIPADA' | string | null;

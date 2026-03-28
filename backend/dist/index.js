@@ -876,7 +876,9 @@ const ensureImageColumns = async () => {
     await db_1.pool.query("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS imagem_url TEXT");
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS ordem_remaneio INTEGER");
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS usa_nf BOOLEAN NOT NULL DEFAULT false");
+    await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS usa_vale_recibo BOOLEAN NOT NULL DEFAULT false");
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_imagem_url TEXT");
+    await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS vale_recibo_imagem_url TEXT");
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS canhoto_imagem_url TEXT");
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_numero TEXT");
     await db_1.pool.query("ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS nf_status TEXT NOT NULL DEFAULT 'PENDENTE'");
@@ -1061,21 +1063,21 @@ app.delete("/notificacoes/dispositivos", autenticarToken, async (req, res) => {
 app.get(["/compartilhar/pedido/:id/nf", "/nf/:id", "/n/:id"], async (req, res) => {
     try {
         const pedidoId = parseInt(String(req.params.id), 10);
-        const result = await db_1.pool.query(`SELECT nf_imagem_url
+        const result = await db_1.pool.query(`SELECT nf_imagem_url, vale_recibo_imagem_url
        FROM pedidos
        WHERE id = $1`, [pedidoId]);
         if (result.rows.length === 0) {
             return res.status(404).send("Pedido não encontrado.");
         }
-        const url = normalizarImagemUrl(result.rows[0].nf_imagem_url);
+        const url = normalizarImagemUrl(result.rows[0].nf_imagem_url || result.rows[0].vale_recibo_imagem_url);
         if (!url) {
-            return res.status(404).send("NF não encontrada.");
+            return res.status(404).send("Documento fiscal não encontrado.");
         }
         return res.redirect(url);
     }
     catch (error) {
-        console.error("Erro ao compartilhar NF:", error);
-        return res.status(500).send("Erro ao abrir NF.");
+        console.error("Erro ao compartilhar documento fiscal:", error);
+        return res.status(500).send("Erro ao abrir documento fiscal.");
     }
 });
 app.get(["/compartilhar/pedido/:id/canhoto", "/canhoto/:id", "/c/:id"], async (req, res) => {
@@ -1105,8 +1107,11 @@ app.get(["/compartilhar/pedido/:id", "/pedido/:id"], async (req, res) => {
         p.id,
         p.data,
         p.status,
+        p.usa_nf,
+        p.usa_vale_recibo,
         p.nf_numero,
         p.nf_imagem_url,
+        p.vale_recibo_imagem_url,
         p.canhoto_imagem_url,
         c.nome AS cliente_nome
       FROM pedidos p
@@ -1116,7 +1121,7 @@ app.get(["/compartilhar/pedido/:id", "/pedido/:id"], async (req, res) => {
             return res.status(404).send("Pedido não encontrado.");
         }
         const pedido = result.rows[0];
-        const nfLink = normalizarImagemUrl(pedido.nf_imagem_url)
+        const nfLink = normalizarImagemUrl(pedido.nf_imagem_url || pedido.vale_recibo_imagem_url)
             ? `/n/${pedidoId}`
             : null;
         const canhotoLink = normalizarImagemUrl(pedido.canhoto_imagem_url)
@@ -1145,8 +1150,9 @@ app.get(["/compartilhar/pedido/:id", "/pedido/:id"], async (req, res) => {
       <p><strong>Data:</strong> ${escapeHtml(pedido.data)}</p>
       <p><strong>Status:</strong> ${escapeHtml(pedido.status)}</p>
       ${pedido.nf_numero ? `<p><strong>NF:</strong> ${escapeHtml(pedido.nf_numero)}</p>` : ""}
+      ${pedido.usa_vale_recibo ? `<p><strong>Vale-recibo:</strong> Sim</p>` : ""}
       <div class="links">
-        ${nfLink ? `<a href="${nfLink}">Abrir nota fiscal</a>` : ""}
+        ${nfLink ? `<a href="${nfLink}">Abrir documento fiscal</a>` : ""}
         ${canhotoLink ? `<a class="secondary" href="${canhotoLink}">Abrir canhoto</a>` : ""}
       </div>
     </div>
@@ -1354,7 +1360,7 @@ app.get("/usuarios", canManageUsuarios, async (req, res) => {
     try {
         const { q, perfil, ativo, page = "1", limit = "10", sort_by = "id", sort_dir = "desc", } = req.query;
         const pageNum = Math.max(parseInt(String(page), 10) || 1, 1);
-        const limitNum = Math.min(Math.max(parseInt(String(limit), 10) || 10, 1), 100);
+        const limitNum = Math.min(Math.max(parseInt(String(limit), 10) || 10, 1), 500);
         const offset = (pageNum - 1) * limitNum;
         let whereClause = "WHERE 1=1";
         const params = [];
@@ -2083,7 +2089,9 @@ app.get("/pedidos", async (req, res) => {
         p.status,
         p.ordem_remaneio,
         p.usa_nf,
+        p.usa_vale_recibo,
         p.nf_imagem_url,
+        p.vale_recibo_imagem_url,
         p.canhoto_imagem_url,
         p.nf_numero,
         p.nf_status,
@@ -2184,7 +2192,9 @@ app.get("/pedidos/:id", async (req, res, next) => {
         p.status,
         p.ordem_remaneio,
         p.usa_nf,
+        p.usa_vale_recibo,
         p.nf_imagem_url,
+        p.vale_recibo_imagem_url,
         p.canhoto_imagem_url,
         p.nf_numero,
         p.nf_status,
@@ -2294,7 +2304,9 @@ app.get("/pedidos/paginado", async (req, res) => {
         p.status,
         p.ordem_remaneio,
         p.usa_nf,
+        p.usa_vale_recibo,
         p.nf_imagem_url,
+        p.vale_recibo_imagem_url,
         p.canhoto_imagem_url,
         p.nf_numero,
         p.nf_status,
@@ -2489,10 +2501,12 @@ app.patch("/pedidos/nf/cancelar-antecipacao", async (req, res) => {
 // Cria um novo pedido com itens
 app.post("/pedidos", async (req, res) => {
     var _a, _b, _c, _d, _e;
-    const { chave_pedido, cliente_id, rota_id, data, status, itens, usa_nf, nf_imagem_url, nf_numero, canhoto_imagem_url } = req.body;
+    const { chave_pedido, cliente_id, rota_id, data, status, itens, usa_nf, usa_vale_recibo, nf_imagem_url, vale_recibo_imagem_url, nf_numero, canhoto_imagem_url, } = req.body;
     const usuarioId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.id) || null;
     const usaNf = normalizarBoolean(usa_nf);
+    const usaValeRecibo = normalizarBoolean(usa_vale_recibo);
     const nfImagemUrl = normalizarImagemUrl(nf_imagem_url);
+    const valeReciboImagemUrl = normalizarImagemUrl(vale_recibo_imagem_url);
     const canhotoImagemUrl = normalizarImagemUrl(canhoto_imagem_url);
     const nfNumero = normalizarNfNumero(nf_numero);
     let clienteNome = "Cliente";
@@ -2517,6 +2531,11 @@ app.post("/pedidos", async (req, res) => {
     if (usaNf && !nfNumero) {
         return res.status(400).json({
             error: "Informe o número da NF quando o checklist 'Usa NF' estiver ativo.",
+        });
+    }
+    if (usaValeRecibo && !valeReciboImagemUrl) {
+        return res.status(400).json({
+            error: "Informe a imagem do vale-recibo quando o checklist 'Usa Vale-Recibo' estiver ativo.",
         });
     }
     const client = await db_1.pool.connect();
@@ -2552,9 +2571,9 @@ app.post("/pedidos", async (req, res) => {
             throw new Error(`Status inválido. Valores permitidos: ${STATUS_PERMITIDOS.join(", ")}`);
         }
         // Inserir pedido
-        const pedidoResult = await client.query(`INSERT INTO pedidos (chave_pedido, cliente_id, rota_id, data, status, valor_total, usa_nf, nf_imagem_url, canhoto_imagem_url, nf_numero, nf_status, criado_por)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-       RETURNING id, chave_pedido, data, status, valor_total, usa_nf, nf_imagem_url, canhoto_imagem_url, nf_numero, nf_status`, [
+        const pedidoResult = await client.query(`INSERT INTO pedidos (chave_pedido, cliente_id, rota_id, data, status, valor_total, usa_nf, usa_vale_recibo, nf_imagem_url, vale_recibo_imagem_url, canhoto_imagem_url, nf_numero, nf_status, criado_por)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+       RETURNING id, chave_pedido, data, status, valor_total, usa_nf, usa_vale_recibo, nf_imagem_url, vale_recibo_imagem_url, canhoto_imagem_url, nf_numero, nf_status`, [
             finalChavePedido,
             cliente_id,
             rota_id || null,
@@ -2562,7 +2581,9 @@ app.post("/pedidos", async (req, res) => {
             statusNormalizado,
             valorTotal,
             usaNf,
+            usaValeRecibo,
             usaNf ? nfImagemUrl : null,
+            usaValeRecibo ? valeReciboImagemUrl : null,
             usaNf ? canhotoImagemUrl : null,
             usaNf ? nfNumero : null,
             "PENDENTE",
@@ -2851,7 +2872,7 @@ app.delete("/trocas/:id", async (req, res) => {
 app.put("/pedidos/:id", async (req, res) => {
     var _a, _b, _c, _d, _e, _f, _g;
     const { id } = req.params;
-    const { rota_id, data, status, itens, usa_nf, nf_imagem_url, canhoto_imagem_url, nf_numero } = req.body;
+    const { rota_id, data, status, itens, usa_nf, usa_vale_recibo, nf_imagem_url, vale_recibo_imagem_url, canhoto_imagem_url, nf_numero, } = req.body;
     const usuarioId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.id) || null;
     const client = await db_1.pool.connect();
     try {
@@ -2885,9 +2906,11 @@ app.put("/pedidos/:id", async (req, res) => {
             params.push(statusNormalizado);
             paramIndex++;
         }
-        if (usa_nf !== undefined) {
+        if (usa_nf !== undefined || usa_vale_recibo !== undefined) {
             const usaNf = normalizarBoolean(usa_nf);
+            const usaValeRecibo = normalizarBoolean(usa_vale_recibo);
             const nfImagemUrl = normalizarImagemUrl(nf_imagem_url);
+            const valeReciboImagemUrl = normalizarImagemUrl(vale_recibo_imagem_url);
             const nfNumero = normalizarNfNumero(nf_numero);
             if (usaNf && !nfImagemUrl) {
                 throw new Error("Informe a imagem da NF quando o checklist 'Usa NF' estiver ativo.");
@@ -2895,11 +2918,20 @@ app.put("/pedidos/:id", async (req, res) => {
             if (usaNf && !nfNumero) {
                 throw new Error("Informe o número da NF quando o checklist 'Usa NF' estiver ativo.");
             }
+            if (usaValeRecibo && !valeReciboImagemUrl) {
+                throw new Error("Informe a imagem do vale-recibo quando o checklist 'Usa Vale-Recibo' estiver ativo.");
+            }
             updateFields.push(`usa_nf = $${paramIndex}`);
             params.push(usaNf);
             paramIndex++;
+            updateFields.push(`usa_vale_recibo = $${paramIndex}`);
+            params.push(usaValeRecibo);
+            paramIndex++;
             updateFields.push(`nf_imagem_url = $${paramIndex}`);
             params.push(usaNf ? nfImagemUrl : null);
+            paramIndex++;
+            updateFields.push(`vale_recibo_imagem_url = $${paramIndex}`);
+            params.push(usaValeRecibo ? valeReciboImagemUrl : null);
             paramIndex++;
             const canhotoImagemUrl = normalizarImagemUrl(canhoto_imagem_url);
             updateFields.push(`canhoto_imagem_url = $${paramIndex}`);
@@ -2916,6 +2948,15 @@ app.put("/pedidos/:id", async (req, res) => {
             const nfImagemUrl = normalizarImagemUrl(nf_imagem_url);
             updateFields.push(`nf_imagem_url = $${paramIndex}`);
             params.push(nfImagemUrl);
+            paramIndex++;
+            updateFields.push(`nf_status = $${paramIndex}`);
+            params.push("PENDENTE");
+            paramIndex++;
+        }
+        else if (vale_recibo_imagem_url !== undefined) {
+            const valeReciboImagemUrl = normalizarImagemUrl(vale_recibo_imagem_url);
+            updateFields.push(`vale_recibo_imagem_url = $${paramIndex}`);
+            params.push(valeReciboImagemUrl);
             paramIndex++;
             updateFields.push(`nf_status = $${paramIndex}`);
             params.push("PENDENTE");
@@ -2993,7 +3034,9 @@ app.put("/pedidos/:id", async (req, res) => {
         p.data,
         p.status,
         p.usa_nf,
+        p.usa_vale_recibo,
         p.nf_imagem_url,
+        p.vale_recibo_imagem_url,
         p.canhoto_imagem_url,
         p.nf_numero,
         p.nf_status,
@@ -3473,8 +3516,8 @@ app.get("/relatorios/notas", async (req, res) => {
         }
         const params = [];
         const filtros = [
-            "p.usa_nf = true",
-            "COALESCE(p.nf_imagem_url, '') <> ''",
+            "(p.usa_nf = true OR p.usa_vale_recibo = true)",
+            "COALESCE(p.nf_imagem_url, p.vale_recibo_imagem_url, '') <> ''",
             "p.status <> 'CANCELADO'",
         ];
         if (dataInicio) {
@@ -3502,6 +3545,7 @@ app.get("/relatorios/notas", async (req, res) => {
         p.valor_total AS pedido_valor_total,
         p.nf_numero,
         p.nf_imagem_url,
+        p.vale_recibo_imagem_url,
         p.canhoto_imagem_url,
         p.nf_status,
         c.id AS cliente_id,

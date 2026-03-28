@@ -172,6 +172,10 @@ export default function PedidoDetalheScreen({ route, navigation }: Props) {
     return trocas.filter((troca) => Number(troca.pedido_id) === Number(pedido.id));
   }, [pedido, trocas]);
   const nfEhPdf = useMemo(() => isPdfAttachment(pedido?.nf_imagem_url), [pedido?.nf_imagem_url]);
+  const valeReciboEhPdf = useMemo(
+    () => isPdfAttachment(pedido?.vale_recibo_imagem_url),
+    [pedido?.vale_recibo_imagem_url]
+  );
 
   useEffect(() => {
     previewNfZoomRef.current = previewNfZoom;
@@ -400,6 +404,35 @@ export default function PedidoDetalheScreen({ route, navigation }: Props) {
               </>
             ) : (
               <Text style={styles.emptyText}>Imagem da NF não informada.</Text>
+            )}
+          </View>
+        ) : null}
+
+        {pedido.usa_vale_recibo && pedido.vale_recibo_imagem_url ? (
+          <View style={styles.itemsCard}>
+            <Text style={styles.sectionTitle}>Imagem do Vale-Recibo</Text>
+            {valeReciboEhPdf ? (
+              <Pressable
+                style={styles.nfPdfButton}
+                onPress={async () => {
+                  try {
+                    await openPdfAttachment(pedido.vale_recibo_imagem_url, `pedido-${pedido.id}-vale-recibo`);
+                  } catch (error: any) {
+                    Alert.alert('PDF do Vale-Recibo', error?.message || 'Não foi possível abrir o PDF do vale-recibo.');
+                  }
+                }}
+              >
+                <View style={styles.nfPdfBadge}>
+                  <Text style={styles.nfPdfBadgeText}>PDF</Text>
+                </View>
+                <Text style={styles.nfPdfButtonText}>Vale-recibo em PDF</Text>
+                <Text style={styles.nfPdfButtonHint}>Toque para abrir o arquivo</Text>
+              </Pressable>
+            ) : (
+              <>
+                <Image source={{ uri: pedido.vale_recibo_imagem_url }} style={styles.nfThumb} resizeMode="cover" />
+                <Text style={styles.nfHint}>Vale-recibo anexado.</Text>
+              </>
             )}
           </View>
         ) : null}

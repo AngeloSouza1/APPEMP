@@ -38,7 +38,8 @@ export type RootStackParamList = {
   PedidoEditar: { id: number };
   PedidoNovo: undefined;
   Orcamento: undefined;
-  ControleNotas: undefined;
+  ControleNotas: { modo?: 'notas' | 'vales' } | undefined;
+  ControleVales: { modo?: 'vales' } | undefined;
   Modulo: { modulo: string; titulo: string };
   Historico: undefined;
 };
@@ -78,6 +79,11 @@ export default function RootNavigator() {
           <Stack.Screen name="PedidoNovo" component={PedidoNovoScreen} />
           <Stack.Screen name="Orcamento" component={OrcamentoScreen} />
           <Stack.Screen name="ControleNotas" component={ControleNotasScreen} />
+          <Stack.Screen
+            name="ControleVales"
+            component={ControleNotasScreen}
+            initialParams={{ modo: 'vales' }}
+          />
           <Stack.Screen name="PedidoDetalhe" component={PedidoDetalheScreen} />
           <Stack.Screen name="PedidoEditar" component={PedidoEditarScreen} />
           <Stack.Screen name="Modulo" component={ModuloScreen} />

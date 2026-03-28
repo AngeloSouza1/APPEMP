@@ -57,7 +57,9 @@ CREATE TABLE pedidos (
   data DATE NOT NULL,
   status TEXT NOT NULL, -- ex: 'EM_ESPERA', 'CONFERIR', 'EFETIVADO'
   usa_nf BOOLEAN NOT NULL DEFAULT FALSE,
+  usa_vale_recibo BOOLEAN NOT NULL DEFAULT FALSE,
   nf_imagem_url TEXT,
+  vale_recibo_imagem_url TEXT,
   nf_numero TEXT,
   nf_status TEXT NOT NULL DEFAULT 'PENDENTE',
   valor_total NUMERIC(14, 2) DEFAULT 0,
