@@ -43,6 +43,15 @@ type ProducaoTrocaAgrupada = {
   quantidade_total: number;
 };
 
+type ClienteTrocaResumo = {
+  cliente_id: number;
+  cliente_nome: string;
+  codigo_cliente: string;
+  rota_nome?: string | null;
+  quantidade_total: number;
+  pedidos_ids: number[];
+};
+
 const agregarTrocas = (rows: RelatorioTrocaItem[]) => {
   const mapa = new Map<string, ProducaoTrocaAgrupada>();
   rows.forEach((row) => {
@@ -69,7 +78,9 @@ export default function ProducaoDashboardScreen() {
   const [erro, setErro] = useState<string | null>(null);
   const [resultado, setResultado] = useState<RelatorioProducaoItem[]>([]);
   const [resultadoTrocas, setResultadoTrocas] = useState<ProducaoTrocaAgrupada[]>([]);
+  const [detalhesTrocas, setDetalhesTrocas] = useState<RelatorioTrocaItem[]>([]);
   const [imagemPorProdutoId, setImagemPorProdutoId] = useState<Record<number, string>>({});
+  const [trocaSelecionada, setTrocaSelecionada] = useState<ProducaoTrocaAgrupada | null>(null);
 
   const carregarProducao = async () => {
     setLoading(true);
@@ -82,8 +93,10 @@ export default function ProducaoDashboardScreen() {
         relatoriosApi.trocas({ status: 'CONFERIR' }),
         produtosApi.listar(),
       ]);
+      const trocasCompletas = [...trocasEmEsperaResp.data, ...trocasConferirResp.data];
       setResultado(agregarProducao([...emEsperaResp.data, ...conferirResp.data]));
-      setResultadoTrocas(agregarTrocas([...trocasEmEsperaResp.data, ...trocasConferirResp.data]));
+      setResultadoTrocas(agregarTrocas(trocasCompletas));
+      setDetalhesTrocas(trocasCompletas);
       const imagensMap = produtosResp.data.reduce<Record<number, string>>((acc, produto) => {
         if (produto.id && produto.imagem_url) {
           acc[produto.id] = produto.imagem_url;
@@ -119,6 +132,34 @@ export default function ProducaoDashboardScreen() {
     () => [...resultadoTrocas].sort((a, b) => Number(b.quantidade_total || 0) - Number(a.quantidade_total || 0)),
     [resultadoTrocas]
   );
+  const clientesDaTrocaSelecionada = useMemo<ClienteTrocaResumo[]>(() => {
+    if (!trocaSelecionada) return [];
+    const mapa = new Map<number, ClienteTrocaResumo>();
+    detalhesTrocas
+      .filter((item) => Number(item.produto_id) === Number(trocaSelecionada.produto_id))
+      .forEach((item) => {
+        const clienteId = Number(item.cliente_id);
+        const atual = mapa.get(clienteId);
+        if (atual) {
+          atual.quantidade_total += Number(item.quantidade || 0);
+          if (!atual.pedidos_ids.includes(Number(item.pedido_id))) {
+            atual.pedidos_ids.push(Number(item.pedido_id));
+          }
+          return;
+        }
+        mapa.set(clienteId, {
+          cliente_id: clienteId,
+          cliente_nome: item.cliente_nome,
+          codigo_cliente: item.codigo_cliente,
+          rota_nome: item.rota_nome ?? null,
+          quantidade_total: Number(item.quantidade || 0),
+          pedidos_ids: [Number(item.pedido_id)],
+        });
+      });
+    return [...mapa.values()].sort(
+      (a, b) => b.quantidade_total - a.quantidade_total || a.cliente_nome.localeCompare(b.cliente_nome, 'pt-BR')
+    );
+  }, [detalhesTrocas, trocaSelecionada]);
 
   const topSafeOffset = Math.max(
     Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 20,
@@ -212,7 +253,11 @@ export default function ProducaoDashboardScreen() {
                 <Text style={styles.emptyText}>Nenhuma troca pendente para produção.</Text>
               ) : (
                 trocasOrdenadas.map((item, index) => (
-                  <View key={`troca-${item.produto_id}-${index}`} style={styles.itemCardTroca}>
+                  <Pressable
+                    key={`troca-${item.produto_id}-${index}`}
+                    style={({ pressed }) => [styles.itemCardTroca, pressed && styles.pressed]}
+                    onPress={() => setTrocaSelecionada(item)}
+                  >
                     <View style={styles.itemTop}>
                       <View style={styles.itemIdentity}>
                         {imagemPorProdutoId[item.produto_id] ? (
@@ -233,7 +278,7 @@ export default function ProducaoDashboardScreen() {
                       </View>
                       <Text style={styles.itemValueTroca}>{formatarNumero(item.quantidade_total)}</Text>
                     </View>
-                  </View>
+                  </Pressable>
                 ))
               )}
             </View>
@@ -290,6 +335,49 @@ export default function ProducaoDashboardScreen() {
           <View style={styles.loadingCard}>
             <ActivityIndicator size="small" color="#1d4ed8" />
             <Text style={styles.loadingText}>Carregando...</Text>
+          </View>
+        </View>
+      </Modal>
+      <Modal
+        transparent
+        visible={Boolean(trocaSelecionada)}
+        animationType="fade"
+        onRequestClose={() => setTrocaSelecionada(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderText}>
+                <Text style={styles.modalTitle}>{trocaSelecionada?.produto_nome || 'Clientes da troca'}</Text>
+                <Text style={styles.modalSubtitle}>
+                  {clientesDaTrocaSelecionada.length} cliente(s) vinculados a esta troca
+                </Text>
+              </View>
+              <Pressable style={styles.modalCloseButton} onPress={() => setTrocaSelecionada(null)}>
+                <Text style={styles.modalCloseText}>Fechar</Text>
+              </Pressable>
+            </View>
+            <ScrollView contentContainerStyle={styles.modalList}>
+              {clientesDaTrocaSelecionada.length === 0 ? (
+                <Text style={styles.emptyText}>Nenhum cliente vinculado encontrado.</Text>
+              ) : (
+                clientesDaTrocaSelecionada.map((cliente) => (
+                  <View key={`troca-cliente-${cliente.cliente_id}`} style={styles.modalItemCard}>
+                    <View style={styles.modalItemTop}>
+                      <View style={styles.modalItemInfo}>
+                        <Text style={styles.modalItemTitle}>{cliente.cliente_nome}</Text>
+                        <Text style={styles.modalItemMeta}>#{cliente.codigo_cliente}</Text>
+                        {cliente.rota_nome ? <Text style={styles.modalItemMeta}>Rota: {cliente.rota_nome}</Text> : null}
+                        <Text style={styles.modalItemMeta}>
+                          Pedido(s): {cliente.pedidos_ids.map((id) => `#${id}`).join(', ')}
+                        </Text>
+                      </View>
+                      <Text style={styles.modalItemValue}>{formatarNumero(cliente.quantidade_total)}</Text>
+                    </View>
+                  </View>
+                ))
+              )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -564,5 +652,88 @@ const styles = StyleSheet.create({
     color: '#1e3a8a',
     fontWeight: '700',
     fontSize: 15.02,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.38)',
+    justifyContent: 'center',
+    padding: 18,
+  },
+  modalCard: {
+    maxHeight: '78%',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+    backgroundColor: '#fffbeb',
+    padding: 14,
+    gap: 12,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    columnGap: 12,
+  },
+  modalHeaderText: {
+    flex: 1,
+    gap: 3,
+  },
+  modalTitle: {
+    color: '#0f172a',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  modalSubtitle: {
+    color: '#92400e',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  modalCloseButton: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#f59e0b',
+    backgroundColor: '#fff7ed',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  modalCloseText: {
+    color: '#9a3412',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  modalList: {
+    gap: 8,
+  },
+  modalItemCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fcd34d',
+    backgroundColor: '#ffffff',
+    padding: 10,
+  },
+  modalItemTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    columnGap: 10,
+  },
+  modalItemInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  modalItemTitle: {
+    color: '#0f172a',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  modalItemMeta: {
+    color: '#475569',
+    fontSize: 12.5,
+    fontWeight: '600',
+  },
+  modalItemValue: {
+    color: '#b45309',
+    fontSize: 18,
+    fontWeight: '900',
   },
 });
