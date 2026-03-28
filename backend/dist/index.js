@@ -2251,7 +2251,7 @@ app.get("/pedidos/paginado", async (req, res) => {
     try {
         const { data, rota_id, cliente_id, status, q, page = "1", limit = "10" } = req.query;
         const pageNum = Math.max(parseInt(String(page), 10) || 1, 1);
-        const limitNum = Math.min(Math.max(parseInt(String(limit), 10) || 10, 1), 100);
+        const limitNum = Math.min(Math.max(parseInt(String(limit), 10) || 10, 1), 500);
         const offset = (pageNum - 1) * limitNum;
         let whereClause = `WHERE 1=1`;
         const params = [];
