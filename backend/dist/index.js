@@ -2447,7 +2447,10 @@ app.patch("/pedidos/nf/antecipar", async (req, res) => {
            atualizado_em = NOW(),
            atualizado_por = $2
        WHERE id = ANY($1::int[])
-         AND COALESCE(nf_imagem_url, '') <> ''
+         AND (
+           COALESCE(nf_imagem_url, '') <> ''
+           OR usa_vale_recibo = true
+         )
          AND status <> 'CANCELADO'
        RETURNING id`, [pedidoIds, ((_b = req.user) === null || _b === void 0 ? void 0 : _b.id) || null, ((_c = req.user) === null || _c === void 0 ? void 0 : _c.nome) || null]);
         return res.json({

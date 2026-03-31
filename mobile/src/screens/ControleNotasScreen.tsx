@@ -87,6 +87,9 @@ export default function ControleNotasScreen() {
   const documentoTituloPlural = ehControleVales ? 'Vales' : 'Notas';
   const documentoTituloLower = ehControleVales ? 'vale-recibo' : 'nota';
   const documentoTituloLowerPlural = ehControleVales ? 'vales' : 'notas';
+  const statusFinalLabelPlural = ehControleVales ? 'Recebidos' : 'Antecipados';
+  const statusFinalLabelPorData = ehControleVales ? 'Recebidos por data' : 'Antecipados por data';
+  const prontoParaAcaoLabel = ehControleVales ? 'Pronto para receber' : 'Pronto para antecipar';
   const compactLayout = height < 760;
   const narrowLayout = width < 390;
   const stackLayout = width < 430;
@@ -330,11 +333,17 @@ export default function ControleNotasScreen() {
               setEfetivando(true);
               const dataAntecipacao = new Date().toISOString();
               const response = await pedidosApi.anteciparNotas(idsSelecionados);
-              const idsEfetivados = new Set<number>(
-                Array.isArray(response.data?.ids) && response.data.ids.length
-                  ? response.data.ids
-                  : idsSelecionados
-              );
+              const idsAtualizados = Array.isArray(response.data?.ids) ? response.data.ids : [];
+              if (!idsAtualizados.length) {
+                Alert.alert(
+                  'Nada efetivado',
+                  ehControleVales
+                    ? 'Os vales selecionados não puderam ser efetivados.'
+                    : 'As notas selecionadas não puderam ser efetivadas.'
+                );
+                return;
+              }
+              const idsEfetivados = new Set<number>(idsAtualizados);
               setPedidos((prev) => prev.map((pedido) => (
                 idsEfetivados.has(pedido.id)
                   ? {
@@ -349,7 +358,7 @@ export default function ControleNotasScreen() {
               setSelecionados({});
               setCardsExpandidos({});
               setAbaAtiva('efetivados');
-              Alert.alert('Sucesso', `${documentoTituloPlural} efetivados e movidos para Antecipados.`);
+              Alert.alert('Sucesso', `${documentoTituloPlural} efetivados e movidos para ${statusFinalLabelPlural}.`);
             } catch {
               Alert.alert('Erro', `Não foi possível efetivar os ${documentoTituloLowerPlural} selecionados.`);
             } finally {
@@ -359,7 +368,14 @@ export default function ControleNotasScreen() {
         },
       ]
     );
-  }, [documentoTituloLower, documentoTituloLowerPlural, documentoTituloPlural, idsSelecionados]);
+  }, [
+    documentoTituloLower,
+    documentoTituloLowerPlural,
+    documentoTituloPlural,
+    ehControleVales,
+    idsSelecionados,
+    statusFinalLabelPlural,
+  ]);
 
   const cancelarEfetivacaoNota = useCallback((pedidoId: number) => {
     Alert.alert(
@@ -800,7 +816,7 @@ export default function ControleNotasScreen() {
                 <Text style={styles.summaryCompactChipValue}>{pedidosAConferir.length}</Text>
               </View>
               <View style={styles.summaryCompactChip}>
-                <Text style={styles.summaryCompactChipLabel}>Antecipados</Text>
+                <Text style={styles.summaryCompactChipLabel}>{statusFinalLabelPlural}</Text>
                 <Text style={styles.summaryCompactChipValue}>{pedidosEfetivados.length}</Text>
               </View>
               <View style={styles.summaryCompactChip}>
@@ -820,7 +836,7 @@ export default function ControleNotasScreen() {
                   <Text style={styles.summaryInlineValue}>{pedidosAConferir.length}</Text>
                 </View>
                 <View style={[styles.summaryInlineItem, styles.summaryInlineStatCard, stackLayout && styles.summaryInlineItemCompact]}>
-                  <Text style={styles.summaryInlineLabel}>Antecipados</Text>
+                  <Text style={styles.summaryInlineLabel}>{statusFinalLabelPlural}</Text>
                   <Text style={styles.summaryInlineValue}>{pedidosEfetivados.length}</Text>
                 </View>
                 <View style={[styles.summaryInlineItem, styles.summaryInlineStatCard, stackLayout && styles.summaryInlineItemCompact]}>
@@ -835,7 +851,7 @@ export default function ControleNotasScreen() {
                   <Text style={styles.summaryMetricValueMoney}>{formatarMoeda(totalSelecionado)}</Text>
                 </View>
                 <View style={styles.summaryMetricCard}>
-                  <Text style={styles.summaryMetricLabel}>Pronto para antecipar</Text>
+                  <Text style={styles.summaryMetricLabel}>{prontoParaAcaoLabel}</Text>
                   <Text style={styles.summaryMetricValue}>{idsSelecionados.length > 0 ? 'Sim' : 'Não'}</Text>
                 </View>
               </View>
@@ -867,7 +883,7 @@ export default function ControleNotasScreen() {
             onPress={() => setAbaAtiva('efetivados')}
           >
             <Text style={[styles.tabButtonText, abaAtiva === 'efetivados' && styles.tabButtonTextActive]}>
-              Antecipados ({pedidosEfetivados.length})
+              {statusFinalLabelPlural} ({pedidosEfetivados.length})
             </Text>
           </Pressable>
         </View>
@@ -922,7 +938,7 @@ export default function ControleNotasScreen() {
               >
                 <View style={styles.sectionCard}>
                   <View style={[styles.sectionHeader, stackLayout && styles.sectionHeaderCompact]}>
-                    <Text style={styles.sectionTitle}>Antecipados por data</Text>
+                    <Text style={styles.sectionTitle}>{statusFinalLabelPorData}</Text>
                     <Text style={styles.sectionMeta}>{pedidosEfetivados.length} item(ns)</Text>
                   </View>
                   <Pressable
