@@ -229,7 +229,11 @@ export default function RemaneioScreen() {
       .map((pedido, index) => {
         const titulo = `${index + 1}. ${pedido.cliente_nome || 'Cliente'}${pedido.rota_nome ? ` (${pedido.rota_nome})` : ''}`;
         const link = pedido.cliente_link ? `\n${pedido.cliente_link}` : '';
-        return `🔹 ${titulo}${link}`;
+        const trocas =
+          Boolean(pedido.tem_trocas) || Number(pedido.qtd_trocas || 0) > 0
+            ? `\nTrocas: ${pedido.nomes_trocas?.trim() || `${Number(pedido.qtd_trocas || 0)} item(ns) de troca`}`
+            : '';
+        return `🔹 ${titulo}${link}${trocas}`;
       })
       .join('\n\n');
 
@@ -280,6 +284,10 @@ export default function RemaneioScreen() {
           return `   - ${nomeProduto}\n     ${quantidadeLinha}`;
         })
         .join('\n');
+      const trocasLinha =
+        Boolean(pedido.tem_trocas) || Number(pedido.qtd_trocas || 0) > 0
+          ? `Trocas\n   - ${pedido.nomes_trocas?.trim() || `${Number(pedido.qtd_trocas || 0)} item(ns) de troca`}`
+          : null;
 
       return [
         `*${index + 1}. ${pedido.cliente_nome || 'Cliente'}*`,
@@ -287,7 +295,10 @@ export default function RemaneioScreen() {
         `Volumes: ${Number.isFinite(totalVolumes) ? String(totalVolumes).replace(/\.0+$/, '') : '0'}`,
         'Itens',
         itens || '   - Sem itens',
-      ].join('\n');
+        trocasLinha,
+      ]
+        .filter(Boolean)
+        .join('\n');
     });
 
     const mensagem = [
