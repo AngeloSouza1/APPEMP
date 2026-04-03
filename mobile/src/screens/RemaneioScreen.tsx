@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DatePickerModal from '../components/DatePickerModal';
 import { pedidosApi, RotaResumo, rotasApi } from '../api/services';
 import { RootStackParamList } from '../navigation/RootNavigator';
-import { Pedido } from '../types/pedidos';
+import { Pedido, TrocaPedido } from '../types/pedidos';
 import { useAuth } from '../context/AuthContext';
 import { formatarData, formatarMoeda } from '../utils/format';
 import { marcarRelatoriosComoDesatualizados } from '../utils/relatoriosRefresh';
@@ -84,6 +84,7 @@ export default function RemaneioScreen() {
   const [showEfetivacaoDatePicker, setShowEfetivacaoDatePicker] = useState(false);
   const [filtrosAplicados, setFiltrosAplicados] = useState<{ q?: string; rota_id?: number; data?: string }>({});
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const [trocasPorPedido, setTrocasPorPedido] = useState<Record<number, TrocaPedido[]>>({});
 
   const [mostrarRotas, setMostrarRotas] = useState(false);
   const [buscaRota, setBuscaRota] = useState('');
@@ -206,6 +207,66 @@ export default function RemaneioScreen() {
 
   const pedidosDashboard = useMemo(() => [...pedidosRemaneio], [pedidosRemaneio]);
 
+  useEffect(() => {
+    let ativo = true;
+
+    const carregarTrocasDashboard = async () => {
+      const pedidosComTroca = pedidosDashboard.filter(
+        (pedido) => Boolean(pedido.tem_trocas) || Number(pedido.qtd_trocas || 0) > 0
+      );
+
+      if (!pedidosComTroca.length) {
+        if (ativo) setTrocasPorPedido({});
+        return;
+      }
+
+      try {
+        const respostas = await Promise.all(
+          pedidosComTroca.map((pedido) => pedidosApi.listarTrocas(pedido.id))
+        );
+
+        if (!ativo) return;
+
+        const mapa = respostas.reduce<Record<number, TrocaPedido[]>>((acc, resposta, index) => {
+          acc[pedidosComTroca[index].id] = resposta.data;
+          return acc;
+        }, {});
+
+        setTrocasPorPedido(mapa);
+      } catch {
+        if (ativo) setTrocasPorPedido({});
+      }
+    };
+
+    carregarTrocasDashboard();
+
+    return () => {
+      ativo = false;
+    };
+  }, [pedidosDashboard]);
+
+  const formatarTrocasPedido = useCallback(
+    (pedido: Pedido) => {
+      const trocas = trocasPorPedido[pedido.id] || [];
+      if (trocas.length > 0) {
+        return trocas
+          .map((troca) => {
+            const qtd = Number(troca.quantidade || 0);
+            const qtdLabel = Number.isFinite(qtd) ? String(qtd).replace(/\.0+$/, '') : String(troca.quantidade || '');
+            return `${troca.produto_nome} (${qtdLabel})`;
+          })
+          .join(', ');
+      }
+
+      if (Boolean(pedido.tem_trocas) || Number(pedido.qtd_trocas || 0) > 0) {
+        return pedido.nomes_trocas?.trim() || `${Number(pedido.qtd_trocas || 0)} item(ns) de troca`;
+      }
+
+      return '';
+    },
+    [trocasPorPedido]
+  );
+
   const resumoDashboard = useMemo(() => {
     const totalPedidos = pedidosDashboard.length;
     const valorTotal = pedidosDashboard.reduce((acc, pedido) => acc + Number(pedido.valor_total || 0), 0);
@@ -229,10 +290,8 @@ export default function RemaneioScreen() {
       .map((pedido, index) => {
         const titulo = `${index + 1}. ${pedido.cliente_nome || 'Cliente'}${pedido.rota_nome ? ` (${pedido.rota_nome})` : ''}`;
         const link = pedido.cliente_link ? `\n${pedido.cliente_link}` : '';
-        const trocas =
-          Boolean(pedido.tem_trocas) || Number(pedido.qtd_trocas || 0) > 0
-            ? `\nTrocas: ${pedido.nomes_trocas?.trim() || `${Number(pedido.qtd_trocas || 0)} item(ns) de troca`}`
-            : '';
+        const trocasDescricao = formatarTrocasPedido(pedido);
+        const trocas = trocasDescricao ? `\nTrocas: ${trocasDescricao}` : '';
         return `🔹 ${titulo}${link}${trocas}`;
       })
       .join('\n\n');
@@ -260,7 +319,7 @@ export default function RemaneioScreen() {
     } catch {
       Alert.alert('Erro', 'Não foi possível abrir o WhatsApp para envio do dashboard.');
     }
-  }, [filtrosAplicados.data, pedidosDashboard, resumoDashboard.valorTotal]);
+  }, [filtrosAplicados.data, formatarTrocasPedido, pedidosDashboard, resumoDashboard.valorTotal]);
 
   const enviarProducaoParaWhatsApp = useCallback(async () => {
     if (!pedidosDashboard.length) {
@@ -284,10 +343,8 @@ export default function RemaneioScreen() {
           return `   - ${nomeProduto}\n     ${quantidadeLinha}`;
         })
         .join('\n');
-      const trocasLinha =
-        Boolean(pedido.tem_trocas) || Number(pedido.qtd_trocas || 0) > 0
-          ? `Trocas\n   - ${pedido.nomes_trocas?.trim() || `${Number(pedido.qtd_trocas || 0)} item(ns) de troca`}`
-          : null;
+      const trocasDescricao = formatarTrocasPedido(pedido);
+      const trocasLinha = trocasDescricao ? `Trocas\n   - ${trocasDescricao}` : null;
 
       return [
         `*${index + 1}. ${pedido.cliente_nome || 'Cliente'}*`,
@@ -324,7 +381,7 @@ export default function RemaneioScreen() {
     } catch {
       Alert.alert('Erro', 'Não foi possível abrir o WhatsApp para envio da produção.');
     }
-  }, [filtrosAplicados.data, pedidosDashboard]);
+  }, [filtrosAplicados.data, formatarTrocasPedido, pedidosDashboard]);
 
   const aplicarFiltros = () => {
     setFiltrosAplicados({
